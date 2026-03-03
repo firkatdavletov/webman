@@ -3,6 +3,7 @@ import { isAuthenticated } from './auth/authService';
 import { CatalogPage } from './pages/CatalogPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { LoginPage } from './pages/LoginPage';
+import { ProductDetailsPage } from './pages/ProductDetailsPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 
@@ -25,6 +26,7 @@ function App() {
         <Route path="/catalog" element={<CatalogPage />} />
         <Route path="/categories" element={<CategoriesPage />} />
         <Route path="/products" element={<ProductsPage />} />
+        <Route path="/products/:productId" element={<ProductDetailsPage />} />
       </Route>
       <Route path="*" element={<Navigate to={fallbackPath} replace />} />
     </Routes>

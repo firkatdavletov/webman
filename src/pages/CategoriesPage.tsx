@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { NavBar } from '../components/NavBar';
 import { CatalogImportPanel } from '../components/CatalogImportPanel';
 import { CatalogCategory, getCategories } from '../catalog/catalogService';
@@ -31,6 +32,7 @@ function flattenCategories(
 }
 
 export function CategoriesPage() {
+  const [searchParams] = useSearchParams();
   const [categories, setCategories] = useState<CatalogCategory[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -40,6 +42,16 @@ export function CategoriesPage() {
   const [imageFilter, setImageFilter] = useState<'all' | 'with-image' | 'without-image'>('all');
   const [pageSize, setPageSize] = useState<number>(categoryPageSizeOptions[0]);
   const [page, setPage] = useState(1);
+  const focusedCategoryId = useMemo(() => {
+    const rawValue = searchParams.get('focusCategory');
+    const numericValue = Number(rawValue);
+
+    if (!rawValue || !Number.isInteger(numericValue) || numericValue <= 0) {
+      return null;
+    }
+
+    return numericValue;
+  }, [searchParams]);
 
   const loadCategoriesData = async (showInitialLoader = false) => {
     if (showInitialLoader) {
@@ -96,6 +108,20 @@ export function CategoriesPage() {
   useEffect(() => {
     setPage(1);
   }, [categories, imageFilter, pageSize, searchQuery, structureFilter]);
+
+  useEffect(() => {
+    if (!focusedCategoryId || !filteredCategories.length) {
+      return;
+    }
+
+    const focusedIndex = filteredCategories.findIndex((item) => item.category.id === focusedCategoryId);
+
+    if (focusedIndex === -1) {
+      return;
+    }
+
+    setPage(Math.floor(focusedIndex / pageSize) + 1);
+  }, [filteredCategories, focusedCategoryId, pageSize]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCategories.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -257,7 +283,10 @@ export function CategoriesPage() {
             <ul className="category-tree">
               {paginatedCategories.map((item) => (
                 <li key={item.category.id} className="category-branch-item">
-                  <article className="category-node" style={{ marginLeft: `${Math.min(item.depth, 4) * 18}px` }}>
+                  <article
+                    className={`category-node${focusedCategoryId === item.category.id ? ' category-node-focused' : ''}`}
+                    style={{ marginLeft: `${Math.min(item.depth, 4) * 18}px` }}
+                  >
                     <div className="category-node-header">
                       <div className="category-node-copy">
                         <h4 className="category-node-title">{item.category.title}</h4>

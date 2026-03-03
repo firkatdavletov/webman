@@ -45,6 +45,20 @@ type GetProductsResponseBody = {
   code: number | null;
 };
 
+type GetProductResponseBody = {
+  product: CatalogProduct | null;
+  success: boolean;
+  error: string | null;
+  code: number | null;
+};
+
+type SaveProductResponseBody = {
+  product: CatalogProduct | null;
+  success: boolean;
+  error: string | null;
+  code: number | null;
+};
+
 type CatalogImportRequest = {
   file: File;
   mode: CatalogImportMode;
@@ -67,8 +81,20 @@ export type CatalogProductsResult = {
   error: string | null;
 };
 
+export type CatalogProductResult = {
+  product: CatalogProduct | null;
+  error: string | null;
+};
+
+export type SaveProductResult = {
+  product: CatalogProduct | null;
+  error: string | null;
+};
+
 const CATALOG_IMPORT_ENDPOINT = '/admin/catalog/import';
+const SAVE_PRODUCT_ENDPOINT = '/admin/catalog/product';
 const CATALOG_CATEGORIES_ENDPOINT = '/catalog/categories';
+const CATALOG_PRODUCT_ENDPOINT = '/catalog/product';
 const CATALOG_PRODUCTS_ENDPOINT = '/catalog/products/all';
 
 async function parseJson<T>(response: Response): Promise<T | null> {
@@ -193,6 +219,83 @@ export async function getAllProducts(): Promise<CatalogProductsResult> {
     return {
       products: [],
       error: 'Не удалось связаться с сервисом товаров.',
+    };
+  }
+}
+
+export async function getProductById(id: number): Promise<CatalogProductResult> {
+  try {
+    const response = await window.fetch(`${CATALOG_PRODUCT_ENDPOINT}?id=${id}`);
+    const body = await parseJson<GetProductResponseBody>(response);
+
+    if (!body) {
+      return {
+        product: null,
+        error: 'Сервис товара вернул некорректный ответ.',
+      };
+    }
+
+    if (!response.ok || !body.success || !body.product) {
+      return {
+        product: body.product ?? null,
+        error: body.error ?? 'Не удалось загрузить товар.',
+      };
+    }
+
+    return {
+      product: body.product,
+      error: null,
+    };
+  } catch {
+    return {
+      product: null,
+      error: 'Не удалось связаться с сервисом товара.',
+    };
+  }
+}
+
+export async function saveProduct(product: CatalogProduct): Promise<SaveProductResult> {
+  const accessToken = getAccessToken();
+  const headers = new Headers({
+    'Content-Type': 'application/json',
+  });
+
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`);
+  }
+
+  try {
+    const response = await window.fetch(SAVE_PRODUCT_ENDPOINT, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        product,
+      }),
+    });
+    const body = await parseJson<SaveProductResponseBody>(response);
+
+    if (!body) {
+      return {
+        product: null,
+        error: 'Сервис сохранения товара вернул некорректный ответ.',
+      };
+    }
+
+    if (!response.ok || !body.success || !body.product) {
+      return {
+        product: body.product ?? null,
+        error: body.error ?? 'Не удалось сохранить товар.',
+      };
+    }
+
+    return {
+      product: body.product,
+      error: null,
+    };
+  } catch {
+    return {
+      product: null,
+      error: 'Не удалось связаться с сервисом сохранения товара.',
     };
   }
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { NavBar } from '../components/NavBar';
 import { CatalogImportPanel } from '../components/CatalogImportPanel';
 import {
@@ -7,7 +8,7 @@ import {
   getAllProducts,
   getCategories,
 } from '../catalog/catalogService';
-import { buildCategoryLookup, formatPrice } from '../catalog/catalogViewUtils';
+import { buildCategoryLookup, formatPrice, formatUnitLabel } from '../catalog/catalogViewUtils';
 
 const productPageSizeOptions = [12, 24, 48] as const;
 
@@ -260,7 +261,7 @@ export function ProductsPage() {
                   </p>
 
                   <div className="product-badges">
-                    <span className="product-badge">{product.unit}</span>
+                    <span className="product-badge">{formatUnitLabel(product.unit)}</span>
                     <span className="product-badge">Шаг {product.countStep}</span>
                     {product.displayWeight ? <span className="product-badge">{product.displayWeight}</span> : null}
                   </div>
@@ -270,6 +271,12 @@ export function ProductsPage() {
                   ) : (
                     <p className="product-card-description product-card-description-muted">Без описания</p>
                   )}
+
+                  <div className="product-card-actions">
+                    <Link className="secondary-link" to={`/products/${product.id}`}>
+                      Открыть карточку
+                    </Link>
+                  </div>
                 </article>
               ))}
             </div>

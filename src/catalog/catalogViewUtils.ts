@@ -1,5 +1,13 @@
 import { CatalogCategory } from './catalogService';
 
+const UNIT_LABELS: Record<string, string> = {
+  PIECE: 'шт',
+  KILOGRAM: 'кг',
+  GRAM: 'г',
+  LITER: 'л',
+  MILLILITER: 'мл',
+};
+
 export function formatPrice(price: number): string {
   return new Intl.NumberFormat('ru-RU', {
     style: 'currency',
@@ -24,4 +32,8 @@ export function buildCategoryLookup(categories: CatalogCategory[], lookup = new 
   });
 
   return lookup;
+}
+
+export function formatUnitLabel(unit: string): string {
+  return UNIT_LABELS[unit] ?? unit;
 }
