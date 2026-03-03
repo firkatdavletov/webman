@@ -144,6 +144,9 @@ export function CategoriesPage() {
             <span className="status-chip">
               {isLoading ? 'Загрузка категорий...' : `${totalCategories} категорий • ${totalProducts} связанных товаров`}
             </span>
+            <Link className="secondary-link" to="/categories/new">
+              Добавить категорию
+            </Link>
             <button
               type="button"
               className="secondary-button"

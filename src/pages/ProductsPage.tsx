@@ -101,6 +101,9 @@ export function ProductsPage() {
             <span className="status-chip">
               {isLoading ? 'Загрузка продуктов...' : `${products.length} товаров • ${categories.length} корневых категорий`}
             </span>
+            <Link className="secondary-link" to="/products/new">
+              Добавить товар
+            </Link>
             <button
               type="button"
               className="secondary-button"

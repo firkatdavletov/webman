@@ -2,6 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { NavBar } from '../components/NavBar';
 import {
+  buildProductEditorValues,
+  parseProductPrice,
+  ProductEditor,
+  ProductEditorValues,
+} from '../components/ProductEditor';
+import {
   CatalogCategory,
   CatalogProduct,
   getCategories,
@@ -10,61 +16,10 @@ import {
 } from '../catalog/catalogService';
 import { buildCategoryLookup, formatPrice, formatUnitLabel } from '../catalog/catalogViewUtils';
 
-type ProductFormValues = {
-  categoryId: string;
-  title: string;
-  description: string;
-  price: string;
-  imageUrl: string;
-  unit: string;
-  displayWeight: string;
-  countStep: string;
-  sku: string;
-};
-
-const unitOptions = [
-  { value: 'PIECE', label: 'шт' },
-  { value: 'KILOGRAM', label: 'кг' },
-  { value: 'GRAM', label: 'г' },
-  { value: 'LITER', label: 'л' },
-  { value: 'MILLILITER', label: 'мл' },
-] as const;
-
-function formatEditablePrice(price: number): string {
-  const rawValue = (price / 100).toFixed(2);
-
-  return rawValue.replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
-}
-
-function buildFormValues(product: CatalogProduct): ProductFormValues {
-  return {
-    categoryId: String(product.categoryId),
-    title: product.title,
-    description: product.description ?? '',
-    price: formatEditablePrice(product.price),
-    imageUrl: product.imageUrl ?? '',
-    unit: product.unit,
-    displayWeight: product.displayWeight ?? '',
-    countStep: String(product.countStep),
-    sku: product.sku ?? '',
-  };
-}
-
-function parsePrice(value: string): number | null {
-  const normalizedValue = value.trim().replace(',', '.');
-  const numericValue = Number(normalizedValue);
-
-  if (!normalizedValue || Number.isNaN(numericValue) || numericValue < 0) {
-    return null;
-  }
-
-  return Math.round(numericValue * 100);
-}
-
 export function ProductDetailsPage() {
   const { productId } = useParams();
   const [product, setProduct] = useState<CatalogProduct | null>(null);
-  const [formValues, setFormValues] = useState<ProductFormValues | null>(null);
+  const [formValues, setFormValues] = useState<ProductEditorValues | null>(null);
   const [categories, setCategories] = useState<CatalogCategory[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -95,7 +50,7 @@ export function ProductDetailsPage() {
       const nextErrors = [productResult.error, categoriesResult.error].filter(Boolean).join(' ');
 
       setProduct(productResult.product);
-      setFormValues(productResult.product ? buildFormValues(productResult.product) : null);
+      setFormValues(productResult.product ? buildProductEditorValues(productResult.product) : null);
       setCategories(categoriesResult.categories);
       setErrorMessage(nextErrors);
       setSaveError('');
@@ -118,7 +73,7 @@ export function ProductDetailsPage() {
     return entries.sort((left, right) => left[1].localeCompare(right[1], 'ru'));
   }, [categoryLookup, product]);
 
-  const handleFieldChange = (field: keyof ProductFormValues, value: string) => {
+  const handleFieldChange = (field: keyof ProductEditorValues, value: string) => {
     setFormValues((currentValues) => {
       if (!currentValues) {
         return currentValues;
@@ -147,7 +102,7 @@ export function ProductDetailsPage() {
     const normalizedTitle = formValues.title.trim();
     const normalizedCategoryId = Number(formValues.categoryId);
     const normalizedCountStep = Number(formValues.countStep);
-    const normalizedPrice = parsePrice(formValues.price);
+    const normalizedPrice = parseProductPrice(formValues.price);
 
     if (!normalizedTitle) {
       setSaveError('Укажите название товара.');
@@ -193,7 +148,7 @@ export function ProductDetailsPage() {
 
     if (result.product) {
       setProduct(result.product);
-      setFormValues(buildFormValues(result.product));
+      setFormValues(buildProductEditorValues(result.product));
       setSaveSuccess('Изменения сохранены.');
     } else {
       setSaveError(result.error ?? 'Не удалось сохранить изменения.');
@@ -297,163 +252,21 @@ export function ProductDetailsPage() {
               </div>
 
               {formValues ? (
-                <section className="product-edit-section" aria-label="Редактирование товара">
-                  <div className="catalog-card-copy">
-                    <p className="placeholder-eyebrow">Редактирование</p>
-                    <h4 className="catalog-card-title">Изменить товар</h4>
-                  </div>
-
-                  <div className="product-edit-grid">
-                    <div className="field">
-                      <label className="field-label" htmlFor="product-edit-title">
-                        Название
-                      </label>
-                      <input
-                        id="product-edit-title"
-                        className="field-input"
-                        value={formValues.title}
-                        onChange={(event) => handleFieldChange('title', event.target.value)}
-                        disabled={isSaving}
-                      />
-                    </div>
-
-                    <div className="field">
-                      <label className="field-label" htmlFor="product-edit-category">
-                        Категория
-                      </label>
-                      <select
-                        id="product-edit-category"
-                        className="field-input"
-                        value={formValues.categoryId}
-                        onChange={(event) => handleFieldChange('categoryId', event.target.value)}
-                        disabled={isSaving}
-                      >
-                        {categoryOptions.map(([id, title]) => (
-                          <option key={id} value={id}>
-                            {title}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="field">
-                      <label className="field-label" htmlFor="product-edit-price">
-                        Цена, руб.
-                      </label>
-                      <input
-                        id="product-edit-price"
-                        className="field-input"
-                        inputMode="decimal"
-                        value={formValues.price}
-                        onChange={(event) => handleFieldChange('price', event.target.value)}
-                        disabled={isSaving}
-                      />
-                    </div>
-
-                    <div className="field">
-                      <label className="field-label" htmlFor="product-edit-unit">
-                        Единица измерения
-                      </label>
-                      <select
-                        id="product-edit-unit"
-                        className="field-input"
-                        value={formValues.unit}
-                        onChange={(event) => handleFieldChange('unit', event.target.value)}
-                        disabled={isSaving}
-                      >
-                        {unitOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="field">
-                      <label className="field-label" htmlFor="product-edit-step">
-                        Шаг продажи
-                      </label>
-                      <input
-                        id="product-edit-step"
-                        className="field-input"
-                        inputMode="numeric"
-                        value={formValues.countStep}
-                        onChange={(event) => handleFieldChange('countStep', event.target.value)}
-                        disabled={isSaving}
-                      />
-                    </div>
-
-                    <div className="field">
-                      <label className="field-label" htmlFor="product-edit-weight">
-                        Вес на витрине
-                      </label>
-                      <input
-                        id="product-edit-weight"
-                        className="field-input"
-                        value={formValues.displayWeight}
-                        onChange={(event) => handleFieldChange('displayWeight', event.target.value)}
-                        disabled={isSaving}
-                      />
-                    </div>
-
-                    <div className="field">
-                      <label className="field-label" htmlFor="product-edit-sku">
-                        SKU
-                      </label>
-                      <input
-                        id="product-edit-sku"
-                        className="field-input"
-                        value={formValues.sku}
-                        onChange={(event) => handleFieldChange('sku', event.target.value)}
-                        disabled={isSaving}
-                      />
-                    </div>
-
-                    <div className="field">
-                      <label className="field-label" htmlFor="product-edit-image">
-                        Ссылка на изображение
-                      </label>
-                      <input
-                        id="product-edit-image"
-                        className="field-input"
-                        value={formValues.imageUrl}
-                        onChange={(event) => handleFieldChange('imageUrl', event.target.value)}
-                        disabled={isSaving}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="product-edit-description">
-                      Описание
-                    </label>
-                    <textarea
-                      id="product-edit-description"
-                      className="field-input field-textarea"
-                      value={formValues.description}
-                      onChange={(event) => handleFieldChange('description', event.target.value)}
-                      disabled={isSaving}
-                    />
-                  </div>
-
-                  {saveError ? (
-                    <p className="form-error" role="alert">
-                      {saveError}
-                    </p>
-                  ) : null}
-
-                  {saveSuccess ? (
-                    <p className="form-success" role="status">
-                      {saveSuccess}
-                    </p>
-                  ) : null}
-
-                  <div className="product-edit-actions">
-                    <button type="button" className="submit-button" onClick={() => void handleSave()} disabled={isSaving}>
-                      {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
-                    </button>
-                  </div>
-                </section>
+                <ProductEditor
+                  idPrefix="product-edit"
+                  ariaLabel="Редактирование товара"
+                  eyebrow="Редактирование"
+                  title="Изменить товар"
+                  categoryOptions={categoryOptions}
+                  formValues={formValues}
+                  isSaving={isSaving}
+                  saveError={saveError}
+                  saveSuccess={saveSuccess}
+                  submitLabel="Сохранить изменения"
+                  savingLabel="Сохранение..."
+                  onFieldChange={handleFieldChange}
+                  onSubmit={() => void handleSave()}
+                />
               ) : null}
             </section>
           </section>

@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import {
+  buildCategoryEditorValues,
+  CategoryEditor,
+  CategoryEditorValues,
+} from '../components/CategoryEditor';
 import { NavBar } from '../components/NavBar';
 import {
   CatalogCategory,
@@ -9,24 +14,10 @@ import {
 } from '../catalog/catalogService';
 import { buildCategoryLookup, countCategoryNodes, countNestedProducts } from '../catalog/catalogViewUtils';
 
-type CategoryFormValues = {
-  title: string;
-  imageUrl: string;
-  sku: string;
-};
-
-function buildFormValues(category: CatalogCategory): CategoryFormValues {
-  return {
-    title: category.title,
-    imageUrl: category.imageUrl ?? '',
-    sku: category.sku ?? '',
-  };
-}
-
 export function CategoryDetailsPage() {
   const { categoryId } = useParams();
   const [category, setCategory] = useState<CatalogCategory | null>(null);
-  const [formValues, setFormValues] = useState<CategoryFormValues | null>(null);
+  const [formValues, setFormValues] = useState<CategoryEditorValues | null>(null);
   const [categories, setCategories] = useState<CatalogCategory[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -58,7 +49,7 @@ export function CategoryDetailsPage() {
       const nextErrors = [categoryResult.error, categoriesResult.error].filter(Boolean).join(' ');
 
       setCategory(categoryResult.category);
-      setFormValues(categoryResult.category ? buildFormValues(categoryResult.category) : null);
+      setFormValues(categoryResult.category ? buildCategoryEditorValues(categoryResult.category) : null);
       setCategories(categoriesResult.categories);
       setErrorMessage(nextErrors);
       setSaveError('');
@@ -78,7 +69,7 @@ export function CategoryDetailsPage() {
   const nestedProducts = category ? countNestedProducts(category) : 0;
   const nestedCategories = category ? Math.max(0, countCategoryNodes([category]) - 1) : 0;
 
-  const handleFieldChange = (field: keyof CategoryFormValues, value: string) => {
+  const handleFieldChange = (field: keyof CategoryEditorValues, value: string) => {
     setFormValues((currentValues) => {
       if (!currentValues) {
         return currentValues;
@@ -124,7 +115,7 @@ export function CategoryDetailsPage() {
 
     if (result.category) {
       setCategory(result.category);
-      setFormValues(buildFormValues(result.category));
+      setFormValues(buildCategoryEditorValues(result.category));
       setSaveSuccess('Изменения сохранены.');
     } else {
       setSaveError(result.error ?? 'Не удалось сохранить изменения.');
@@ -241,75 +232,21 @@ export function CategoryDetailsPage() {
               </div>
 
               {formValues ? (
-                <section className="product-edit-section" aria-label="Редактирование категории">
-                  <div className="catalog-card-copy">
-                    <p className="placeholder-eyebrow">Редактирование</p>
-                    <h4 className="catalog-card-title">Изменить категорию</h4>
-                    <p className="catalog-meta">
-                      Через текущий endpoint можно менять название, SKU и изображение. Связь с родителем остается
-                      только для чтения.
-                    </p>
-                  </div>
-
-                  <div className="product-edit-grid">
-                    <div className="field">
-                      <label className="field-label" htmlFor="category-edit-title">
-                        Название
-                      </label>
-                      <input
-                        id="category-edit-title"
-                        className="field-input"
-                        value={formValues.title}
-                        onChange={(event) => handleFieldChange('title', event.target.value)}
-                        disabled={isSaving}
-                      />
-                    </div>
-
-                    <div className="field">
-                      <label className="field-label" htmlFor="category-edit-sku">
-                        SKU
-                      </label>
-                      <input
-                        id="category-edit-sku"
-                        className="field-input"
-                        value={formValues.sku}
-                        onChange={(event) => handleFieldChange('sku', event.target.value)}
-                        disabled={isSaving}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="category-edit-image">
-                      Ссылка на изображение
-                    </label>
-                    <input
-                      id="category-edit-image"
-                      className="field-input"
-                      value={formValues.imageUrl}
-                      onChange={(event) => handleFieldChange('imageUrl', event.target.value)}
-                      disabled={isSaving}
-                    />
-                  </div>
-
-                  {saveError ? (
-                    <p className="form-error" role="alert">
-                      {saveError}
-                    </p>
-                  ) : null}
-
-                  {saveSuccess ? (
-                    <p className="form-success" role="status">
-                      {saveSuccess}
-                    </p>
-                  ) : null}
-
-                  <div className="product-edit-actions">
-                    <button type="button" className="submit-button" onClick={() => void handleSave()} disabled={isSaving}>
-                      {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
-                    </button>
-                  </div>
-                </section>
+                <CategoryEditor
+                  idPrefix="category-edit"
+                  ariaLabel="Редактирование категории"
+                  eyebrow="Редактирование"
+                  title="Изменить категорию"
+                  description="Через текущий endpoint можно менять название, SKU и изображение. Связь с родителем остается только для чтения."
+                  formValues={formValues}
+                  isSaving={isSaving}
+                  saveError={saveError}
+                  saveSuccess={saveSuccess}
+                  submitLabel="Сохранить изменения"
+                  savingLabel="Сохранение..."
+                  onFieldChange={handleFieldChange}
+                  onSubmit={() => void handleSave()}
+                />
               ) : null}
             </section>
           </section>

@@ -1,9 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { isAuthenticated } from './auth/authService';
 import { CatalogPage } from './pages/CatalogPage';
+import { CategoryCreatePage } from './pages/CategoryCreatePage';
 import { CategoryDetailsPage } from './pages/CategoryDetailsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { LoginPage } from './pages/LoginPage';
+import { ProductCreatePage } from './pages/ProductCreatePage';
 import { ProductDetailsPage } from './pages/ProductDetailsPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { ProtectedRoute } from './routes/ProtectedRoute';
@@ -26,8 +28,10 @@ function App() {
         <Route path="/" element={<Navigate to="/categories" replace />} />
         <Route path="/catalog" element={<CatalogPage />} />
         <Route path="/categories" element={<CategoriesPage />} />
+        <Route path="/categories/new" element={<CategoryCreatePage />} />
         <Route path="/categories/:categoryId" element={<CategoryDetailsPage />} />
         <Route path="/products" element={<ProductsPage />} />
+        <Route path="/products/new" element={<ProductCreatePage />} />
         <Route path="/products/:productId" element={<ProductDetailsPage />} />
       </Route>
       <Route path="*" element={<Navigate to={fallbackPath} replace />} />
