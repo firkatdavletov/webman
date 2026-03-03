@@ -218,7 +218,7 @@ export function ProductDetailsPage() {
           {product ? (
             <>
               <span className="breadcrumb-separator">/</span>
-              <Link className="breadcrumb-link" to={`/categories?focusCategory=${product.categoryId}`}>
+              <Link className="breadcrumb-link" to={`/categories/${product.categoryId}`}>
                 {categoryTitle}
               </Link>
               <span className="breadcrumb-separator">/</span>
@@ -277,7 +277,7 @@ export function ProductDetailsPage() {
                   <h4 className="detail-title">Категория и единица</h4>
                   <p className="detail-copy">
                     Категория:{' '}
-                    <Link className="inline-link" to={`/categories?focusCategory=${product.categoryId}`}>
+                    <Link className="inline-link" to={`/categories/${product.categoryId}`}>
                       {categoryTitle}
                     </Link>
                   </p>

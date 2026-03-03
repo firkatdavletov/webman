@@ -12,6 +12,10 @@ export default defineConfig({
                 target: 'http://localhost:8080',
                 changeOrigin: true,
             },
+            '/catalog/category': {
+                target: 'http://localhost:8080',
+                changeOrigin: true,
+            },
             '/catalog/product': {
                 target: 'http://localhost:8080',
                 changeOrigin: true,

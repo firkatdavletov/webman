@@ -52,6 +52,20 @@ type GetProductResponseBody = {
   code: number | null;
 };
 
+type GetCategoryResponseBody = {
+  category: CatalogCategory | null;
+  success: boolean;
+  error: string | null;
+  code: number | null;
+};
+
+type SaveCategoryResponseBody = {
+  category: CatalogCategory | null;
+  success: boolean;
+  error: string | null;
+  code: number | null;
+};
+
 type SaveProductResponseBody = {
   product: CatalogProduct | null;
   success: boolean;
@@ -86,13 +100,25 @@ export type CatalogProductResult = {
   error: string | null;
 };
 
+export type CatalogCategoryResult = {
+  category: CatalogCategory | null;
+  error: string | null;
+};
+
+export type SaveCategoryResult = {
+  category: CatalogCategory | null;
+  error: string | null;
+};
+
 export type SaveProductResult = {
   product: CatalogProduct | null;
   error: string | null;
 };
 
 const CATALOG_IMPORT_ENDPOINT = '/admin/catalog/import';
+const SAVE_CATEGORY_ENDPOINT = '/admin/catalog/category';
 const SAVE_PRODUCT_ENDPOINT = '/admin/catalog/product';
+const CATALOG_CATEGORY_ENDPOINT = '/catalog/category';
 const CATALOG_CATEGORIES_ENDPOINT = '/catalog/categories';
 const CATALOG_PRODUCT_ENDPOINT = '/catalog/product';
 const CATALOG_PRODUCTS_ENDPOINT = '/catalog/products/all';
@@ -223,6 +249,37 @@ export async function getAllProducts(): Promise<CatalogProductsResult> {
   }
 }
 
+export async function getCategoryById(id: number): Promise<CatalogCategoryResult> {
+  try {
+    const response = await window.fetch(`${CATALOG_CATEGORY_ENDPOINT}?id=${id}`);
+    const body = await parseJson<GetCategoryResponseBody>(response);
+
+    if (!body) {
+      return {
+        category: null,
+        error: 'Сервис категории вернул некорректный ответ.',
+      };
+    }
+
+    if (!response.ok || !body.success || !body.category) {
+      return {
+        category: body.category ?? null,
+        error: body.error ?? 'Не удалось загрузить категорию.',
+      };
+    }
+
+    return {
+      category: body.category,
+      error: null,
+    };
+  } catch {
+    return {
+      category: null,
+      error: 'Не удалось связаться с сервисом категории.',
+    };
+  }
+}
+
 export async function getProductById(id: number): Promise<CatalogProductResult> {
   try {
     const response = await window.fetch(`${CATALOG_PRODUCT_ENDPOINT}?id=${id}`);
@@ -250,6 +307,52 @@ export async function getProductById(id: number): Promise<CatalogProductResult> 
     return {
       product: null,
       error: 'Не удалось связаться с сервисом товара.',
+    };
+  }
+}
+
+export async function saveCategory(category: CatalogCategory): Promise<SaveCategoryResult> {
+  const accessToken = getAccessToken();
+  const headers = new Headers({
+    'Content-Type': 'application/json',
+  });
+
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`);
+  }
+
+  try {
+    const response = await window.fetch(SAVE_CATEGORY_ENDPOINT, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        category,
+      }),
+    });
+    const body = await parseJson<SaveCategoryResponseBody>(response);
+
+    if (!body) {
+      return {
+        category: null,
+        error: 'Сервис сохранения категории вернул некорректный ответ.',
+      };
+    }
+
+    if (!response.ok || !body.success || !body.category) {
+      return {
+        category: body.category ?? null,
+        error: body.error ?? 'Не удалось сохранить категорию.',
+      };
+    }
+
+    return {
+      category: body.category,
+      error: null,
+    };
+  } catch {
+    return {
+      category: null,
+      error: 'Не удалось связаться с сервисом сохранения категории.',
     };
   }
 }

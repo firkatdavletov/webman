@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { isAuthenticated } from './auth/authService';
 import { CatalogPage } from './pages/CatalogPage';
+import { CategoryDetailsPage } from './pages/CategoryDetailsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { LoginPage } from './pages/LoginPage';
 import { ProductDetailsPage } from './pages/ProductDetailsPage';
@@ -25,6 +26,7 @@ function App() {
         <Route path="/" element={<Navigate to="/categories" replace />} />
         <Route path="/catalog" element={<CatalogPage />} />
         <Route path="/categories" element={<CategoriesPage />} />
+        <Route path="/categories/:categoryId" element={<CategoryDetailsPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/:productId" element={<ProductDetailsPage />} />
       </Route>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { NavBar } from '../components/NavBar';
 import { CatalogImportPanel } from '../components/CatalogImportPanel';
 import { CatalogCategory, getCategories } from '../catalog/catalogService';
@@ -309,6 +309,12 @@ export function CategoriesPage() {
                         {item.category.imageUrl}
                       </p>
                     ) : null}
+
+                    <div className="product-card-actions">
+                      <Link className="secondary-link" to={`/categories/${item.category.id}`}>
+                        Открыть карточку
+                      </Link>
+                    </div>
                   </article>
                 </li>
               ))}
