@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { NavBar } from '../components/NavBar';
 import {
@@ -10,11 +10,21 @@ import {
 import {
   CatalogCategory,
   CatalogProduct,
+  completeProductImageUpload,
   getCategories,
   getProductById,
+  initProductImageUpload,
   saveProduct,
+  uploadProductImageToStorage,
 } from '../catalog/catalogService';
+import {
+  getProductImageAspectRatioError,
+  MAX_PRODUCT_IMAGE_SIZE_BYTES,
+  readFileAsDataUrl,
+} from '../catalog/productImageUtils';
 import { buildCategoryLookup, formatPrice, formatUnitLabel } from '../catalog/catalogViewUtils';
+
+const SUPPORTED_PRODUCT_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 export function ProductDetailsPage() {
   const { productId } = useParams();
@@ -26,6 +36,10 @@ export function ProductDetailsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
+  const [isImageUploading, setIsImageUploading] = useState(false);
+  const [uploadedImagePreviewDataUrl, setUploadedImagePreviewDataUrl] = useState('');
+  const [imageUploadError, setImageUploadError] = useState('');
+  const imageUploadInputRef = useRef<HTMLInputElement | null>(null);
 
   const numericProductId = useMemo(() => Number(productId), [productId]);
 
@@ -55,6 +69,9 @@ export function ProductDetailsPage() {
       setErrorMessage(nextErrors);
       setSaveError('');
       setSaveSuccess('');
+      setImageUploadError('');
+      setUploadedImagePreviewDataUrl('');
+      setIsImageUploading(false);
       setIsLoading(false);
     };
 
@@ -63,6 +80,7 @@ export function ProductDetailsPage() {
 
   const categoryLookup = useMemo(() => buildCategoryLookup(categories), [categories]);
   const categoryTitle = product ? categoryLookup.get(product.categoryId) ?? `#${product.categoryId}` : 'Не определена';
+  const previewImageUrl = uploadedImagePreviewDataUrl || (formValues ? formValues.imageUrl.trim() : product?.imageUrl ?? '');
   const categoryOptions = useMemo(() => {
     const entries = Array.from(categoryLookup.entries());
 
@@ -91,6 +109,97 @@ export function ProductDetailsPage() {
 
     if (saveSuccess) {
       setSaveSuccess('');
+    }
+
+    if (field === 'imageUrl' && imageUploadError) {
+      setImageUploadError('');
+    }
+  };
+
+  const handleImageUploadClick = () => {
+    imageUploadInputRef.current?.click();
+  };
+
+  const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const imageFile = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!imageFile || !formValues || !product) {
+      return;
+    }
+
+    if (!SUPPORTED_PRODUCT_IMAGE_TYPES.has(imageFile.type)) {
+      setImageUploadError('Выберите изображение в формате JPG, PNG или WEBP.');
+      return;
+    }
+
+    if (!Number.isInteger(imageFile.size) || imageFile.size <= 0 || imageFile.size > MAX_PRODUCT_IMAGE_SIZE_BYTES) {
+      setImageUploadError('Размер изображения должен быть от 1 байта до 1 МБ.');
+      return;
+    }
+
+    const aspectRatioError = await getProductImageAspectRatioError(imageFile);
+
+    if (aspectRatioError) {
+      setImageUploadError(aspectRatioError);
+      return;
+    }
+
+    setImageUploadError('');
+    setIsImageUploading(true);
+
+    try {
+      const initResult = await initProductImageUpload({
+        productId: product.id,
+        contentType: imageFile.type,
+        sizeBytes: imageFile.size,
+        fileName: imageFile.name || null,
+      });
+
+      if (!initResult.upload) {
+        setImageUploadError(initResult.error ?? 'Не удалось получить данные для загрузки изображения.');
+        return;
+      }
+      const uploadData = initResult.upload;
+
+      const storageUploadResult = await uploadProductImageToStorage({
+        uploadUrl: uploadData.uploadUrl,
+        requiredHeaders: uploadData.requiredHeaders,
+        file: imageFile,
+      });
+
+      if (storageUploadResult.error) {
+        setImageUploadError(storageUploadResult.error);
+        return;
+      }
+
+      const completeResult = await completeProductImageUpload({
+        productId: product.id,
+        imageId: uploadData.imageId,
+        objectKey: uploadData.objectKey,
+      });
+
+      if (completeResult.error) {
+        setImageUploadError(completeResult.error);
+        return;
+      }
+
+      const previewDataUrl = await readFileAsDataUrl(imageFile);
+
+      setProduct((currentProduct) =>
+        currentProduct
+          ? {
+              ...currentProduct,
+              imageUrl: uploadData.objectKey,
+            }
+          : currentProduct,
+      );
+      handleFieldChange('imageUrl', uploadData.objectKey);
+      setUploadedImagePreviewDataUrl(previewDataUrl);
+    } catch {
+      setImageUploadError('Не удалось обработать выбранный файл.');
+    } finally {
+      setIsImageUploading(false);
     }
   };
 
@@ -201,11 +310,36 @@ export function ProductDetailsPage() {
         ) : product ? (
           <section className="product-detail-layout">
             <section className="catalog-card product-media-card" aria-label="Изображение товара">
-              {product.imageUrl ? (
-                <img className="product-detail-image" src={product.imageUrl} alt={product.title} />
+              {previewImageUrl ? (
+                <img className="product-detail-image" src={previewImageUrl} alt={formValues?.title || product.title} />
               ) : (
                 <div className="product-image-placeholder">Изображение отсутствует</div>
               )}
+
+              <div className="product-media-actions">
+                <button
+                  type="button"
+                  className="secondary-button image-upload-button"
+                  onClick={handleImageUploadClick}
+                  disabled={isSaving || isImageUploading || !formValues}
+                >
+                  {isImageUploading ? 'Загрузка...' : 'Загрузить фото'}
+                </button>
+                <input
+                  ref={imageUploadInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="file-picker-input"
+                  onChange={(event) => void handleImageUpload(event)}
+                  disabled={isSaving || isImageUploading || !formValues}
+                  tabIndex={-1}
+                />
+                {imageUploadError ? (
+                  <p className="field-error" role="alert">
+                    {imageUploadError}
+                  </p>
+                ) : null}
+              </div>
             </section>
 
             <section className="catalog-card product-detail-card" aria-label="Информация о товаре">
@@ -259,7 +393,7 @@ export function ProductDetailsPage() {
                   title="Изменить товар"
                   categoryOptions={categoryOptions}
                   formValues={formValues}
-                  isSaving={isSaving}
+                  isSaving={isSaving || isImageUploading}
                   saveError={saveError}
                   saveSuccess={saveSuccess}
                   submitLabel="Сохранить изменения"

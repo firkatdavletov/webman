@@ -215,18 +215,6 @@ export function ProductEditor({
           />
         </div>
 
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-image`}>
-            Ссылка на изображение
-          </label>
-          <input
-            id={`${idPrefix}-image`}
-            className="field-input"
-            value={formValues.imageUrl}
-            onChange={(event) => onFieldChange('imageUrl', event.target.value)}
-            disabled={isSaving}
-          />
-        </div>
       </div>
 
       <div className="field">

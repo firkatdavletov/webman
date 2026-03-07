@@ -73,10 +73,49 @@ type SaveProductResponseBody = {
   code: number | null;
 };
 
+type InitProductImageUploadResponseBody = {
+  imageId: number;
+  objectKey: string;
+  uploadUrl: string;
+  requiredHeaders: Record<string, string>;
+};
+
 type CatalogImportRequest = {
   file: File;
   mode: CatalogImportMode;
   importMode: CatalogImportAction;
+};
+
+type InitProductImageUploadRequest = {
+  productId: number;
+  contentType: string;
+  sizeBytes: number;
+  fileName?: string | null;
+};
+
+type InitCategoryImageUploadRequest = {
+  categoryId: number;
+  contentType: string;
+  sizeBytes: number;
+  fileName?: string | null;
+};
+
+type UploadProductImageToStorageRequest = {
+  uploadUrl: string;
+  requiredHeaders: Record<string, string>;
+  file: File;
+};
+
+type CompleteProductImageUploadRequest = {
+  productId: number;
+  imageId: number;
+  objectKey: string;
+};
+
+type CompleteCategoryImageUploadRequest = {
+  categoryId: number;
+  imageId: number;
+  objectKey: string;
 };
 
 export type CatalogImportResult = {
@@ -115,9 +154,34 @@ export type SaveProductResult = {
   error: string | null;
 };
 
+export type ProductImageUploadInitData = {
+  imageId: number;
+  objectKey: string;
+  uploadUrl: string;
+  requiredHeaders: Record<string, string>;
+};
+
+export type ProductImageUploadInitResult = {
+  upload: ProductImageUploadInitData | null;
+  error: string | null;
+};
+
+export type ProductImageUploadStepResult = {
+  error: string | null;
+};
+
+export type CategoryImageUploadInitData = ProductImageUploadInitData;
+
+export type CategoryImageUploadInitResult = {
+  upload: CategoryImageUploadInitData | null;
+  error: string | null;
+};
+
 const CATALOG_IMPORT_ENDPOINT = '/admin/catalog/import';
 const SAVE_CATEGORY_ENDPOINT = '/admin/catalog/category';
 const SAVE_PRODUCT_ENDPOINT = '/admin/catalog/product';
+const PRODUCT_IMAGE_UPLOAD_ENDPOINT_PREFIX = '/admin/products';
+const CATEGORY_IMAGE_UPLOAD_ENDPOINT_PREFIX = '/admin/categories';
 const CATALOG_CATEGORY_ENDPOINT = '/catalog/category';
 const CATALOG_CATEGORIES_ENDPOINT = '/catalog/categories';
 const CATALOG_PRODUCT_ENDPOINT = '/catalog/product';
@@ -399,6 +463,258 @@ export async function saveProduct(product: CatalogProduct): Promise<SaveProductR
     return {
       product: null,
       error: 'Не удалось связаться с сервисом сохранения товара.',
+    };
+  }
+}
+
+export async function initProductImageUpload({
+  productId,
+  contentType,
+  sizeBytes,
+  fileName,
+}: InitProductImageUploadRequest): Promise<ProductImageUploadInitResult> {
+  const accessToken = getAccessToken();
+  const headers = new Headers({
+    'Content-Type': 'application/json',
+  });
+
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`);
+  }
+
+  try {
+    const response = await window.fetch(`${PRODUCT_IMAGE_UPLOAD_ENDPOINT_PREFIX}/${productId}/images:init`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        contentType,
+        sizeBytes,
+        fileName: fileName ?? null,
+      }),
+    });
+    const body = await parseJson<InitProductImageUploadResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        upload: null,
+        error: 'Не удалось получить данные для загрузки изображения.',
+      };
+    }
+
+    if (
+      !body ||
+      !Number.isInteger(body.imageId) ||
+      body.imageId <= 0 ||
+      typeof body.objectKey !== 'string' ||
+      !body.objectKey ||
+      typeof body.uploadUrl !== 'string' ||
+      !body.uploadUrl ||
+      !body.requiredHeaders ||
+      typeof body.requiredHeaders !== 'object' ||
+      Array.isArray(body.requiredHeaders)
+    ) {
+      return {
+        upload: null,
+        error: 'Сервис инициализации загрузки изображения вернул некорректный ответ.',
+      };
+    }
+
+    return {
+      upload: {
+        imageId: body.imageId,
+        objectKey: body.objectKey,
+        uploadUrl: body.uploadUrl,
+        requiredHeaders: body.requiredHeaders,
+      },
+      error: null,
+    };
+  } catch {
+    return {
+      upload: null,
+      error: 'Не удалось связаться с сервисом инициализации загрузки изображения.',
+    };
+  }
+}
+
+export async function uploadProductImageToStorage({
+  uploadUrl,
+  requiredHeaders,
+  file,
+}: UploadProductImageToStorageRequest): Promise<ProductImageUploadStepResult> {
+  const headers = new Headers();
+
+  Object.entries(requiredHeaders).forEach(([name, value]) => {
+    headers.set(name, value);
+  });
+
+  try {
+    const response = await window.fetch(uploadUrl, {
+      method: 'PUT',
+      headers,
+      body: file,
+    });
+
+    if (!response.ok) {
+      return {
+        error: 'Не удалось загрузить изображение в хранилище.',
+      };
+    }
+
+    return {
+      error: null,
+    };
+  } catch {
+    return {
+      error: 'Не удалось связаться с хранилищем при загрузке изображения.',
+    };
+  }
+}
+
+export async function completeProductImageUpload({
+  productId,
+  imageId,
+  objectKey,
+}: CompleteProductImageUploadRequest): Promise<ProductImageUploadStepResult> {
+  const accessToken = getAccessToken();
+  const headers = new Headers();
+
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`);
+  }
+
+  try {
+    const response = await window.fetch(
+      `${PRODUCT_IMAGE_UPLOAD_ENDPOINT_PREFIX}/${productId}/images/${imageId}:complete?objectKey=${encodeURIComponent(objectKey)}`,
+      {
+        method: 'POST',
+        headers,
+      },
+    );
+
+    if (!response.ok) {
+      return {
+        error: 'Не удалось завершить загрузку изображения.',
+      };
+    }
+
+    return {
+      error: null,
+    };
+  } catch {
+    return {
+      error: 'Не удалось связаться с сервисом завершения загрузки изображения.',
+    };
+  }
+}
+
+export async function initCategoryImageUpload({
+  categoryId,
+  contentType,
+  sizeBytes,
+  fileName,
+}: InitCategoryImageUploadRequest): Promise<CategoryImageUploadInitResult> {
+  const accessToken = getAccessToken();
+  const headers = new Headers({
+    'Content-Type': 'application/json',
+  });
+
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`);
+  }
+
+  try {
+    const response = await window.fetch(`${CATEGORY_IMAGE_UPLOAD_ENDPOINT_PREFIX}/${categoryId}/images:init`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        contentType,
+        sizeBytes,
+        fileName: fileName ?? null,
+      }),
+    });
+    const body = await parseJson<InitProductImageUploadResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        upload: null,
+        error: 'Не удалось получить данные для загрузки изображения.',
+      };
+    }
+
+    if (
+      !body ||
+      !Number.isInteger(body.imageId) ||
+      body.imageId <= 0 ||
+      typeof body.objectKey !== 'string' ||
+      !body.objectKey ||
+      typeof body.uploadUrl !== 'string' ||
+      !body.uploadUrl ||
+      !body.requiredHeaders ||
+      typeof body.requiredHeaders !== 'object' ||
+      Array.isArray(body.requiredHeaders)
+    ) {
+      return {
+        upload: null,
+        error: 'Сервис инициализации загрузки изображения вернул некорректный ответ.',
+      };
+    }
+
+    return {
+      upload: {
+        imageId: body.imageId,
+        objectKey: body.objectKey,
+        uploadUrl: body.uploadUrl,
+        requiredHeaders: body.requiredHeaders,
+      },
+      error: null,
+    };
+  } catch {
+    return {
+      upload: null,
+      error: 'Не удалось связаться с сервисом инициализации загрузки изображения.',
+    };
+  }
+}
+
+export async function uploadCategoryImageToStorage(
+  request: UploadProductImageToStorageRequest,
+): Promise<ProductImageUploadStepResult> {
+  return uploadProductImageToStorage(request);
+}
+
+export async function completeCategoryImageUpload({
+  categoryId,
+  imageId,
+  objectKey,
+}: CompleteCategoryImageUploadRequest): Promise<ProductImageUploadStepResult> {
+  const accessToken = getAccessToken();
+  const headers = new Headers();
+
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`);
+  }
+
+  try {
+    const response = await window.fetch(
+      `${CATEGORY_IMAGE_UPLOAD_ENDPOINT_PREFIX}/${categoryId}/images/${imageId}:complete?objectKey=${encodeURIComponent(objectKey)}`,
+      {
+        method: 'POST',
+        headers,
+      },
+    );
+
+    if (!response.ok) {
+      return {
+        error: 'Не удалось завершить загрузку изображения.',
+      };
+    }
+
+    return {
+      error: null,
+    };
+  } catch {
+    return {
+      error: 'Не удалось связаться с сервисом завершения загрузки изображения.',
     };
   }
 }

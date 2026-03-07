@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { NavBar } from '../components/NavBar';
 import {
@@ -8,6 +8,11 @@ import {
   ProductEditorValues,
 } from '../components/ProductEditor';
 import { CatalogCategory, getCategories, saveProduct } from '../catalog/catalogService';
+import {
+  getProductImageAspectRatioError,
+  MAX_PRODUCT_IMAGE_SIZE_BYTES,
+  readFileAsDataUrl,
+} from '../catalog/productImageUtils';
 import { buildCategoryLookup, formatPrice, formatUnitLabel } from '../catalog/catalogViewUtils';
 
 export function ProductCreatePage() {
@@ -18,6 +23,8 @@ export function ProductCreatePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [imageUploadError, setImageUploadError] = useState('');
+  const imageUploadInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const loadCategoriesData = async () => {
@@ -65,6 +72,51 @@ export function ProductCreatePage() {
     if (saveError) {
       setSaveError('');
     }
+
+    if (field === 'imageUrl' && imageUploadError) {
+      setImageUploadError('');
+    }
+  };
+
+  const handleImageUploadClick = () => {
+    imageUploadInputRef.current?.click();
+  };
+
+  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const imageFile = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!imageFile) {
+      return;
+    }
+
+    if (!imageFile.type.startsWith('image/')) {
+      setImageUploadError('Выберите изображение в формате JPG, PNG, WEBP или SVG.');
+      return;
+    }
+
+    if (!Number.isInteger(imageFile.size) || imageFile.size <= 0 || imageFile.size > MAX_PRODUCT_IMAGE_SIZE_BYTES) {
+      setImageUploadError('Размер изображения должен быть от 1 байта до 1 МБ.');
+      return;
+    }
+
+    setImageUploadError('');
+
+    void (async () => {
+      const aspectRatioError = await getProductImageAspectRatioError(imageFile);
+
+      if (aspectRatioError) {
+        setImageUploadError(aspectRatioError);
+        return;
+      }
+
+      try {
+        const imageDataUrl = await readFileAsDataUrl(imageFile);
+        handleFieldChange('imageUrl', imageDataUrl);
+      } catch {
+        setImageUploadError('Не удалось прочитать выбранный файл.');
+      }
+    })();
   };
 
   const handleSave = async () => {
@@ -168,6 +220,31 @@ export function ProductCreatePage() {
               ) : (
                 <div className="product-image-placeholder">Изображение отсутствует</div>
               )}
+
+              <div className="product-media-actions">
+                <button
+                  type="button"
+                  className="secondary-button image-upload-button"
+                  onClick={handleImageUploadClick}
+                  disabled={isSaving}
+                >
+                  Загрузить фото
+                </button>
+                <input
+                  ref={imageUploadInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="file-picker-input"
+                  onChange={handleImageUpload}
+                  disabled={isSaving}
+                  tabIndex={-1}
+                />
+                {imageUploadError ? (
+                  <p className="field-error" role="alert">
+                    {imageUploadError}
+                  </p>
+                ) : null}
+              </div>
             </section>
 
             <section className="catalog-card product-detail-card" aria-label="Создание товара">

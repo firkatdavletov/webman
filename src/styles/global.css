@@ -747,6 +747,21 @@ button:disabled {
   gap: 14px;
 }
 
+.image-upload-button {
+  justify-self: start;
+}
+
+.file-picker-input {
+  display: none;
+}
+
+.product-media-actions {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
 .product-edit-actions {
   display: flex;
   justify-content: flex-start;
