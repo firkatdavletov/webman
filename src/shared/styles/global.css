@@ -632,10 +632,6 @@ button:disabled {
   font-size: 0.92rem;
 }
 
-.category-node-image-url {
-  word-break: break-all;
-}
-
 .product-grid {
   display: grid;
   gap: 12px;
@@ -725,7 +721,7 @@ button:disabled {
 
 .product-detail-image {
   width: 100%;
-  max-height: 460px;
+  aspect-ratio: 4 / 5;
   border-radius: 22px;
   object-fit: cover;
   background-color: rgba(248, 252, 251, 0.9);
@@ -735,7 +731,7 @@ button:disabled {
   display: grid;
   place-items: center;
   width: 100%;
-  min-height: 320px;
+  aspect-ratio: 4 / 5;
   padding: 24px;
   border: 1px dashed rgba(17, 117, 108, 0.18);
   border-radius: 22px;

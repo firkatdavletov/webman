@@ -38,12 +38,6 @@ export function CategoryList({ items, focusedCategoryId }: CategoryListProps) {
                 {item.category.children.length ? (
                   <p className="category-node-meta">Дочерних категорий: {item.category.children.length}</p>
                 ) : null}
-
-                {item.category.imageUrl ? (
-                  <p className="category-node-meta category-node-image-url" title={item.category.imageUrl}>
-                    {item.category.imageUrl}
-                  </p>
-                ) : null}
               </article>
             </Link>
           </li>
