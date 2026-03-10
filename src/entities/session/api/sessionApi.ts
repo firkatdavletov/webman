@@ -1,13 +1,16 @@
 import { type ApiError, apiClient } from '@/shared/api/client';
 import { getApiErrorMessage } from '@/shared/api/error';
 import type { components } from '@/shared/api/schema';
-
-const ACCESS_TOKEN_KEY = 'authAccessToken';
-const REFRESH_TOKEN_KEY = 'authRefreshToken';
+import {
+  clearSessionTokens,
+  getAccessTokenFromStorage,
+  getRefreshTokenFromStorage,
+  persistSessionTokens,
+} from '@/entities/session/lib/tokenStorage';
 
 type TokenPair = {
-  access: string;
-  refresh: string | null;
+  accessToken: string;
+  refreshToken: string | null;
 };
 
 type AdminAuthTokensResponse = components['schemas']['AdminAuthTokensResponse'];
@@ -21,22 +24,6 @@ export type LoginResult =
       token: null;
       error: string;
     };
-
-function clearTokens(): void {
-  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
-  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
-}
-
-function persistTokens(tokens: TokenPair): void {
-  window.localStorage.setItem(ACCESS_TOKEN_KEY, tokens.access);
-
-  if (tokens.refresh) {
-    window.localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh);
-    return;
-  }
-
-  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
-}
 
 function buildAuthHeaders(accessToken: string | null): HeadersInit | undefined {
   if (!accessToken) {
@@ -61,8 +48,8 @@ function extractTokens(body: AdminAuthTokensResponse | null): TokenPair | null {
   }
 
   return {
-    access: accessToken,
-    refresh: refreshToken,
+    accessToken,
+    refreshToken,
   };
 }
 
@@ -75,7 +62,7 @@ function getLoginErrorMessage(error: ApiError | undefined): string {
 }
 
 export async function login(loginValue: string, password: string): Promise<LoginResult> {
-  clearTokens();
+  clearSessionTokens();
 
   try {
     const result = await apiClient.POST('/api/v1/admin/login', {
@@ -95,14 +82,14 @@ export async function login(loginValue: string, password: string): Promise<Login
       };
     }
 
-    persistTokens(tokens);
+    persistSessionTokens(tokens);
 
     return {
-      token: tokens.access,
+      token: tokens.accessToken,
       error: null,
     };
   } catch {
-    clearTokens();
+    clearSessionTokens();
 
     return {
       token: null,
@@ -113,7 +100,7 @@ export async function login(loginValue: string, password: string): Promise<Login
 
 export function logout(): void {
   const accessToken = getAccessToken();
-  const refreshToken = window.localStorage.getItem(REFRESH_TOKEN_KEY);
+  const refreshToken = getRefreshTokenFromStorage();
 
   void apiClient.POST('/api/v1/auth/logout', {
     headers: buildAuthHeaders(accessToken),
@@ -122,11 +109,11 @@ export function logout(): void {
     },
   });
 
-  clearTokens();
+  clearSessionTokens();
 }
 
 export function getAccessToken(): string | null {
-  return window.localStorage.getItem(ACCESS_TOKEN_KEY);
+  return getAccessTokenFromStorage();
 }
 
 export function isAuthenticated(): boolean {
