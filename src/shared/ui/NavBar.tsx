@@ -14,7 +14,8 @@ const navItems = [
   },
   {
     label: 'Заказы',
-    badge: 'Скоро',
+    to: '/orders',
+    badge: 'Активно',
   },
   {
     label: 'Контент',

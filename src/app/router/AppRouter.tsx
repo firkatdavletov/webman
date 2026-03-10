@@ -7,6 +7,7 @@ import { ProductCreatePage } from '@/pages/catalog/product-create/ui/ProductCrea
 import { ProductDetailsPage } from '@/pages/catalog/product-details/ui/ProductDetailsPage';
 import { ProductsPage } from '@/pages/catalog/products/ui/ProductsPage';
 import { LoginPage } from '@/pages/login/ui/LoginPage';
+import { OrdersPage } from '@/pages/orders/ui/OrdersPage';
 import { ProtectedRoute } from '@/shared/routing/ProtectedRoute';
 
 function LoginRoute() {
@@ -32,6 +33,8 @@ export function AppRouter() {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/new" element={<ProductCreatePage />} />
         <Route path="/products/:productId" element={<ProductDetailsPage />} />
+        <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/admin/orders" element={<OrdersPage />} />
       </Route>
       <Route path="*" element={<Navigate to={fallbackPath} replace />} />
     </Routes>
