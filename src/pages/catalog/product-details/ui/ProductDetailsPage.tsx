@@ -129,7 +129,7 @@ export function ProductDetailsPage() {
     }
 
     if (imageFile.size <= 0 || imageFile.size > MAX_PRODUCT_IMAGE_SIZE_BYTES) {
-      setImageUploadError('Размер изображения должен быть от 1 байта до 1 МБ.');
+      setImageUploadError('Размер изображения должен быть от 1 байта до 2 МБ.');
       return;
     }
 
