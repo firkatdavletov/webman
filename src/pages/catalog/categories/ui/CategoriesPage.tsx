@@ -7,13 +7,7 @@ import {
   getCategories,
   type Category,
 } from '@/entities/category';
-import {
-  CATEGORY_PAGE_SIZE_OPTIONS,
-  type CategoryImageFilter,
-  type CategoryStructureFilter,
-  filterCategoryTree,
-  paginateItems,
-} from '@/pages/catalog/categories/model/categoryPageView';
+import { filterCategoryTree } from '@/pages/catalog/categories/model/categoryPageView';
 import { CategoryFilters } from '@/pages/catalog/categories/ui/CategoryFilters';
 import { CategoryList } from '@/pages/catalog/categories/ui/CategoryList';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
@@ -26,10 +20,6 @@ export function CategoriesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [structureFilter, setStructureFilter] = useState<CategoryStructureFilter>('all');
-  const [imageFilter, setImageFilter] = useState<CategoryImageFilter>('all');
-  const [pageSize, setPageSize] = useState<number>(CATEGORY_PAGE_SIZE_OPTIONS[0]);
-  const [page, setPage] = useState(1);
 
   const focusedCategoryId = useMemo(() => {
     const rawValue = searchParams.get('focusCategory')?.trim() ?? '';
@@ -69,31 +59,9 @@ export function CategoriesPage() {
     () =>
       filterCategoryTree(flattenedCategories, {
         searchQuery,
-        structureFilter,
-        imageFilter,
       }),
-    [flattenedCategories, imageFilter, searchQuery, structureFilter],
+    [flattenedCategories, searchQuery],
   );
-
-  useEffect(() => {
-    setPage(1);
-  }, [categories, imageFilter, pageSize, searchQuery, structureFilter]);
-
-  useEffect(() => {
-    if (!focusedCategoryId || !filteredCategories.length) {
-      return;
-    }
-
-    const focusedIndex = filteredCategories.findIndex((item) => item.category.id === focusedCategoryId);
-
-    if (focusedIndex === -1) {
-      return;
-    }
-
-    setPage(Math.floor(focusedIndex / pageSize) + 1);
-  }, [filteredCategories, focusedCategoryId, pageSize]);
-
-  const pagination = useMemo(() => paginateItems(filteredCategories, page, pageSize), [filteredCategories, page, pageSize]);
 
   return (
     <div className="app-shell">
@@ -133,22 +101,10 @@ export function CategoriesPage() {
           </div>
 
           <div className="catalog-controls">
-            <CategoryFilters
-              searchQuery={searchQuery}
-              structureFilter={structureFilter}
-              imageFilter={imageFilter}
-              pageSize={pageSize}
-              pageSizeOptions={CATEGORY_PAGE_SIZE_OPTIONS}
-              onSearchQueryChange={setSearchQuery}
-              onStructureFilterChange={setStructureFilter}
-              onImageFilterChange={setImageFilter}
-              onPageSizeChange={setPageSize}
-            />
+            <CategoryFilters searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} />
 
             <p className="catalog-results-meta">
-              {filteredCategories.length
-                ? `Показано ${pagination.visibleStart}-${pagination.visibleEnd} из ${filteredCategories.length} подходящих категорий`
-                : 'Нет категорий, подходящих под текущие фильтры'}
+              {filteredCategories.length ? `Найдено ${filteredCategories.length} категорий` : 'Категории с таким названием не найдены'}
             </p>
           </div>
 
@@ -160,37 +116,13 @@ export function CategoriesPage() {
 
           {isLoading ? (
             <p className="catalog-empty-state">Загрузка категорий с бэкенда...</p>
-          ) : pagination.paginatedItems.length ? (
-            <CategoryList items={pagination.paginatedItems} focusedCategoryId={focusedCategoryId} />
+          ) : filteredCategories.length ? (
+            <CategoryList items={filteredCategories} focusedCategoryId={focusedCategoryId} />
           ) : (
             <p className="catalog-empty-state">
-              {categories.length ? 'Нет категорий, подходящих под текущие фильтры.' : 'Бэкенд не вернул категории.'}
+              {categories.length ? 'Категории с таким названием не найдены.' : 'Бэкенд не вернул категории.'}
             </p>
           )}
-
-          {!isLoading && filteredCategories.length ? (
-            <div className="pagination-bar">
-              <button
-                type="button"
-                className="secondary-button pagination-button"
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-                disabled={pagination.currentPage === 1}
-              >
-                Назад
-              </button>
-              <p className="pagination-text">
-                Страница {pagination.currentPage} из {pagination.totalPages}
-              </p>
-              <button
-                type="button"
-                className="secondary-button pagination-button"
-                onClick={() => setPage((current) => Math.min(pagination.totalPages, current + 1))}
-                disabled={pagination.currentPage === pagination.totalPages}
-              >
-                Далее
-              </button>
-            </div>
-          ) : null}
         </section>
       </main>
     </div>
