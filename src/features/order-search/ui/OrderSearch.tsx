@@ -41,7 +41,6 @@ export function OrderSearch({
             onChange={(event) => onSearchQueryChange(event.target.value)}
             disabled={disabled || isSearching}
           />
-          <p className="helper-text">Поиск использует endpoint `/api/v1/admin/orders/search` и точное совпадение номера.</p>
         </div>
 
         <div className="orders-search-actions">

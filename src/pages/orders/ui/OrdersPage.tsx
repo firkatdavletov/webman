@@ -4,19 +4,12 @@ import {
   getOrderById,
   searchAdminOrderByNumber,
   type Order,
-  type OrderDeliveryType,
   type OrderStatus,
   updateOrderStatus,
 } from '@/entities/order';
 import { getAllProducts } from '@/entities/product';
-import { OrderFilters } from '@/features/order-filters';
 import { OrderSearch } from '@/features/order-search';
-import {
-  filterOrders,
-  OrderDateRangeFilter,
-  ORDER_PAGE_SIZE_OPTIONS,
-  paginateItems,
-} from '@/pages/orders/model/orderPageView';
+import { paginateItems } from '@/pages/orders/model/orderPageView';
 import { NavBar } from '@/shared/ui/NavBar';
 import { OrderDetailsDrawer } from '@/widgets/order-details';
 import { OrdersTable } from '@/widgets/orders-table';
@@ -27,6 +20,7 @@ type OrderProductMeta = {
 };
 
 const ADMIN_QUEUE_STATUSES = new Set<OrderStatus>(['PENDING', 'CONFIRMED']);
+const ORDERS_PAGE_SIZE = 10;
 
 export function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -40,11 +34,6 @@ export function OrdersPage() {
   const [searchErrorMessage, setSearchErrorMessage] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
-  const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
-  const [paymentFilter, setPaymentFilter] = useState<'unsupported'>('unsupported');
-  const [deliveryFilter, setDeliveryFilter] = useState<'all' | OrderDeliveryType>('all');
-  const [dateRangeFilter, setDateRangeFilter] = useState<OrderDateRangeFilter>('all');
-  const [pageSize, setPageSize] = useState<number>(ORDER_PAGE_SIZE_OPTIONS[0]);
   const [page, setPage] = useState(1);
 
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -138,22 +127,15 @@ export function OrdersPage() {
     return [searchedOrder];
   }, [isSearchActive, orders, searchedOrder]);
 
-  const filteredOrders = useMemo(
-    () =>
-      filterOrders(sourceOrders, {
-        statusFilter,
-        deliveryFilter,
-        paymentFilter,
-        dateRangeFilter,
-      }),
-    [dateRangeFilter, deliveryFilter, paymentFilter, sourceOrders, statusFilter],
+  const visibleOrders = useMemo(
+    () => sourceOrders.slice().sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt)),
+    [sourceOrders],
   );
-
-  const pagination = useMemo(() => paginateItems(filteredOrders, page, pageSize), [filteredOrders, page, pageSize]);
+  const pagination = useMemo(() => paginateItems(visibleOrders, page, ORDERS_PAGE_SIZE), [page, visibleOrders]);
 
   useEffect(() => {
     setPage(1);
-  }, [dateRangeFilter, deliveryFilter, pageSize, paymentFilter, sourceOrders, statusFilter]);
+  }, [sourceOrders]);
 
   const knownOrders = useMemo(() => {
     const nextOrders = [...orders];
@@ -330,9 +312,6 @@ export function OrdersPage() {
           <div className="catalog-card-copy">
             <p className="placeholder-eyebrow">MVP</p>
             <h3 className="catalog-card-title">Операционный список заказов</h3>
-            <p className="catalog-card-text">
-              Источник: `GET /api/v1/admin/orders`, поиск: `GET /api/v1/admin/orders/search`, детали: `GET /api/v1/orders/{'{orderId}'}`.
-            </p>
           </div>
 
           <div className="catalog-controls orders-controls">
@@ -346,25 +325,10 @@ export function OrdersPage() {
               onResetSearch={handleResetSearch}
             />
 
-            <OrderFilters
-              statusFilter={statusFilter}
-              paymentFilter={paymentFilter}
-              deliveryFilter={deliveryFilter}
-              dateRangeFilter={dateRangeFilter}
-              pageSize={pageSize}
-              pageSizeOptions={ORDER_PAGE_SIZE_OPTIONS}
-              disabled={isLoading || isSearching}
-              onStatusFilterChange={setStatusFilter}
-              onPaymentFilterChange={setPaymentFilter}
-              onDeliveryFilterChange={setDeliveryFilter}
-              onDateRangeFilterChange={setDateRangeFilter}
-              onPageSizeChange={setPageSize}
-            />
-
             <p className="catalog-results-meta">
-              {filteredOrders.length
-                ? `Показано ${pagination.visibleStart}-${pagination.visibleEnd} из ${filteredOrders.length} заказов`
-                : 'Нет заказов, подходящих под текущие фильтры'}
+              {visibleOrders.length
+                ? `Показано ${pagination.visibleStart}-${pagination.visibleEnd} из ${visibleOrders.length} заказов`
+                : 'Нет заказов для отображения'}
             </p>
           </div>
 
@@ -391,16 +355,14 @@ export function OrdersPage() {
           ) : (
             <p className="catalog-empty-state">
               {isSearchActive
-                ? searchedOrder
-                  ? 'Заказ найден, но не проходит текущие фильтры.'
-                  : 'По указанному номеру заказа ничего не найдено.'
+                ? 'По указанному номеру заказа ничего не найдено.'
                 : orders.length
-                  ? 'Нет заказов, подходящих под текущие фильтры.'
+                  ? 'Нет заказов для отображения.'
                   : 'Очередь заказов пуста.'}
             </p>
           )}
 
-          {!isLoading && filteredOrders.length ? (
+          {!isLoading && visibleOrders.length ? (
             <div className="pagination-bar">
               <button
                 type="button"
