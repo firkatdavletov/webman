@@ -2,29 +2,14 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 export default defineConfig({
     plugins: [react()],
+    resolve: {
+        alias: {
+            '@': '/src',
+        },
+    },
     server: {
         proxy: {
-            '/admin': {
-                target: 'http://localhost:8080',
-                changeOrigin: true,
-            },
-            '/catalog/categories': {
-                target: 'http://localhost:8080',
-                changeOrigin: true,
-            },
-            '/catalog/category': {
-                target: 'http://localhost:8080',
-                changeOrigin: true,
-            },
-            '/catalog/product': {
-                target: 'http://localhost:8080',
-                changeOrigin: true,
-            },
-            '/catalog/products': {
-                target: 'http://localhost:8080',
-                changeOrigin: true,
-            },
-            '/auth': {
+            '/api': {
                 target: 'http://localhost:8080',
                 changeOrigin: true,
             },
