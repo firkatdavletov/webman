@@ -7,7 +7,6 @@ import {
   getCategories,
   type Category,
 } from '@/entities/category';
-import { CatalogImportPanel } from '@/features/catalog-import';
 import {
   CATEGORY_PAGE_SIZE_OPTIONS,
   type CategoryImageFilter,
@@ -123,38 +122,6 @@ export function CategoriesPage() {
             </button>
           </div>
         </header>
-
-        <section className="catalog-layout">
-          <CatalogImportPanel
-            mode="categories"
-            title="Загрузка CSV категорий"
-            description="Импортируйте или обновляйте категории через CSV-импортер бэкенда."
-            onImportSuccess={loadCategoriesData}
-            disabled={isRefreshing}
-          />
-
-          <section className="catalog-card catalog-details" aria-label="Сведения о странице категорий">
-            <div className="catalog-card-copy">
-              <p className="placeholder-eyebrow">Обзор</p>
-              <h3 className="catalog-card-title">Дерево категорий</h3>
-            </div>
-
-            <div className="detail-block">
-              <h4 className="detail-title">Источник</h4>
-              <p className="detail-copy">GET /api/v1/catalog/categories</p>
-            </div>
-
-            <div className="detail-block">
-              <h4 className="detail-title">Что отображается</h4>
-              <p className="detail-copy">Вложенная структура категорий с ID, родительскими связями, SKU и ссылкой на изображение.</p>
-            </div>
-
-            <div className="detail-block">
-              <h4 className="detail-title">Цель импорта</h4>
-              <p className="detail-copy">CSV-импорт не описан в текущем OpenAPI-контракте.</p>
-            </div>
-          </section>
-        </section>
 
         <section className="catalog-card catalog-data-card" aria-label="Категории в базе данных">
           <div className="catalog-section-header">

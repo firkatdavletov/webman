@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { type Category, buildCategoryLookup, getCategories } from '@/entities/category';
 import { type Product, getAllProducts } from '@/entities/product';
-import { CatalogImportPanel } from '@/features/catalog-import';
 import {
   PRODUCT_PAGE_SIZE_OPTIONS,
   buildCategoryOptions,
@@ -89,38 +88,6 @@ export function ProductsPage() {
             </button>
           </div>
         </header>
-
-        <section className="catalog-layout">
-          <CatalogImportPanel
-            mode="products"
-            title="Загрузка CSV товаров"
-            description="Импортируйте или обновляйте товары через CSV-импортер бэкенда."
-            onImportSuccess={loadProductsData}
-            disabled={isRefreshing}
-          />
-
-          <section className="catalog-card catalog-details" aria-label="Сведения о странице товаров">
-            <div className="catalog-card-copy">
-              <p className="placeholder-eyebrow">Обзор</p>
-              <h3 className="catalog-card-title">Список товаров</h3>
-            </div>
-
-            <div className="detail-block">
-              <h4 className="detail-title">Источник</h4>
-              <p className="detail-copy">GET /api/v1/catalog/products</p>
-            </div>
-
-            <div className="detail-block">
-              <h4 className="detail-title">Что отображается</h4>
-              <p className="detail-copy">Плоский список товаров с ценой, категорией, SKU, единицей измерения и шагом.</p>
-            </div>
-
-            <div className="detail-block">
-              <h4 className="detail-title">Цель импорта</h4>
-              <p className="detail-copy">CSV-импорт не описан в текущем OpenAPI-контракте.</p>
-            </div>
-          </section>
-        </section>
 
         <section className="catalog-card catalog-data-card" aria-label="Товары в базе данных">
           <div className="catalog-section-header">
