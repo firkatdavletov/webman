@@ -15,7 +15,7 @@ export function CategoryCreatePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
-  const previewImageUrl = formValues.imageUrl.trim();
+  const normalizedImageUrl = formValues.imageUrl.trim();
 
   const handleFieldChange = (field: keyof CategoryEditorValues, value: string) => {
     setFormValues((currentValues) => ({
@@ -44,7 +44,7 @@ export function CategoryCreatePage() {
       parentCategory: null,
       title: normalizedTitle,
       slug: '',
-      imageUrl: previewImageUrl || null,
+      imageUrl: normalizedImageUrl || null,
       products: [],
       children: [],
       sku: formValues.sku.trim() || null,
@@ -90,47 +90,38 @@ export function CategoryCreatePage() {
           </div>
         </header>
 
-        <section className="product-detail-layout">
-          <section className="catalog-card product-media-card" aria-label="Изображение новой категории">
-            {previewImageUrl ? (
-              <img className="product-detail-image" src={previewImageUrl} alt={formValues.title || 'Новая категория'} />
-            ) : (
-              <div className="product-image-placeholder">Изображение отсутствует</div>
-            )}
-          </section>
+        <section className="catalog-card product-detail-card" aria-label="Создание категории">
+          <div className="catalog-card-copy">
+            <p className="placeholder-eyebrow">Создание</p>
+            <h3 className="product-detail-title">Новая категория</h3>
+            <p className="catalog-meta">Новая категория будет создана как корневая. Назначение родителя текущий API не поддерживает.</p>
+          </div>
 
-          <section className="catalog-card product-detail-card" aria-label="Создание категории">
-            <div className="catalog-card-copy">
-              <p className="placeholder-eyebrow">Создание</p>
-              <h3 className="product-detail-title">Новая категория</h3>
-              <p className="catalog-meta">Новая категория будет создана как корневая. Назначение родителя текущий API не поддерживает.</p>
+          <div className="product-detail-grid">
+            <div className="detail-block">
+              <h4 className="detail-title">Идентификатор</h4>
+              <p className="detail-copy">ID будет назначен после сохранения.</p>
             </div>
 
-            <div className="product-detail-grid">
-              <div className="detail-block">
-                <h4 className="detail-title">Идентификатор</h4>
-                <p className="detail-copy">ID будет назначен после сохранения.</p>
-              </div>
-
-              <div className="detail-block">
-                <h4 className="detail-title">API</h4>
-                <p className="detail-copy">POST /api/v1/admin/catalog/categories</p>
-              </div>
+            <div className="detail-block">
+              <h4 className="detail-title">API</h4>
+              <p className="detail-copy">POST /api/v1/admin/catalog/categories</p>
             </div>
-            <CategoryEditor
-              idPrefix="category-create"
-              ariaLabel="Форма создания категории"
-              eyebrow="Создание"
-              title="Новая категория"
-              formValues={formValues}
-              isSaving={isSaving}
-              saveError={saveError}
-              submitLabel="Создать категорию"
-              savingLabel="Создание..."
-              onFieldChange={handleFieldChange}
-              onSubmit={() => void handleSave()}
-            />
-          </section>
+          </div>
+          <CategoryEditor
+            idPrefix="category-create"
+            ariaLabel="Форма создания категории"
+            eyebrow="Создание"
+            title="Новая категория"
+            showImageUrlField={false}
+            formValues={formValues}
+            isSaving={isSaving}
+            saveError={saveError}
+            submitLabel="Создать категорию"
+            savingLabel="Создание..."
+            onFieldChange={handleFieldChange}
+            onSubmit={() => void handleSave()}
+          />
         </section>
       </main>
     </div>

@@ -92,14 +92,6 @@ export function CategoriesPage() {
         </header>
 
         <section className="catalog-card catalog-data-card" aria-label="Категории в базе данных">
-          <div className="catalog-section-header">
-            <div className="catalog-card-copy">
-              <p className="placeholder-eyebrow">База данных</p>
-              <h3 className="catalog-card-title">Текущие категории</h3>
-              <p className="catalog-card-text">Дерево ниже строится напрямую из ответа бэкенда.</p>
-            </div>
-          </div>
-
           <div className="catalog-controls">
             <CategoryFilters searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} />
 

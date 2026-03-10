@@ -6,6 +6,7 @@ type CategoryEditorProps = {
   eyebrow: string;
   title: string;
   description?: string;
+  showImageUrlField?: boolean;
   formValues: CategoryEditorValues;
   isSaving: boolean;
   saveError?: string;
@@ -22,6 +23,7 @@ export function CategoryEditor({
   eyebrow,
   title,
   description,
+  showImageUrlField = true,
   formValues,
   isSaving,
   saveError,
@@ -67,18 +69,20 @@ export function CategoryEditor({
         </div>
       </div>
 
-      <div className="field">
-        <label className="field-label" htmlFor={`${idPrefix}-image`}>
-          Ссылка на изображение
-        </label>
-        <input
-          id={`${idPrefix}-image`}
-          className="field-input"
-          value={formValues.imageUrl}
-          onChange={(event) => onFieldChange('imageUrl', event.target.value)}
-          disabled={isSaving}
-        />
-      </div>
+      {showImageUrlField ? (
+        <div className="field">
+          <label className="field-label" htmlFor={`${idPrefix}-image`}>
+            Ссылка на изображение
+          </label>
+          <input
+            id={`${idPrefix}-image`}
+            className="field-input"
+            value={formValues.imageUrl}
+            onChange={(event) => onFieldChange('imageUrl', event.target.value)}
+            disabled={isSaving}
+          />
+        </div>
+      ) : null}
 
       {saveError ? (
         <p className="form-error" role="alert">

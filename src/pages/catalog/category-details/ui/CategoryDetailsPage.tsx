@@ -3,8 +3,6 @@ import { Link, useParams } from 'react-router-dom';
 import {
   buildCategoryLookup,
   completeCategoryImageUpload,
-  countCategoryNodes,
-  countNestedProducts,
   getCategories,
   getCategoryById,
   initCategoryImageUpload,
@@ -80,8 +78,6 @@ export function CategoryDetailsPage() {
   const parentTitle =
     category?.parentCategory != null ? categoryLookup.get(category.parentCategory) ?? `#${category.parentCategory}` : null;
   const previewImageUrl = uploadedImagePreviewDataUrl || (formValues ? formValues.imageUrl.trim() : category?.imageUrl ?? '');
-  const nestedProducts = category ? countNestedProducts(category) : 0;
-  const nestedCategories = category ? Math.max(0, countCategoryNodes([category]) - 1) : 0;
 
   const handleFieldChange = (field: keyof CategoryEditorValues, value: string) => {
     setFormValues((currentValues) => {
@@ -325,34 +321,6 @@ export function CategoryDetailsPage() {
                   <p className="detail-copy">ID: {category.id}</p>
                   <p className="detail-copy">SKU: {category.sku ?? 'Не указан'}</p>
                 </div>
-
-                <div className="detail-block">
-                  <h4 className="detail-title">Структура</h4>
-                  {category.parentCategory != null ? (
-                    <p className="detail-copy">
-                      Родитель:{' '}
-                      <Link className="inline-link" to={`/categories/${category.parentCategory}`}>
-                        {parentTitle ?? `#${category.parentCategory}`}
-                      </Link>
-                    </p>
-                  ) : (
-                    <p className="detail-copy">Родитель: корневая категория</p>
-                  )}
-                  <p className="detail-copy">Дочерних категорий: {category.children.length}</p>
-                  <p className="detail-copy">Всего потомков: {nestedCategories}</p>
-                </div>
-
-                <div className="detail-block">
-                  <h4 className="detail-title">Связанные товары</h4>
-                  <p className="detail-copy">Товаров в категории: {category.products.length}</p>
-                  <p className="detail-copy">Товаров во всей ветке: {nestedProducts}</p>
-                </div>
-
-                <div className="detail-block">
-                  <h4 className="detail-title">API</h4>
-                  <p className="detail-copy">GET /api/v1/catalog/categories</p>
-                  <p className="detail-copy">POST /api/v1/admin/catalog/categories</p>
-                </div>
               </div>
 
               {formValues ? (
@@ -361,7 +329,8 @@ export function CategoryDetailsPage() {
                   ariaLabel="Редактирование категории"
                   eyebrow="Редактирование"
                   title="Изменить категорию"
-                  description="Через текущий endpoint можно менять название, SKU и изображение. Связь с родителем остается только для чтения."
+                  description="Через текущий endpoint можно менять название и SKU. Изображение обновляется через загрузку файла."
+                  showImageUrlField={false}
                   formValues={formValues}
                   isSaving={isSaving || isImageUploading}
                   saveError={saveError}
