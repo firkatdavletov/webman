@@ -343,7 +343,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List categories by activity flag */
+        get: operations["getAdminCategories"];
         put?: never;
         /** Create or update category */
         post: operations["upsertCategory"];
@@ -360,10 +361,72 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List products by activity flag */
+        get: operations["getAdminProducts"];
         put?: never;
         /** Create or update product */
         post: operations["upsertProduct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/catalog-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import catalog entities from CSV
+         * @description Accepts CSV file as `multipart/form-data` and processes import in one of the supported modes.
+         *     Alias route is also available at `/api/admin/catalog-import`.
+         */
+        post: operations["importCatalog"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/catalog-import/examples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List available CSV import examples
+         * @description Alias route is also available at `/api/admin/catalog-import/examples`.
+         */
+        get: operations["listCatalogImportExamples"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/catalog-import/examples/{importType}/{importMode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download CSV import example by type and mode
+         * @description Alias route is also available at `/api/admin/catalog-import/examples/{importType}/{importMode}`.
+         */
+        get: operations["downloadCatalogImportExample"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -690,6 +753,7 @@ export interface components {
             unit: components["schemas"]["ProductUnit"];
             /** Format: int32 */
             countStep: number;
+            isActive: boolean;
         };
         UpsertCategoryRequest: {
             /** Format: uuid */
@@ -719,6 +783,45 @@ export interface components {
             countStep: number;
             /** @default true */
             isActive: boolean;
+        };
+        CatalogImportMultipartRequest: {
+            /**
+             * Format: binary
+             * @description CSV file encoded in UTF-8 with comma delimiter.
+             */
+            file: string;
+            importType: components["schemas"]["CatalogImportType"];
+            importMode: components["schemas"]["CatalogImportMode"];
+        };
+        CatalogImportResponse: {
+            importType: components["schemas"]["CatalogImportType"];
+            importMode: components["schemas"]["CatalogImportMode"];
+            /** Format: int32 */
+            totalRows: number;
+            /** Format: int32 */
+            successCount: number;
+            /** Format: int32 */
+            createdCount: number;
+            /** Format: int32 */
+            updatedCount: number;
+            /** Format: int32 */
+            skippedCount: number;
+            /** Format: int32 */
+            errorCount: number;
+            rowErrors: components["schemas"]["CatalogImportRowErrorResponse"][];
+        };
+        CatalogImportRowErrorResponse: {
+            /** Format: int32 */
+            rowNumber: number;
+            rowKey?: string | null;
+            errorCode: components["schemas"]["CatalogImportErrorCode"];
+            message: string;
+        };
+        CatalogImportExampleResponse: {
+            importType: components["schemas"]["CatalogImportType"];
+            importMode: components["schemas"]["CatalogImportMode"];
+            fileName: string;
+            downloadUrl: string;
         };
         CheckoutRequest: {
             customerName?: string | null;
@@ -849,6 +952,12 @@ export interface components {
         AuthMethod: "PHONE_SMS" | "PHONE_CALL" | "TELEGRAM" | "MAX" | "EMAIL";
         /** @enum {string} */
         AuthMethodStartPhone: "PHONE_SMS" | "PHONE_CALL";
+        /** @enum {string} */
+        CatalogImportType: "CATEGORY" | "PRODUCT";
+        /** @enum {string} */
+        CatalogImportMode: "VALIDATE_ONLY" | "CREATE_ONLY" | "UPSERT";
+        /** @enum {string} */
+        CatalogImportErrorCode: "MISSING_REQUIRED_FIELD" | "INVALID_BOOLEAN" | "INVALID_NUMBER" | "DUPLICATE_KEY_IN_FILE" | "CATEGORY_NOT_FOUND" | "PARENT_CATEGORY_NOT_FOUND" | "AMBIGUOUS_MATCH" | "INVALID_RELATION" | "PERSISTENCE_ERROR";
         /** @enum {string} */
         ProductUnit: "PIECE" | "KILOGRAM" | "GRAM" | "LITER" | "MILLILITER";
         /** @enum {string} */
@@ -1455,6 +1564,33 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    getAdminCategories: {
+        parameters: {
+            query: {
+                /** @description Returns only categories with the provided activity status. */
+                isActive: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Filtered category list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryResponse"][];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     upsertCategory: {
         parameters: {
             query?: never;
@@ -1475,6 +1611,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CategoryResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getAdminProducts: {
+        parameters: {
+            query: {
+                /** @description Returns only products with the provided activity status. */
+                isActive: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Filtered product list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductResponse"][];
                 };
             };
             400: components["responses"]["BadRequestError"];
@@ -1506,6 +1669,86 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    importCatalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["CatalogImportMultipartRequest"];
+            };
+        };
+        responses: {
+            /** @description Import report */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogImportResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    listCatalogImportExamples: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Available example files */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogImportExampleResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    downloadCatalogImportExample: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                importType: components["schemas"]["CatalogImportType"];
+                importMode: components["schemas"]["CatalogImportMode"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV file content */
+            200: {
+                headers: {
+                    /** @description Suggested attachment filename. */
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
             404: components["responses"]["NotFoundError"];

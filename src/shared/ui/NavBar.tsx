@@ -13,6 +13,11 @@ const navItems = [
     badge: 'Активно',
   },
   {
+    label: 'Импорт CSV',
+    to: '/catalog-import',
+    badge: 'Активно',
+  },
+  {
     label: 'Заказы',
     to: '/orders',
     badge: 'Активно',

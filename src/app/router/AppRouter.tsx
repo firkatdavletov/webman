@@ -6,6 +6,7 @@ import { CategoriesPage } from '@/pages/catalog/categories/ui/CategoriesPage';
 import { ProductCreatePage } from '@/pages/catalog/product-create/ui/ProductCreatePage';
 import { ProductDetailsPage } from '@/pages/catalog/product-details/ui/ProductDetailsPage';
 import { ProductsPage } from '@/pages/catalog/products/ui/ProductsPage';
+import { CatalogImportPage } from '@/pages/catalog/import/ui/CatalogImportPage';
 import { LoginPage } from '@/pages/login/ui/LoginPage';
 import { OrdersPage } from '@/pages/orders/ui/OrdersPage';
 import { ProtectedRoute } from '@/shared/routing/ProtectedRoute';
@@ -33,6 +34,7 @@ export function AppRouter() {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/new" element={<ProductCreatePage />} />
         <Route path="/products/:productId" element={<ProductDetailsPage />} />
+        <Route path="/catalog-import" element={<CatalogImportPage />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/admin/orders" element={<OrdersPage />} />
       </Route>
