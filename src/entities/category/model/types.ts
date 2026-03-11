@@ -5,8 +5,8 @@ export type Category = {
   parentCategory: string | null;
   title: string;
   slug: string;
+  isActive: boolean;
   imageUrl: string | null;
   products: Product[];
   children: Category[];
-  sku: string | null;
 };

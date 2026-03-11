@@ -79,7 +79,7 @@ export function CategoryDetailsPage() {
     category?.parentCategory != null ? categoryLookup.get(category.parentCategory) ?? `#${category.parentCategory}` : null;
   const previewImageUrl = uploadedImagePreviewDataUrl || (formValues ? formValues.imageUrl.trim() : category?.imageUrl ?? '');
 
-  const handleFieldChange = (field: keyof CategoryEditorValues, value: string) => {
+  const handleFieldChange = (field: Exclude<keyof CategoryEditorValues, 'isActive'>, value: string) => {
     setFormValues((currentValues) => {
       if (!currentValues) {
         return currentValues;
@@ -101,6 +101,27 @@ export function CategoryDetailsPage() {
 
     if (field === 'imageUrl' && imageUploadError) {
       setImageUploadError('');
+    }
+  };
+
+  const handleIsActiveChange = (value: boolean) => {
+    setFormValues((currentValues) => {
+      if (!currentValues) {
+        return currentValues;
+      }
+
+      return {
+        ...currentValues,
+        isActive: value,
+      };
+    });
+
+    if (saveError) {
+      setSaveError('');
+    }
+
+    if (saveSuccess) {
+      setSaveSuccess('');
     }
   };
 
@@ -208,8 +229,8 @@ export function CategoryDetailsPage() {
     const result = await saveCategory({
       ...category,
       title: normalizedTitle,
+      isActive: formValues.isActive,
       imageUrl: formValues.imageUrl.trim() || null,
-      sku: formValues.sku.trim() || null,
     });
 
     if (result.category) {
@@ -319,7 +340,6 @@ export function CategoryDetailsPage() {
                 <div className="detail-block">
                   <h4 className="detail-title">Идентификаторы</h4>
                   <p className="detail-copy">ID: {category.id}</p>
-                  <p className="detail-copy">SKU: {category.sku ?? 'Не указан'}</p>
                 </div>
               </div>
 
@@ -329,7 +349,7 @@ export function CategoryDetailsPage() {
                   ariaLabel="Редактирование категории"
                   eyebrow="Редактирование"
                   title="Изменить категорию"
-                  description="Через текущий endpoint можно менять название и SKU. Изображение обновляется через загрузку файла."
+                  description="Через текущий endpoint можно менять название и активность. Изображение обновляется через загрузку файла."
                   showImageUrlField={false}
                   formValues={formValues}
                   isSaving={isSaving || isImageUploading}
@@ -338,6 +358,7 @@ export function CategoryDetailsPage() {
                   submitLabel="Сохранить изменения"
                   savingLabel="Сохранение..."
                   onFieldChange={handleFieldChange}
+                  onIsActiveChange={handleIsActiveChange}
                   onSubmit={() => void handleSave()}
                 />
               ) : null}

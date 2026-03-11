@@ -13,7 +13,8 @@ type CategoryEditorProps = {
   saveSuccess?: string;
   submitLabel: string;
   savingLabel: string;
-  onFieldChange: (field: keyof CategoryEditorValues, value: string) => void;
+  onFieldChange: (field: Exclude<keyof CategoryEditorValues, 'isActive'>, value: string) => void;
+  onIsActiveChange: (value: boolean) => void;
   onSubmit: () => void;
 };
 
@@ -31,6 +32,7 @@ export function CategoryEditor({
   submitLabel,
   savingLabel,
   onFieldChange,
+  onIsActiveChange,
   onSubmit,
 }: CategoryEditorProps) {
   return (
@@ -54,19 +56,6 @@ export function CategoryEditor({
             disabled={isSaving}
           />
         </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-sku`}>
-            SKU
-          </label>
-          <input
-            id={`${idPrefix}-sku`}
-            className="field-input"
-            value={formValues.sku}
-            onChange={(event) => onFieldChange('sku', event.target.value)}
-            disabled={isSaving}
-          />
-        </div>
       </div>
 
       {showImageUrlField ? (
@@ -83,6 +72,19 @@ export function CategoryEditor({
           />
         </div>
       ) : null}
+
+      <div className="field">
+        <label className="field-checkbox">
+          <input
+            id={`${idPrefix}-active`}
+            type="checkbox"
+            checked={formValues.isActive}
+            onChange={(event) => onIsActiveChange(event.target.checked)}
+            disabled={isSaving}
+          />
+          <span className="field-label">Отображать на витрине</span>
+        </label>
+      </div>
 
       {saveError ? (
         <p className="form-error" role="alert">

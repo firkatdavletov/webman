@@ -105,15 +105,17 @@ function getProtectedErrorMessage(error: ApiError | undefined, fallbackMessage: 
 }
 
 function mapCategory(category: CategoryResponse): Category {
+  const categoryWithActiveFlag = category as CategoryResponse & { isActive?: boolean };
+
   return {
     id: category.id,
     parentCategory: null,
     title: category.name,
     slug: category.slug,
+    isActive: categoryWithActiveFlag.isActive ?? true,
     imageUrl: category.imageUrl ?? null,
     products: [],
     children: [],
-    sku: null,
   };
 }
 
@@ -123,7 +125,7 @@ function mapSaveCategoryRequest(category: Category): UpsertCategoryRequest {
     name: category.title,
     slug: category.slug || null,
     imageUrl: category.imageUrl,
-    isActive: true,
+    isActive: category.isActive,
   };
 }
 

@@ -17,10 +17,21 @@ export function CategoryCreatePage() {
 
   const normalizedImageUrl = formValues.imageUrl.trim();
 
-  const handleFieldChange = (field: keyof CategoryEditorValues, value: string) => {
+  const handleFieldChange = (field: Exclude<keyof CategoryEditorValues, 'isActive'>, value: string) => {
     setFormValues((currentValues) => ({
       ...currentValues,
       [field]: value,
+    }));
+
+    if (saveError) {
+      setSaveError('');
+    }
+  };
+
+  const handleIsActiveChange = (value: boolean) => {
+    setFormValues((currentValues) => ({
+      ...currentValues,
+      isActive: value,
     }));
 
     if (saveError) {
@@ -44,10 +55,10 @@ export function CategoryCreatePage() {
       parentCategory: null,
       title: normalizedTitle,
       slug: '',
+      isActive: formValues.isActive,
       imageUrl: normalizedImageUrl || null,
       products: [],
       children: [],
-      sku: formValues.sku.trim() || null,
     };
 
     const result = await saveCategory(newCategory);
@@ -120,6 +131,7 @@ export function CategoryCreatePage() {
             submitLabel="Создать категорию"
             savingLabel="Создание..."
             onFieldChange={handleFieldChange}
+            onIsActiveChange={handleIsActiveChange}
             onSubmit={() => void handleSave()}
           />
         </section>

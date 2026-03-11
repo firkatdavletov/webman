@@ -12,10 +12,6 @@ export function CategoryList({ items, focusedCategoryId }: CategoryListProps) {
       {items.map((item) => {
         const metaParts: string[] = [];
 
-        if (item.category.sku) {
-          metaParts.push(`SKU ${item.category.sku}`);
-        }
-
         if (item.parentTitle) {
           metaParts.push(`Родитель: ${item.parentTitle}`);
         }
