@@ -94,6 +94,20 @@ export function ProductEditor({
         </div>
 
         <div className="field">
+          <label className="field-label" htmlFor={`${idPrefix}-old-price`}>
+            Старая цена, руб.
+          </label>
+          <input
+            id={`${idPrefix}-old-price`}
+            className="field-input"
+            inputMode="decimal"
+            value={formValues.oldPrice}
+            onChange={(event) => onFieldChange('oldPrice', event.target.value)}
+            disabled={isSaving}
+          />
+        </div>
+
+        <div className="field">
           <label className="field-label" htmlFor={`${idPrefix}-unit`}>
             Единица измерения
           </label>

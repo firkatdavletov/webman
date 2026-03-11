@@ -5,6 +5,7 @@ export type ProductEditorValues = {
   title: string;
   description: string;
   price: string;
+  oldPrice: string;
   imageUrl: string;
   unit: string;
   displayWeight: string;
@@ -25,6 +26,7 @@ export const EMPTY_PRODUCT_EDITOR_VALUES: ProductEditorValues = {
   title: '',
   description: '',
   price: '',
+  oldPrice: '',
   imageUrl: '',
   unit: 'PIECE',
   displayWeight: '',
@@ -44,6 +46,7 @@ export function buildProductEditorValues(product: Product): ProductEditorValues 
     title: product.title,
     description: product.description ?? '',
     price: formatEditablePrice(product.price),
+    oldPrice: product.oldPrice === null ? '' : formatEditablePrice(product.oldPrice),
     imageUrl: product.imageUrl ?? '',
     unit: product.unit,
     displayWeight: product.displayWeight ?? '',
@@ -61,4 +64,14 @@ export function parseProductPrice(value: string): number | null {
   }
 
   return Math.round(numericValue * 100);
+}
+
+export function parseOptionalProductPrice(value: string): number | null | undefined {
+  const normalizedValue = value.trim();
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  return parseProductPrice(normalizedValue) ?? undefined;
 }

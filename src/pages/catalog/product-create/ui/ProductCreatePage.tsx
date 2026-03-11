@@ -9,6 +9,7 @@ import {
 } from '@/entities/product';
 import {
   EMPTY_PRODUCT_EDITOR_VALUES,
+  parseOptionalProductPrice,
   parseProductPrice,
   ProductEditor,
   type ProductEditorValues,
@@ -57,6 +58,7 @@ export function ProductCreatePage() {
   const selectedCategoryId = formValues.categoryId.trim();
   const selectedCategoryTitle = selectedCategoryId ? categoryLookup.get(selectedCategoryId) ?? `#${selectedCategoryId}` : 'Не выбрана';
   const parsedPrice = parseProductPrice(formValues.price);
+  const parsedOldPrice = parseOptionalProductPrice(formValues.oldPrice);
   const previewImageUrl = formValues.imageUrl.trim();
 
   const handleFieldChange = (field: keyof ProductEditorValues, value: string) => {
@@ -95,6 +97,11 @@ export function ProductCreatePage() {
       return;
     }
 
+    if (parsedOldPrice === undefined) {
+      setSaveError('Укажите корректную старую цену в рублях или оставьте поле пустым.');
+      return;
+    }
+
     if (!Number.isInteger(normalizedCountStep) || normalizedCountStep <= 0) {
       setSaveError('Шаг продажи должен быть положительным целым числом.');
       return;
@@ -115,7 +122,7 @@ export function ProductCreatePage() {
       slug: '',
       description: formValues.description.trim() || null,
       price: parsedPrice,
-      oldPrice: null,
+      oldPrice: parsedOldPrice ?? null,
       imageUrl: previewImageUrl || null,
       unit: formValues.unit as Product['unit'],
       displayWeight: formValues.displayWeight.trim() || null,

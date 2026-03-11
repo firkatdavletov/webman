@@ -16,6 +16,7 @@ import {
 } from '@/entities/product';
 import {
   buildProductEditorValues,
+  parseOptionalProductPrice,
   parseProductPrice,
   ProductEditor,
   type ProductEditorValues,
@@ -205,6 +206,7 @@ export function ProductDetailsPage() {
     const normalizedCategoryId = formValues.categoryId.trim();
     const normalizedCountStep = Number(formValues.countStep);
     const normalizedPrice = parseProductPrice(formValues.price);
+    const normalizedOldPrice = parseOptionalProductPrice(formValues.oldPrice);
 
     if (!normalizedTitle) {
       setSaveError('Укажите название товара.');
@@ -218,6 +220,11 @@ export function ProductDetailsPage() {
 
     if (normalizedPrice === null) {
       setSaveError('Укажите корректную цену в рублях.');
+      return;
+    }
+
+    if (normalizedOldPrice === undefined) {
+      setSaveError('Укажите корректную старую цену в рублях или оставьте поле пустым.');
       return;
     }
 
@@ -241,6 +248,7 @@ export function ProductDetailsPage() {
       title: normalizedTitle,
       description: formValues.description.trim() || null,
       price: normalizedPrice,
+      oldPrice: normalizedOldPrice ?? null,
       imageUrl: formValues.imageUrl.trim() || null,
       unit: formValues.unit as Product['unit'],
       displayWeight: formValues.displayWeight.trim() || null,
