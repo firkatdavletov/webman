@@ -82,11 +82,14 @@ function getProtectedErrorMessage(error: ApiError | undefined, fallbackMessage: 
 }
 
 function mapProduct(product: ProductResponse): Product {
+  const productWithActiveFlag = product as ProductResponse & { isActive?: boolean };
+
   return {
     id: product.id,
     categoryId: product.categoryId,
     title: product.title,
     slug: product.slug,
+    isActive: productWithActiveFlag.isActive ?? true,
     description: product.description ?? null,
     price: product.priceMinor,
     oldPrice: product.oldPriceMinor ?? null,
@@ -111,7 +114,7 @@ function mapSaveProductRequest(product: Product): UpsertProductRequest {
     imageUrl: product.imageUrl,
     unit: product.unit,
     countStep: product.countStep,
-    isActive: true,
+    isActive: product.isActive,
   };
 }
 

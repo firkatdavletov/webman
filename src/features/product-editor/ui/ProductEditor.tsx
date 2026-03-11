@@ -15,7 +15,8 @@ type ProductEditorProps = {
   saveSuccess?: string;
   submitLabel: string;
   savingLabel: string;
-  onFieldChange: (field: keyof ProductEditorValues, value: string) => void;
+  onFieldChange: (field: Exclude<keyof ProductEditorValues, 'isActive'>, value: string) => void;
+  onIsActiveChange: (value: boolean) => void;
   onSubmit: () => void;
 };
 
@@ -35,6 +36,7 @@ export function ProductEditor({
   submitLabel,
   savingLabel,
   onFieldChange,
+  onIsActiveChange,
   onSubmit,
 }: ProductEditorProps) {
   return (
@@ -165,6 +167,19 @@ export function ProductEditor({
             disabled={isSaving}
           />
         </div>
+      </div>
+
+      <div className="field">
+        <label className="field-checkbox">
+          <input
+            id={`${idPrefix}-active`}
+            type="checkbox"
+            checked={formValues.isActive}
+            onChange={(event) => onIsActiveChange(event.target.checked)}
+            disabled={isSaving}
+          />
+          <span className="field-label">Отображать на витрине</span>
+        </label>
       </div>
 
       <div className="field">

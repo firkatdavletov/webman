@@ -61,10 +61,21 @@ export function ProductCreatePage() {
   const parsedOldPrice = parseOptionalProductPrice(formValues.oldPrice);
   const previewImageUrl = formValues.imageUrl.trim();
 
-  const handleFieldChange = (field: keyof ProductEditorValues, value: string) => {
+  const handleFieldChange = (field: Exclude<keyof ProductEditorValues, 'isActive'>, value: string) => {
     setFormValues((currentValues) => ({
       ...currentValues,
       [field]: value,
+    }));
+
+    if (saveError) {
+      setSaveError('');
+    }
+  };
+
+  const handleIsActiveChange = (value: boolean) => {
+    setFormValues((currentValues) => ({
+      ...currentValues,
+      isActive: value,
     }));
 
     if (saveError) {
@@ -120,6 +131,7 @@ export function ProductCreatePage() {
       categoryId: normalizedCategoryId,
       title: normalizedTitle,
       slug: '',
+      isActive: formValues.isActive,
       description: formValues.description.trim() || null,
       price: parsedPrice,
       oldPrice: parsedOldPrice ?? null,
@@ -233,6 +245,7 @@ export function ProductCreatePage() {
               submitLabel="Создать товар"
               savingLabel="Создание..."
               onFieldChange={handleFieldChange}
+              onIsActiveChange={handleIsActiveChange}
               onSubmit={() => void handleSave()}
             />
           </section>

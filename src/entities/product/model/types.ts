@@ -7,6 +7,7 @@ export type Product = {
   categoryId: string;
   title: string;
   slug: string;
+  isActive: boolean;
   description: string | null;
   price: number;
   oldPrice: number | null;

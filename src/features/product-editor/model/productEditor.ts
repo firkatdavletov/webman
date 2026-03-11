@@ -6,6 +6,7 @@ export type ProductEditorValues = {
   description: string;
   price: string;
   oldPrice: string;
+  isActive: boolean;
   imageUrl: string;
   unit: string;
   displayWeight: string;
@@ -27,6 +28,7 @@ export const EMPTY_PRODUCT_EDITOR_VALUES: ProductEditorValues = {
   description: '',
   price: '',
   oldPrice: '',
+  isActive: true,
   imageUrl: '',
   unit: 'PIECE',
   displayWeight: '',
@@ -47,6 +49,7 @@ export function buildProductEditorValues(product: Product): ProductEditorValues 
     description: product.description ?? '',
     price: formatEditablePrice(product.price),
     oldPrice: product.oldPrice === null ? '' : formatEditablePrice(product.oldPrice),
+    isActive: product.isActive,
     imageUrl: product.imageUrl ?? '',
     unit: product.unit,
     displayWeight: product.displayWeight ?? '',

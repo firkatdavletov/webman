@@ -87,7 +87,7 @@ export function ProductDetailsPage() {
     return entries.sort((left, right) => left[1].localeCompare(right[1], 'ru'));
   }, [categoryLookup, product]);
 
-  const handleFieldChange = (field: keyof ProductEditorValues, value: string) => {
+  const handleFieldChange = (field: Exclude<keyof ProductEditorValues, 'isActive'>, value: string) => {
     setFormValues((currentValues) => {
       if (!currentValues) {
         return currentValues;
@@ -109,6 +109,27 @@ export function ProductDetailsPage() {
 
     if (field === 'imageUrl' && imageUploadError) {
       setImageUploadError('');
+    }
+  };
+
+  const handleIsActiveChange = (value: boolean) => {
+    setFormValues((currentValues) => {
+      if (!currentValues) {
+        return currentValues;
+      }
+
+      return {
+        ...currentValues,
+        isActive: value,
+      };
+    });
+
+    if (saveError) {
+      setSaveError('');
+    }
+
+    if (saveSuccess) {
+      setSaveSuccess('');
     }
   };
 
@@ -246,6 +267,7 @@ export function ProductDetailsPage() {
       ...product,
       categoryId: normalizedCategoryId,
       title: normalizedTitle,
+      isActive: formValues.isActive,
       description: formValues.description.trim() || null,
       price: normalizedPrice,
       oldPrice: normalizedOldPrice ?? null,
@@ -400,6 +422,7 @@ export function ProductDetailsPage() {
                   submitLabel="Сохранить изменения"
                   savingLabel="Сохранение..."
                   onFieldChange={handleFieldChange}
+                  onIsActiveChange={handleIsActiveChange}
                   onSubmit={() => void handleSave()}
                 />
               ) : null}
