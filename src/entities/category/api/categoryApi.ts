@@ -25,6 +25,29 @@ type CompleteCategoryImageUploadRequest = {
   uploadId: string;
 };
 
+type GetCategoriesOptions = {
+  isActive?: boolean;
+};
+
+type AdminCategoryListResult = {
+  data?: CategoryResponse[];
+  error?: ApiError;
+};
+
+const adminCategoriesApiClient = apiClient as unknown as {
+  GET(
+    path: '/api/v1/admin/catalog/categories',
+    init?: {
+      headers?: HeadersInit;
+      params?: {
+        query?: {
+          isActive?: boolean;
+        };
+      };
+    },
+  ): Promise<AdminCategoryListResult>;
+};
+
 export type CategoryListResult = {
   categories: Category[];
   error: string | null;
@@ -113,12 +136,15 @@ function mapUploadSession(data: CreateUploadSessionResponse): CategoryImageUploa
   };
 }
 
-export async function getCategories(): Promise<CategoryListResult> {
+export async function getCategories(options: GetCategoriesOptions = {}): Promise<CategoryListResult> {
+  const isActive = options.isActive ?? true;
+
   try {
-    const result = await apiClient.GET('/api/v1/catalog/categories', {
+    const result = await adminCategoriesApiClient.GET('/api/v1/admin/catalog/categories', {
+      headers: buildAuthHeaders(),
       params: {
         query: {
-          activeOnly: true,
+          isActive,
         },
       },
     });
@@ -150,27 +176,42 @@ export async function getCategories(): Promise<CategoryListResult> {
 }
 
 export async function getCategoryById(id: string): Promise<CategoryResult> {
-  const listResult = await getCategories();
+  const activeResult = await getCategories({
+    isActive: true,
+  });
+  const activeCategory = activeResult.categories.find((item) => item.id === id) ?? null;
 
-  if (listResult.error) {
+  if (activeCategory) {
     return {
-      category: null,
-      error: listResult.error,
+      category: activeCategory,
+      error: null,
     };
   }
 
-  const category = listResult.categories.find((item) => item.id === id) ?? null;
+  const inactiveResult = await getCategories({
+    isActive: false,
+  });
+  const inactiveCategory = inactiveResult.categories.find((item) => item.id === id) ?? null;
 
-  if (!category) {
+  if (inactiveCategory) {
+    return {
+      category: inactiveCategory,
+      error: null,
+    };
+  }
+
+  const nextError = [activeResult.error, inactiveResult.error].filter(Boolean).join(' ');
+
+  if (nextError) {
     return {
       category: null,
-      error: 'Категория не найдена.',
+      error: nextError,
     };
   }
 
   return {
-    category,
-    error: null,
+    category: null,
+    error: 'Категория не найдена.',
   };
 }
 

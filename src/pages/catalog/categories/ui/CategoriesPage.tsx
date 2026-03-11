@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   countCategoryNodes,
@@ -13,13 +13,96 @@ import { CategoryList } from '@/pages/catalog/categories/ui/CategoryList';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
 import { NavBar } from '@/shared/ui/NavBar';
 
+const CATEGORIES_ACTIVITY_FILTER_STORAGE_KEY = 'webman.categories-page.is-active-filter';
+const CATEGORIES_PAGE_CACHE_STORAGE_KEY = 'webman.categories-page.cache.v1';
+
+type CategoriesPageCache = {
+  active: Category[] | null;
+  inactive: Category[] | null;
+};
+
+type LoadCategoriesDataOptions = {
+  showInitialLoader?: boolean;
+  isActive?: boolean;
+};
+
+function getCategoriesCacheBucketName(isActive: boolean): 'active' | 'inactive' {
+  return isActive ? 'active' : 'inactive';
+}
+
+function readCategoriesPageCache(): CategoriesPageCache {
+  if (typeof window === 'undefined') {
+    return {
+      active: null,
+      inactive: null,
+    };
+  }
+
+  const rawValue = window.localStorage.getItem(CATEGORIES_PAGE_CACHE_STORAGE_KEY);
+
+  if (!rawValue) {
+    return {
+      active: null,
+      inactive: null,
+    };
+  }
+
+  try {
+    const parsedValue = JSON.parse(rawValue) as CategoriesPageCache;
+    return {
+      active: parsedValue && Array.isArray(parsedValue.active) ? parsedValue.active : null,
+      inactive: parsedValue && Array.isArray(parsedValue.inactive) ? parsedValue.inactive : null,
+    };
+  } catch {
+    return {
+      active: null,
+      inactive: null,
+    };
+  }
+}
+
+function readCategoriesPageSnapshot(isActive: boolean): Category[] | null {
+  const cache = readCategoriesPageCache();
+
+  return cache[getCategoriesCacheBucketName(isActive)];
+}
+
+function persistCategoriesPageSnapshot(isActive: boolean, categories: Category[]): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const cache = readCategoriesPageCache();
+
+  cache[getCategoriesCacheBucketName(isActive)] = categories;
+  window.localStorage.setItem(CATEGORIES_PAGE_CACHE_STORAGE_KEY, JSON.stringify(cache));
+}
+
+function readCategoriesPageActivityFilter(): boolean {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+
+  return window.localStorage.getItem(CATEGORIES_ACTIVITY_FILTER_STORAGE_KEY) !== 'false';
+}
+
+function persistCategoriesPageActivityFilter(isActive: boolean): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(CATEGORIES_ACTIVITY_FILTER_STORAGE_KEY, String(isActive));
+}
+
 export function CategoriesPage() {
   const [searchParams] = useSearchParams();
   const [categories, setCategories] = useState<Category[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isActiveFilter, setIsActiveFilter] = useState<boolean>(() => readCategoriesPageActivityFilter());
+  const [isLoading, setIsLoading] = useState(() => !Boolean(readCategoriesPageSnapshot(readCategoriesPageActivityFilter())));
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const requestIdRef = useRef(0);
 
   const focusedCategoryId = useMemo(() => {
     const rawValue = searchParams.get('focusCategory')?.trim() ?? '';
@@ -31,7 +114,10 @@ export function CategoriesPage() {
     return rawValue;
   }, [searchParams]);
 
-  const loadCategoriesData = async (showInitialLoader = false) => {
+  const loadCategoriesData = async ({ showInitialLoader = false, isActive = isActiveFilter }: LoadCategoriesDataOptions = {}) => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
     if (showInitialLoader) {
       setIsLoading(true);
     } else {
@@ -40,17 +126,60 @@ export function CategoriesPage() {
 
     setErrorMessage('');
 
-    const result = await getCategories();
+    const result = await getCategories({
+      isActive,
+    });
+
+    if (requestId !== requestIdRef.current) {
+      return;
+    }
 
     setCategories(result.categories);
     setErrorMessage(result.error ?? '');
+
+    if (!result.error) {
+      persistCategoriesPageSnapshot(isActive, result.categories);
+    }
+
     setIsLoading(false);
     setIsRefreshing(false);
   };
 
   useEffect(() => {
-    void loadCategoriesData(true);
+    const cachedCategories = readCategoriesPageSnapshot(isActiveFilter);
+
+    if (cachedCategories) {
+      setCategories(cachedCategories);
+      setIsLoading(false);
+    }
+
+    void loadCategoriesData({
+      showInitialLoader: !cachedCategories,
+      isActive: isActiveFilter,
+    });
   }, []);
+
+  const handleIsActiveFilterChange = (nextValue: boolean) => {
+    if (nextValue === isActiveFilter) {
+      return;
+    }
+
+    setIsActiveFilter(nextValue);
+    persistCategoriesPageActivityFilter(nextValue);
+    setSearchQuery('');
+
+    const cachedCategories = readCategoriesPageSnapshot(nextValue);
+
+    if (cachedCategories) {
+      setCategories(cachedCategories);
+      setIsLoading(false);
+    }
+
+    void loadCategoriesData({
+      showInitialLoader: !cachedCategories,
+      isActive: nextValue,
+    });
+  };
 
   const totalCategories = countCategoryNodes(categories);
   const totalProducts = categories.reduce((total, category) => total + countNestedProducts(category), 0);
@@ -75,7 +204,9 @@ export function CategoriesPage() {
           </div>
           <div className="dashboard-actions">
             <span className="status-chip">
-              {isLoading ? 'Загрузка категорий...' : `${totalCategories} категорий • ${totalProducts} связанных товаров`}
+              {isLoading
+                ? 'Загрузка категорий...'
+                : `${isActiveFilter ? 'Активные' : 'Неактивные'}: ${totalCategories} категорий • ${totalProducts} связанных товаров`}
             </span>
             <Link className="secondary-link" to="/categories/new">
               Добавить категорию
@@ -83,7 +214,11 @@ export function CategoriesPage() {
             <button
               type="button"
               className="secondary-button"
-              onClick={() => void loadCategoriesData()}
+              onClick={() =>
+                void loadCategoriesData({
+                  isActive: isActiveFilter,
+                })
+              }
               disabled={isLoading || isRefreshing}
             >
               {isRefreshing ? 'Обновление...' : 'Обновить данные'}
@@ -93,7 +228,12 @@ export function CategoriesPage() {
 
         <section className="catalog-card catalog-data-card" aria-label="Категории в базе данных">
           <div className="catalog-controls">
-            <CategoryFilters searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} />
+            <CategoryFilters
+              searchQuery={searchQuery}
+              isActive={isActiveFilter}
+              onSearchQueryChange={setSearchQuery}
+              onIsActiveChange={handleIsActiveFilterChange}
+            />
 
             <p className="catalog-results-meta">
               {filteredCategories.length ? `Найдено ${filteredCategories.length} категорий` : 'Категории с таким названием не найдены'}

@@ -25,6 +25,29 @@ type CompleteProductImageUploadRequest = {
   uploadId: string;
 };
 
+type GetAllProductsOptions = {
+  isActive?: boolean;
+};
+
+type AdminProductListResult = {
+  data?: ProductResponse[];
+  error?: ApiError;
+};
+
+const adminProductsApiClient = apiClient as unknown as {
+  GET(
+    path: '/api/v1/admin/catalog/products',
+    init?: {
+      headers?: HeadersInit;
+      params?: {
+        query?: {
+          isActive?: boolean;
+        };
+      };
+    },
+  ): Promise<AdminProductListResult>;
+};
+
 export type ProductListResult = {
   products: Product[];
   error: string | null;
@@ -127,9 +150,18 @@ function mapUploadSession(data: CreateUploadSessionResponse): ProductImageUpload
   };
 }
 
-export async function getAllProducts(): Promise<ProductListResult> {
+export async function getAllProducts(options: GetAllProductsOptions = {}): Promise<ProductListResult> {
+  const isActive = options.isActive ?? true;
+
   try {
-    const result = await apiClient.GET('/api/v1/catalog/products');
+    const result = await adminProductsApiClient.GET('/api/v1/admin/catalog/products', {
+      headers: buildAuthHeaders(),
+      params: {
+        query: {
+          isActive,
+        },
+      },
+    });
 
     if (result.error) {
       return {
@@ -157,6 +189,46 @@ export async function getAllProducts(): Promise<ProductListResult> {
   }
 }
 
+async function getProductByIdFromAdminCatalog(id: string): Promise<ProductResult> {
+  const activeResult = await getAllProducts({
+    isActive: true,
+  });
+  const activeProduct = activeResult.products.find((item) => item.id === id) ?? null;
+
+  if (activeProduct) {
+    return {
+      product: activeProduct,
+      error: null,
+    };
+  }
+
+  const inactiveResult = await getAllProducts({
+    isActive: false,
+  });
+  const inactiveProduct = inactiveResult.products.find((item) => item.id === id) ?? null;
+
+  if (inactiveProduct) {
+    return {
+      product: inactiveProduct,
+      error: null,
+    };
+  }
+
+  const nextError = [activeResult.error, inactiveResult.error].filter(Boolean).join(' ');
+
+  if (nextError) {
+    return {
+      product: null,
+      error: nextError,
+    };
+  }
+
+  return {
+    product: null,
+    error: 'Товар не найден.',
+  };
+}
+
 export async function getProductById(id: string): Promise<ProductResult> {
   try {
     const result = await apiClient.GET('/api/v1/catalog/products/{productId}', {
@@ -168,17 +240,11 @@ export async function getProductById(id: string): Promise<ProductResult> {
     });
 
     if (result.error) {
-      return {
-        product: null,
-        error: getApiErrorMessage(result.error, 'Не удалось загрузить товар.'),
-      };
+      return getProductByIdFromAdminCatalog(id);
     }
 
     if (!result.data) {
-      return {
-        product: null,
-        error: 'Сервис товара вернул некорректный ответ.',
-      };
+      return getProductByIdFromAdminCatalog(id);
     }
 
     return {
@@ -186,10 +252,7 @@ export async function getProductById(id: string): Promise<ProductResult> {
       error: null,
     };
   } catch {
-    return {
-      product: null,
-      error: 'Не удалось связаться с сервисом товара.',
-    };
+    return getProductByIdFromAdminCatalog(id);
   }
 }
 
