@@ -10,7 +10,7 @@ export default defineConfig({
     server: {
         proxy: {
             '/api': {
-                target: 'http://api.aiymbrand.ru',
+                target: 'https://api.aiymbrand.ru',
                 changeOrigin: true,
             },
         },
