@@ -896,7 +896,7 @@ button:disabled {
 
 .product-detail-layout {
   display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: 1fr;
   gap: 24px;
 }
 
