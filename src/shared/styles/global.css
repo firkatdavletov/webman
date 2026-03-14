@@ -771,6 +771,65 @@ button:disabled {
   gap: 12px;
 }
 
+.products-table-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(212, 226, 223, 0.9);
+  border-radius: 22px;
+  background-color: rgba(248, 252, 251, 0.9);
+}
+
+.products-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.products-table th,
+.products-table td {
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.products-table thead th {
+  position: sticky;
+  top: 0;
+  background-color: rgba(248, 252, 251, 0.96);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.products-table tbody tr + tr td {
+  border-top: 1px solid rgba(212, 226, 223, 0.82);
+}
+
+.products-table tbody tr:hover {
+  background-color: rgba(17, 117, 108, 0.05);
+}
+
+.product-table-title-link {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.product-table-title-link:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
+}
+
+.products-cell-muted {
+  color: var(--text-muted);
+}
+
+.products-cell-price {
+  white-space: nowrap;
+  font-weight: 800;
+  color: var(--accent-strong);
+}
+
 .product-card-link-wrapper {
   display: block;
   color: inherit;

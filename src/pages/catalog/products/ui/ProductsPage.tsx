@@ -4,7 +4,7 @@ import { type Category, buildCategoryLookup, getCategories } from '@/entities/ca
 import { type Product, getAllProducts } from '@/entities/product';
 import { filterProducts } from '@/pages/catalog/products/model/productPageView';
 import { ProductFilters } from '@/pages/catalog/products/ui/ProductFilters';
-import { ProductGrid } from '@/pages/catalog/products/ui/ProductGrid';
+import { ProductTable } from '@/pages/catalog/products/ui/ProductTable';
 import { NavBar } from '@/shared/ui/NavBar';
 
 const PRODUCTS_ACTIVITY_FILTER_STORAGE_KEY = 'webman.products-page.is-active-filter';
@@ -260,7 +260,7 @@ export function ProductsPage() {
           {isLoading ? (
             <p className="catalog-empty-state">Загрузка товаров с бэкенда...</p>
           ) : filteredProducts.length ? (
-            <ProductGrid products={filteredProducts} categoryLookup={categoryLookup} />
+            <ProductTable products={filteredProducts} categoryLookup={categoryLookup} />
           ) : (
             <p className="catalog-empty-state">
               {products.length ? 'Товары с таким названием не найдены.' : 'Бэкенд не вернул товары.'}
