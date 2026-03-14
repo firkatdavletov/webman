@@ -933,6 +933,13 @@ button:disabled {
   text-align: center;
 }
 
+.product-details-media-card .product-detail-image,
+.product-details-media-card .product-image-placeholder {
+  width: min(100%, 200px);
+  max-width: 200px;
+  aspect-ratio: 1 / 1;
+}
+
 .product-detail-title {
   margin: 0;
   font-size: clamp(1.8rem, 3vw, 2.6rem);

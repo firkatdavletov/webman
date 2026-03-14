@@ -318,7 +318,7 @@ export function ProductDetailsPage() {
           </section>
         ) : product ? (
           <section className="product-detail-layout">
-            <section className="catalog-card product-media-card" aria-label="Изображение товара">
+            <section className="catalog-card product-media-card product-details-media-card" aria-label="Изображение товара">
               {previewImageUrl ? (
                 <img className="product-detail-image" src={previewImageUrl} alt={formValues?.title || product.title} />
               ) : (
