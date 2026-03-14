@@ -1040,6 +1040,81 @@ button:disabled {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.product-variants-table-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(212, 226, 223, 0.9);
+  border-radius: 18px;
+  background-color: rgba(255, 255, 255, 0.92);
+}
+
+.product-variants-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+}
+
+.product-variants-table th,
+.product-variants-table td {
+  padding: 11px 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.product-variants-table thead th {
+  background-color: rgba(248, 252, 251, 0.96);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.product-variants-table tbody tr + tr td {
+  border-top: 1px solid rgba(212, 226, 223, 0.82);
+}
+
+.product-variants-row-selected {
+  background-color: rgba(17, 117, 108, 0.08);
+}
+
+.product-variants-cell-numeric {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.product-variant-row-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--accent-strong);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.product-variant-row-button:hover {
+  text-decoration: underline;
+}
+
+.product-variant-editor {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 226, 223, 0.95);
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.product-variant-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.product-variant-editor-submit {
+  min-width: 190px;
+}
+
 .image-upload-button {
   justify-self: start;
 }
