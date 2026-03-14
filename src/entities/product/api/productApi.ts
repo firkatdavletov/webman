@@ -1,11 +1,16 @@
 import { getAccessToken } from '@/entities/session';
-import type { Product } from '@/entities/product/model/types';
+import type { Product, ProductOptionGroup, ProductVariant, ProductVariantOption } from '@/entities/product/model/types';
 import { type ApiError, apiClient } from '@/shared/api/client';
 import { getApiErrorMessage } from '@/shared/api/error';
 import type { components } from '@/shared/api/schema';
 
 type ProductResponse = components['schemas']['ProductResponse'];
+type ProductDetailsResponse = components['schemas']['ProductDetailsResponse'];
+type ProductOptionGroupResponse = components['schemas']['ProductOptionGroupResponse'];
+type ProductVariantResponse = components['schemas']['ProductVariantResponse'];
 type UpsertProductRequest = components['schemas']['UpsertProductRequest'];
+type UpsertProductOptionGroupRequest = components['schemas']['UpsertProductOptionGroupRequest'];
+type UpsertProductVariantRequest = components['schemas']['UpsertProductVariantRequest'];
 type CreateUploadSessionResponse = components['schemas']['CreateUploadSessionResponse'];
 
 type InitProductImageUploadRequest = {
@@ -34,18 +39,34 @@ type AdminProductListResult = {
   error?: ApiError;
 };
 
+type AdminProductDetailsResult = {
+  data?: ProductDetailsResponse;
+  error?: ApiError;
+};
+
 const adminProductsApiClient = apiClient as unknown as {
   GET(
     path: '/api/v1/admin/catalog/products',
-    init?: {
+    init: {
       headers?: HeadersInit;
       params?: {
-        query?: {
-          isActive?: boolean;
+        query: {
+          isActive: boolean;
         };
       };
     },
   ): Promise<AdminProductListResult>;
+  GET(
+    path: '/api/v1/admin/products/{productId}',
+    init: {
+      headers?: HeadersInit;
+      params: {
+        path: {
+          productId: string;
+        };
+      };
+    },
+  ): Promise<AdminProductDetailsResult>;
 };
 
 export type ProductListResult = {
@@ -104,8 +125,8 @@ function getProtectedErrorMessage(error: ApiError | undefined, fallbackMessage: 
   return getApiErrorMessage(error, fallbackMessage);
 }
 
-function mapProduct(product: ProductResponse): Product {
-  const productWithActiveFlag = product as ProductResponse & { isActive?: boolean };
+function mapBaseProduct(product: ProductResponse | ProductDetailsResponse): Omit<Product, 'defaultVariantId' | 'optionGroups' | 'variants'> {
+  const productWithActiveFlag = product as (ProductResponse | ProductDetailsResponse) & { isActive?: boolean };
 
   return {
     id: product.id,
@@ -124,6 +145,111 @@ function mapProduct(product: ProductResponse): Product {
   };
 }
 
+function mapProduct(product: ProductResponse): Product {
+  return {
+    ...mapBaseProduct(product),
+    defaultVariantId: null,
+    optionGroups: [],
+    variants: [],
+  };
+}
+
+function mapProductOptionGroups(optionGroups: ProductOptionGroupResponse[]): ProductOptionGroup[] {
+  return optionGroups.map((group) => ({
+    id: group.id,
+    code: group.code,
+    title: group.title,
+    sortOrder: group.sortOrder,
+    values: group.values.map((value) => ({
+      id: value.id,
+      code: value.code,
+      title: value.title,
+      sortOrder: value.sortOrder,
+    })),
+  }));
+}
+
+function buildOptionValueLookup(optionGroups: ProductOptionGroup[]): Map<string, ProductVariantOption> {
+  const lookup = new Map<string, ProductVariantOption>();
+
+  optionGroups.forEach((group) => {
+    group.values.forEach((value) => {
+      if (!value.id) {
+        return;
+      }
+
+      lookup.set(value.id, {
+        optionGroupCode: group.code,
+        optionValueCode: value.code,
+      });
+    });
+  });
+
+  return lookup;
+}
+
+function mapProductVariants(
+  variants: ProductVariantResponse[],
+  optionValueLookup: Map<string, ProductVariantOption>,
+): ProductVariant[] {
+  return variants.map((variant) => ({
+    id: variant.id,
+    externalId: variant.externalId ?? null,
+    sku: variant.sku,
+    title: variant.title ?? null,
+    price: variant.priceMinor ?? null,
+    oldPrice: variant.oldPriceMinor ?? null,
+    imageUrl: variant.imageUrl ?? null,
+    sortOrder: variant.sortOrder,
+    isActive: variant.isActive,
+    options: variant.optionValueIds
+      .map((optionValueId) => optionValueLookup.get(optionValueId))
+      .filter((option): option is ProductVariantOption => Boolean(option)),
+  }));
+}
+
+function mapProductDetails(product: ProductDetailsResponse): Product {
+  const optionGroups = mapProductOptionGroups(product.optionGroups);
+  const optionValueLookup = buildOptionValueLookup(optionGroups);
+
+  return {
+    ...mapBaseProduct(product),
+    defaultVariantId: product.defaultVariantId ?? null,
+    optionGroups,
+    variants: mapProductVariants(product.variants, optionValueLookup),
+  };
+}
+
+function mapSaveProductOptionGroups(optionGroups: ProductOptionGroup[]): UpsertProductOptionGroupRequest[] {
+  return optionGroups.map((group) => ({
+    code: group.code,
+    title: group.title,
+    sortOrder: group.sortOrder,
+    values: group.values.map((value) => ({
+      code: value.code,
+      title: value.title,
+      sortOrder: value.sortOrder,
+    })),
+  }));
+}
+
+function mapSaveProductVariants(variants: ProductVariant[]): UpsertProductVariantRequest[] {
+  return variants.map((variant) => ({
+    externalId: variant.externalId,
+    sku: variant.sku,
+    title: variant.title,
+    priceMinor: variant.price,
+    oldPriceMinor: variant.oldPrice,
+    imageUrl: variant.imageUrl,
+    sortOrder: variant.sortOrder,
+    isActive: variant.isActive,
+    options: variant.options.map((option) => ({
+      optionGroupCode: option.optionGroupCode,
+      optionValueCode: option.optionValueCode,
+    })),
+  }));
+}
+
 function mapSaveProductRequest(product: Product): UpsertProductRequest {
   return {
     id: product.id || null,
@@ -138,6 +264,8 @@ function mapSaveProductRequest(product: Product): UpsertProductRequest {
     unit: product.unit,
     countStep: product.countStep,
     isActive: product.isActive,
+    optionGroups: mapSaveProductOptionGroups(product.optionGroups),
+    variants: mapSaveProductVariants(product.variants),
   };
 }
 
@@ -231,7 +359,8 @@ async function getProductByIdFromAdminCatalog(id: string): Promise<ProductResult
 
 export async function getProductById(id: string): Promise<ProductResult> {
   try {
-    const result = await apiClient.GET('/api/v1/catalog/products/{productId}', {
+    const result = await adminProductsApiClient.GET('/api/v1/admin/products/{productId}', {
+      headers: buildAuthHeaders(),
       params: {
         path: {
           productId: id,
@@ -248,7 +377,7 @@ export async function getProductById(id: string): Promise<ProductResult> {
     }
 
     return {
-      product: mapProduct(result.data),
+      product: mapProductDetails(result.data),
       error: null,
     };
   } catch {
@@ -278,7 +407,12 @@ export async function saveProduct(product: Product): Promise<SaveProductResult> 
     }
 
     return {
-      product: mapProduct(result.data),
+      product: {
+        ...mapProduct(result.data),
+        defaultVariantId: product.defaultVariantId,
+        optionGroups: product.optionGroups,
+        variants: product.variants,
+      },
       error: null,
     };
   } catch {

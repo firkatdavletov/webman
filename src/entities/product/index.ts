@@ -1,4 +1,4 @@
-export type { Product, ProductUnit } from './model/types';
+export type { Product, ProductOptionGroup, ProductOptionValue, ProductUnit, ProductVariant, ProductVariantOption } from './model/types';
 export {
   completeProductImageUpload,
   getAllProducts,

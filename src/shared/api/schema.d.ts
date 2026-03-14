@@ -372,6 +372,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/products/{productId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one product by id (admin) */
+        get: operations["getAdminProductById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/catalog-import": {
         parameters: {
             query?: never;
@@ -561,6 +578,23 @@ export interface paths {
         patch: operations["updateOrderStatus"];
         trace?: never;
     };
+    "/api/v1/admin/telegram/test-message": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Telegram test message to configured recipients */
+        post: operations["sendTelegramTestMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/media/uploads": {
         parameters: {
             query?: never;
@@ -735,6 +769,7 @@ export interface components {
             name: string;
             slug: string;
             imageUrl?: string | null;
+            isActive: boolean;
         };
         ProductResponse: {
             /** Format: uuid */
@@ -754,6 +789,62 @@ export interface components {
             /** Format: int32 */
             countStep: number;
             isActive: boolean;
+        };
+        ProductDetailsResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            categoryId: string;
+            title: string;
+            slug: string;
+            description?: string | null;
+            /** Format: int64 */
+            priceMinor: number;
+            /** Format: int64 */
+            oldPriceMinor?: number | null;
+            sku?: string | null;
+            imageUrl?: string | null;
+            unit: components["schemas"]["ProductUnit"];
+            /** Format: int32 */
+            countStep: number;
+            isActive: boolean;
+            optionGroups: components["schemas"]["ProductOptionGroupResponse"][];
+            /** Format: uuid */
+            defaultVariantId?: string | null;
+            variants: components["schemas"]["ProductVariantResponse"][];
+        };
+        ProductOptionGroupResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            title: string;
+            /** Format: int32 */
+            sortOrder: number;
+            values: components["schemas"]["ProductOptionValueResponse"][];
+        };
+        ProductOptionValueResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            title: string;
+            /** Format: int32 */
+            sortOrder: number;
+        };
+        ProductVariantResponse: {
+            /** Format: uuid */
+            id: string;
+            externalId?: string | null;
+            sku: string;
+            title?: string | null;
+            /** Format: int64 */
+            priceMinor?: number | null;
+            /** Format: int64 */
+            oldPriceMinor?: number | null;
+            imageUrl?: string | null;
+            /** Format: int32 */
+            sortOrder: number;
+            isActive: boolean;
+            optionValueIds: string[];
         };
         UpsertCategoryRequest: {
             /** Format: uuid */
@@ -783,6 +874,49 @@ export interface components {
             countStep: number;
             /** @default true */
             isActive: boolean;
+            optionGroups?: components["schemas"]["UpsertProductOptionGroupRequest"][];
+            variants?: components["schemas"]["UpsertProductVariantRequest"][];
+        };
+        UpsertProductOptionGroupRequest: {
+            code: string;
+            title: string;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            sortOrder: number;
+            values?: components["schemas"]["UpsertProductOptionValueRequest"][];
+        };
+        UpsertProductOptionValueRequest: {
+            code: string;
+            title: string;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            sortOrder: number;
+        };
+        UpsertProductVariantRequest: {
+            externalId?: string | null;
+            sku: string;
+            title?: string | null;
+            /** Format: int64 */
+            priceMinor?: number | null;
+            /** Format: int64 */
+            oldPriceMinor?: number | null;
+            imageUrl?: string | null;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            sortOrder: number;
+            /** @default true */
+            isActive: boolean;
+            options?: components["schemas"]["UpsertProductVariantOptionRequest"][];
+        };
+        UpsertProductVariantOptionRequest: {
+            optionGroupCode: string;
+            optionValueCode: string;
         };
         CatalogImportMultipartRequest: {
             /**
@@ -947,6 +1081,20 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+        };
+        SendTelegramTestMessageRequest: {
+            message: string;
+            chatIds?: string[] | null;
+        };
+        SendTelegramTestMessageResponse: {
+            /** Format: int32 */
+            attemptedRecipients: number;
+            /** Format: int32 */
+            sentRecipients: number;
+            /** Format: int32 */
+            failedRecipients: number;
+            skipped: boolean;
+            skipReason?: string | null;
         };
         /** @enum {string} */
         AuthMethod: "PHONE_SMS" | "PHONE_CALL" | "TELEGRAM" | "MAX" | "EMAIL";
@@ -1556,7 +1704,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductResponse"];
+                    "application/json": components["schemas"]["ProductDetailsResponse"];
                 };
             };
             400: components["responses"]["BadRequestError"];
@@ -1666,6 +1814,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProductResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getAdminProductById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: components["parameters"]["ProductIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Product details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDetailsResponse"];
                 };
             };
             400: components["responses"]["BadRequestError"];
@@ -1940,6 +2115,34 @@ export interface operations {
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
             404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    sendTelegramTestMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendTelegramTestMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description Test message delivery report */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendTelegramTestMessageResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
             500: components["responses"]["InternalServerError"];
         };
     };

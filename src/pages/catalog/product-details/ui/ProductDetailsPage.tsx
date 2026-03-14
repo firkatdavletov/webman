@@ -16,10 +16,12 @@ import {
 } from '@/entities/product';
 import {
   buildProductEditorValues,
+  mapProductEditorValuesToProductStructures,
   parseOptionalProductPrice,
   parseProductPrice,
   ProductEditor,
   type ProductEditorValues,
+  validateProductVariantsSection,
 } from '@/features/product-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
 import { NavBar } from '@/shared/ui/NavBar';
@@ -87,17 +89,8 @@ export function ProductDetailsPage() {
     return entries.sort((left, right) => left[1].localeCompare(right[1], 'ru'));
   }, [categoryLookup, product]);
 
-  const handleFieldChange = (field: Exclude<keyof ProductEditorValues, 'isActive'>, value: string) => {
-    setFormValues((currentValues) => {
-      if (!currentValues) {
-        return currentValues;
-      }
-
-      return {
-        ...currentValues,
-        [field]: value,
-      };
-    });
+  const handleValuesChange = (updater: (currentValues: ProductEditorValues) => ProductEditorValues) => {
+    setFormValues((currentValues) => (currentValues ? updater(currentValues) : currentValues));
 
     if (saveError) {
       setSaveError('');
@@ -107,29 +100,8 @@ export function ProductDetailsPage() {
       setSaveSuccess('');
     }
 
-    if (field === 'imageUrl' && imageUploadError) {
+    if (imageUploadError) {
       setImageUploadError('');
-    }
-  };
-
-  const handleIsActiveChange = (value: boolean) => {
-    setFormValues((currentValues) => {
-      if (!currentValues) {
-        return currentValues;
-      }
-
-      return {
-        ...currentValues,
-        isActive: value,
-      };
-    });
-
-    if (saveError) {
-      setSaveError('');
-    }
-
-    if (saveSuccess) {
-      setSaveSuccess('');
     }
   };
 
@@ -209,7 +181,10 @@ export function ProductDetailsPage() {
             }
           : currentProduct,
       );
-      handleFieldChange('imageUrl', completeResult.imageUrl ?? uploadData.objectKey);
+      handleValuesChange((currentValues) => ({
+        ...currentValues,
+        imageUrl: completeResult.imageUrl ?? uploadData.objectKey,
+      }));
       setUploadedImagePreviewDataUrl(previewDataUrl);
     } catch {
       setImageUploadError('Не удалось обработать выбранный файл.');
@@ -259,9 +234,18 @@ export function ProductDetailsPage() {
       return;
     }
 
+    const variantsValidationError = validateProductVariantsSection(formValues);
+
+    if (variantsValidationError) {
+      setSaveError(variantsValidationError);
+      return;
+    }
+
     setIsSaving(true);
     setSaveError('');
     setSaveSuccess('');
+
+    const { optionGroups, variants } = mapProductEditorValuesToProductStructures(formValues);
 
     const result = await saveProduct({
       ...product,
@@ -276,6 +260,8 @@ export function ProductDetailsPage() {
       displayWeight: formValues.displayWeight.trim() || null,
       countStep: normalizedCountStep,
       sku: formValues.sku.trim() || null,
+      optionGroups,
+      variants,
     });
 
     if (result.product) {
@@ -421,8 +407,7 @@ export function ProductDetailsPage() {
                   saveSuccess={saveSuccess}
                   submitLabel="Сохранить изменения"
                   savingLabel="Сохранение..."
-                  onFieldChange={handleFieldChange}
-                  onIsActiveChange={handleIsActiveChange}
+                  onValuesChange={handleValuesChange}
                   onSubmit={() => void handleSave()}
                 />
               ) : null}

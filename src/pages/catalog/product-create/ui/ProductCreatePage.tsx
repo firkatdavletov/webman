@@ -9,10 +9,12 @@ import {
 } from '@/entities/product';
 import {
   EMPTY_PRODUCT_EDITOR_VALUES,
+  mapProductEditorValuesToProductStructures,
   parseOptionalProductPrice,
   parseProductPrice,
   ProductEditor,
   type ProductEditorValues,
+  validateProductVariantsSection,
 } from '@/features/product-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
 import { NavBar } from '@/shared/ui/NavBar';
@@ -61,22 +63,8 @@ export function ProductCreatePage() {
   const parsedOldPrice = parseOptionalProductPrice(formValues.oldPrice);
   const previewImageUrl = formValues.imageUrl.trim();
 
-  const handleFieldChange = (field: Exclude<keyof ProductEditorValues, 'isActive'>, value: string) => {
-    setFormValues((currentValues) => ({
-      ...currentValues,
-      [field]: value,
-    }));
-
-    if (saveError) {
-      setSaveError('');
-    }
-  };
-
-  const handleIsActiveChange = (value: boolean) => {
-    setFormValues((currentValues) => ({
-      ...currentValues,
-      isActive: value,
-    }));
+  const handleValuesChange = (updater: (currentValues: ProductEditorValues) => ProductEditorValues) => {
+    setFormValues((currentValues) => updater(currentValues));
 
     if (saveError) {
       setSaveError('');
@@ -123,8 +111,17 @@ export function ProductCreatePage() {
       return;
     }
 
+    const variantsValidationError = validateProductVariantsSection(formValues);
+
+    if (variantsValidationError) {
+      setSaveError(variantsValidationError);
+      return;
+    }
+
     setIsSaving(true);
     setSaveError('');
+
+    const { optionGroups, variants } = mapProductEditorValuesToProductStructures(formValues);
 
     const newProduct: Product = {
       id: '',
@@ -140,6 +137,9 @@ export function ProductCreatePage() {
       displayWeight: formValues.displayWeight.trim() || null,
       countStep: normalizedCountStep,
       sku: formValues.sku.trim() || null,
+      defaultVariantId: null,
+      optionGroups,
+      variants,
     };
 
     const result = await saveProduct(newProduct);
@@ -244,8 +244,7 @@ export function ProductCreatePage() {
               saveError={saveError}
               submitLabel="Создать товар"
               savingLabel="Создание..."
-              onFieldChange={handleFieldChange}
-              onIsActiveChange={handleIsActiveChange}
+              onValuesChange={handleValuesChange}
               onSubmit={() => void handleSave()}
             />
           </section>

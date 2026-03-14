@@ -2,6 +2,39 @@ import type { components } from '@/shared/api/schema';
 
 export type ProductUnit = components['schemas']['ProductUnit'];
 
+export type ProductOptionValue = {
+  id: string | null;
+  code: string;
+  title: string;
+  sortOrder: number;
+};
+
+export type ProductOptionGroup = {
+  id: string | null;
+  code: string;
+  title: string;
+  sortOrder: number;
+  values: ProductOptionValue[];
+};
+
+export type ProductVariantOption = {
+  optionGroupCode: string;
+  optionValueCode: string;
+};
+
+export type ProductVariant = {
+  id: string | null;
+  externalId: string | null;
+  sku: string;
+  title: string | null;
+  price: number | null;
+  oldPrice: number | null;
+  imageUrl: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  options: ProductVariantOption[];
+};
+
 export type Product = {
   id: string;
   categoryId: string;
@@ -16,4 +49,7 @@ export type Product = {
   displayWeight: string | null;
   countStep: number;
   sku: string | null;
+  defaultVariantId: string | null;
+  optionGroups: ProductOptionGroup[];
+  variants: ProductVariant[];
 };
