@@ -693,7 +693,7 @@ export function ProductEditor({
 
       {formValues.hasVariants ? (
         <>
-          <section className="product-editor-subsection" aria-label="Опции товара">
+          <section className="product-editor-subsection product-editor-subsection-borderless" aria-label="Опции товара">
             <div className="product-editor-subsection-header">
               <h5 className="product-editor-subsection-title">Опции товара</h5>
               <button type="button" className="secondary-button" onClick={handleOpenOptionGroupCreate} disabled={isSaving}>
@@ -894,7 +894,7 @@ export function ProductEditor({
             ) : null}
           </section>
 
-          <section className="product-editor-subsection" aria-label="Варианты товара">
+          <section className="product-editor-subsection product-editor-subsection-borderless" aria-label="Варианты товара">
             <div className="product-editor-subsection-header">
               <h5 className="product-editor-subsection-title">Варианты товара</h5>
               <button type="button" className="secondary-button" onClick={handleOpenVariantCreate} disabled={isSaving}>

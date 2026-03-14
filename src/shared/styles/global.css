@@ -980,6 +980,11 @@ button:disabled {
   background-color: rgba(248, 252, 251, 0.86);
 }
 
+.product-editor-subsection-borderless {
+  border: 0;
+  background-color: transparent;
+}
+
 .product-editor-subsection-header {
   display: flex;
   align-items: center;
