@@ -1040,6 +1040,7 @@ button:disabled {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.product-options-table-wrap,
 .product-variants-table-wrap {
   overflow-x: auto;
   border: 1px solid rgba(212, 226, 223, 0.9);
@@ -1047,12 +1048,15 @@ button:disabled {
   background-color: rgba(255, 255, 255, 0.92);
 }
 
+.product-options-table,
 .product-variants-table {
   width: 100%;
   min-width: 680px;
   border-collapse: collapse;
 }
 
+.product-options-table th,
+.product-options-table td,
 .product-variants-table th,
 .product-variants-table td {
   padding: 11px 12px;
@@ -1060,6 +1064,7 @@ button:disabled {
   vertical-align: middle;
 }
 
+.product-options-table thead th,
 .product-variants-table thead th {
   background-color: rgba(248, 252, 251, 0.96);
   font-size: 0.78rem;
@@ -1068,20 +1073,24 @@ button:disabled {
   color: var(--text-muted);
 }
 
+.product-options-table tbody tr + tr td,
 .product-variants-table tbody tr + tr td {
   border-top: 1px solid rgba(212, 226, 223, 0.82);
 }
 
+.product-options-row-selected,
 .product-variants-row-selected {
   background-color: rgba(17, 117, 108, 0.08);
 }
 
+.product-options-cell-numeric,
 .product-variants-cell-numeric {
   text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
+.product-option-row-button,
 .product-variant-row-button {
   border: 0;
   padding: 0;
@@ -1091,10 +1100,12 @@ button:disabled {
   cursor: pointer;
 }
 
+.product-option-row-button:hover,
 .product-variant-row-button:hover {
   text-decoration: underline;
 }
 
+.product-option-editor,
 .product-variant-editor {
   display: grid;
   gap: 12px;
@@ -1104,6 +1115,7 @@ button:disabled {
   background-color: rgba(255, 255, 255, 0.9);
 }
 
+.product-option-editor-actions,
 .product-variant-editor-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1111,6 +1123,7 @@ button:disabled {
   gap: 10px;
 }
 
+.product-option-editor-submit,
 .product-variant-editor-submit {
   min-width: 190px;
 }
