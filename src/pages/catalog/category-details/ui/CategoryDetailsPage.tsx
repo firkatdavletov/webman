@@ -11,8 +11,6 @@ import {
   uploadCategoryImageToStorage,
 } from '@/entities/category';
 import {
-  getProductImageAspectRatioError,
-  MAX_PRODUCT_IMAGE_SIZE_BYTES,
   readFileAsDataUrl,
 } from '@/entities/product';
 import {
@@ -139,18 +137,6 @@ export function CategoryDetailsPage() {
 
     if (!SUPPORTED_CATEGORY_IMAGE_TYPES.has(imageFile.type)) {
       setImageUploadError('Выберите изображение в формате JPG, PNG или WEBP.');
-      return;
-    }
-
-    if (imageFile.size <= 0 || imageFile.size > MAX_PRODUCT_IMAGE_SIZE_BYTES) {
-      setImageUploadError('Размер изображения должен быть от 1 байта до 2 МБ.');
-      return;
-    }
-
-    const aspectRatioError = await getProductImageAspectRatioError(imageFile);
-
-    if (aspectRatioError) {
-      setImageUploadError(aspectRatioError);
       return;
     }
 

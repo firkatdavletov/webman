@@ -16,8 +16,4 @@ export type {
   SaveProductResult,
 } from './api/productApi';
 export { formatPrice, formatUnitLabel } from './lib/formatters';
-export {
-  getProductImageAspectRatioError,
-  MAX_PRODUCT_IMAGE_SIZE_BYTES,
-  readFileAsDataUrl,
-} from './lib/image';
+export { readFileAsDataUrl } from './lib/image';
