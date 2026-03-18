@@ -303,104 +303,104 @@ export function ProductDetailsPage() {
             <p className="catalog-empty-state">Загрузка карточки товара...</p>
           </section>
         ) : product ? (
-          <section className="product-detail-layout">
-            <section className="catalog-card product-media-card product-details-media-card" aria-label="Изображение товара">
-              {previewImageUrl ? (
-                <img className="product-detail-image" src={previewImageUrl} alt={formValues?.title || product.title} />
-              ) : (
-                <div className="product-image-placeholder">Изображение отсутствует</div>
-              )}
+          <section className="catalog-card product-detail-card" aria-label="Информация о товаре">
+            <div className="product-detail-hero">
+              <div className="product-detail-media" aria-label="Изображение товара">
+                {previewImageUrl ? (
+                  <img className="product-detail-image" src={previewImageUrl} alt={formValues?.title || product.title} />
+                ) : (
+                  <div className="product-image-placeholder">Изображение отсутствует</div>
+                )}
 
-              <div className="product-media-actions">
-                <button
-                  type="button"
-                  className="secondary-button image-upload-button"
-                  onClick={handleImageUploadClick}
-                  disabled={isSaving || isImageUploading || !formValues}
-                >
-                  {isImageUploading ? 'Загрузка...' : 'Загрузить фото'}
-                </button>
-                <input
-                  ref={imageUploadInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="file-picker-input"
-                  onChange={(event) => void handleImageUpload(event)}
-                  disabled={isSaving || isImageUploading || !formValues}
-                  tabIndex={-1}
-                />
-                {imageUploadError ? (
-                  <p className="field-error" role="alert">
-                    {imageUploadError}
-                  </p>
-                ) : null}
+                <div className="product-media-actions">
+                  <button
+                    type="button"
+                    className="secondary-button image-upload-button"
+                    onClick={handleImageUploadClick}
+                    disabled={isSaving || isImageUploading || !formValues}
+                  >
+                    {isImageUploading ? 'Загрузка...' : 'Загрузить фото'}
+                  </button>
+                  <input
+                    ref={imageUploadInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="file-picker-input"
+                    onChange={(event) => void handleImageUpload(event)}
+                    disabled={isSaving || isImageUploading || !formValues}
+                    tabIndex={-1}
+                  />
+                  {imageUploadError ? (
+                    <p className="field-error" role="alert">
+                      {imageUploadError}
+                    </p>
+                  ) : null}
+                </div>
               </div>
-            </section>
 
-            <section className="catalog-card product-detail-card" aria-label="Информация о товаре">
-              <div className="catalog-card-copy">
+              <div className="catalog-card-copy product-detail-summary">
                 <p className="placeholder-eyebrow">Товар</p>
                 <h3 className="product-detail-title">{product.title}</h3>
                 <p className="product-detail-price">{formatPrice(product.price)}</p>
               </div>
+            </div>
 
-              {errorMessage ? (
-                <p className="form-error" role="alert">
-                  {errorMessage}
-                </p>
-              ) : null}
+            {errorMessage ? (
+              <p className="form-error" role="alert">
+                {errorMessage}
+              </p>
+            ) : null}
 
-              <div className="product-detail-grid">
-                <div className="detail-block">
-                  <h4 className="detail-title">Идентификаторы</h4>
-                  <p className="detail-copy">ID: {product.id}</p>
-                  <p className="detail-copy">SKU: {product.sku ?? 'Не указан'}</p>
-                </div>
-
-                <div className="detail-block">
-                  <h4 className="detail-title">Категория и единица</h4>
-                  <p className="detail-copy">
-                    Категория:{' '}
-                    <Link className="inline-link" to={`/categories/${product.categoryId}`}>
-                      {categoryTitle}
-                    </Link>
-                  </p>
-                  <p className="detail-copy">Единица: {formatUnitLabel(product.unit)}</p>
-                </div>
-
-                <div className="detail-block">
-                  <h4 className="detail-title">Параметры продажи</h4>
-                  <p className="detail-copy">Шаг: {product.countStep}</p>
-                  <p className="detail-copy">Вес на витрине: {product.displayWeight ?? 'Не указан'}</p>
-                </div>
-
-                <div className="detail-block">
-                  <h4 className="detail-title">Описание</h4>
-                  <p className="detail-copy">{product.description ?? 'Описание отсутствует.'}</p>
-                </div>
+            <div className="product-detail-grid">
+              <div className="detail-block">
+                <h4 className="detail-title">Идентификаторы</h4>
+                <p className="detail-copy">ID: {product.id}</p>
+                <p className="detail-copy">SKU: {product.sku ?? 'Не указан'}</p>
               </div>
 
-              {formValues ? (
-                <ProductEditor
-                  idPrefix="product-edit"
-                  ariaLabel="Редактирование товара"
-                  eyebrow="Редактирование"
-                  title="Изменить товар"
-                  categoryOptions={categoryOptions}
-                  formValues={formValues}
-                  isSaving={isSaving || isImageUploading}
-                  optionGroupEditorMode="drawer"
-                  variantEditorMode="drawer"
-                  variantImageUploadProductId={product.id}
-                  saveError={saveError}
-                  saveSuccess={saveSuccess}
-                  submitLabel="Сохранить изменения"
-                  savingLabel="Сохранение..."
-                  onValuesChange={handleValuesChange}
-                  onSubmit={() => void handleSave()}
-                />
-              ) : null}
-            </section>
+              <div className="detail-block">
+                <h4 className="detail-title">Категория и единица</h4>
+                <p className="detail-copy">
+                  Категория:{' '}
+                  <Link className="inline-link" to={`/categories/${product.categoryId}`}>
+                    {categoryTitle}
+                  </Link>
+                </p>
+                <p className="detail-copy">Единица: {formatUnitLabel(product.unit)}</p>
+              </div>
+
+              <div className="detail-block">
+                <h4 className="detail-title">Параметры продажи</h4>
+                <p className="detail-copy">Шаг: {product.countStep}</p>
+                <p className="detail-copy">Вес на витрине: {product.displayWeight ?? 'Не указан'}</p>
+              </div>
+
+              <div className="detail-block">
+                <h4 className="detail-title">Описание</h4>
+                <p className="detail-copy">{product.description ?? 'Описание отсутствует.'}</p>
+              </div>
+            </div>
+
+            {formValues ? (
+              <ProductEditor
+                idPrefix="product-edit"
+                ariaLabel="Редактирование товара"
+                eyebrow="Редактирование"
+                title="Изменить товар"
+                categoryOptions={categoryOptions}
+                formValues={formValues}
+                isSaving={isSaving || isImageUploading}
+                optionGroupEditorMode="drawer"
+                variantEditorMode="drawer"
+                variantImageUploadProductId={product.id}
+                saveError={saveError}
+                saveSuccess={saveSuccess}
+                submitLabel="Сохранить изменения"
+                savingLabel="Сохранение..."
+                onValuesChange={handleValuesChange}
+                onSubmit={() => void handleSave()}
+              />
+            ) : null}
           </section>
         ) : (
           <section className="catalog-card product-detail-card">

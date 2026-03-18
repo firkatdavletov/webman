@@ -276,79 +276,79 @@ export function CategoryDetailsPage() {
             <p className="catalog-empty-state">Загрузка карточки категории...</p>
           </section>
         ) : category ? (
-          <section className="product-detail-layout">
-            <section className="catalog-card product-media-card" aria-label="Изображение категории">
-              {previewImageUrl ? (
-                <img className="product-detail-image" src={previewImageUrl} alt={formValues?.title || category.title} />
-              ) : (
-                <div className="product-image-placeholder">Изображение отсутствует</div>
-              )}
+          <section className="catalog-card product-detail-card" aria-label="Информация о категории">
+            <div className="product-detail-hero">
+              <div className="product-detail-media" aria-label="Изображение категории">
+                {previewImageUrl ? (
+                  <img className="product-detail-image" src={previewImageUrl} alt={formValues?.title || category.title} />
+                ) : (
+                  <div className="product-image-placeholder">Изображение отсутствует</div>
+                )}
 
-              <div className="product-media-actions">
-                <button
-                  type="button"
-                  className="secondary-button image-upload-button"
-                  onClick={handleImageUploadClick}
-                  disabled={isSaving || isImageUploading || !formValues}
-                >
-                  {isImageUploading ? 'Загрузка...' : 'Загрузить фото'}
-                </button>
-                <input
-                  ref={imageUploadInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="file-picker-input"
-                  onChange={(event) => void handleImageUpload(event)}
-                  disabled={isSaving || isImageUploading || !formValues}
-                  tabIndex={-1}
-                />
-                {imageUploadError ? (
-                  <p className="field-error" role="alert">
-                    {imageUploadError}
-                  </p>
-                ) : null}
-              </div>
-            </section>
-
-            <section className="catalog-card product-detail-card" aria-label="Информация о категории">
-              <div className="catalog-card-copy">
-                <p className="placeholder-eyebrow">Категория</p>
-                <h3 className="product-detail-title">{category.title}</h3>
-              </div>
-
-              {errorMessage ? (
-                <p className="form-error" role="alert">
-                  {errorMessage}
-                </p>
-              ) : null}
-
-              <div className="product-detail-grid">
-                <div className="detail-block">
-                  <h4 className="detail-title">Идентификаторы</h4>
-                  <p className="detail-copy">ID: {category.id}</p>
+                <div className="product-media-actions">
+                  <button
+                    type="button"
+                    className="secondary-button image-upload-button"
+                    onClick={handleImageUploadClick}
+                    disabled={isSaving || isImageUploading || !formValues}
+                  >
+                    {isImageUploading ? 'Загрузка...' : 'Загрузить фото'}
+                  </button>
+                  <input
+                    ref={imageUploadInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="file-picker-input"
+                    onChange={(event) => void handleImageUpload(event)}
+                    disabled={isSaving || isImageUploading || !formValues}
+                    tabIndex={-1}
+                  />
+                  {imageUploadError ? (
+                    <p className="field-error" role="alert">
+                      {imageUploadError}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
-              {formValues ? (
-                <CategoryEditor
-                  idPrefix="category-edit"
-                  ariaLabel="Редактирование категории"
-                  eyebrow="Редактирование"
-                  title="Изменить категорию"
-                  description="Через текущий endpoint можно менять название и активность. Изображение обновляется через загрузку файла."
-                  showImageUrlField={false}
-                  formValues={formValues}
-                  isSaving={isSaving || isImageUploading}
-                  saveError={saveError}
-                  saveSuccess={saveSuccess}
-                  submitLabel="Сохранить изменения"
-                  savingLabel="Сохранение..."
-                  onFieldChange={handleFieldChange}
-                  onIsActiveChange={handleIsActiveChange}
-                  onSubmit={() => void handleSave()}
-                />
-              ) : null}
-            </section>
+              <div className="catalog-card-copy product-detail-summary">
+                <p className="placeholder-eyebrow">Категория</p>
+                <h3 className="product-detail-title">{category.title}</h3>
+              </div>
+            </div>
+
+            {errorMessage ? (
+              <p className="form-error" role="alert">
+                {errorMessage}
+              </p>
+            ) : null}
+
+            <div className="product-detail-grid">
+              <div className="detail-block">
+                <h4 className="detail-title">Идентификаторы</h4>
+                <p className="detail-copy">ID: {category.id}</p>
+              </div>
+            </div>
+
+            {formValues ? (
+              <CategoryEditor
+                idPrefix="category-edit"
+                ariaLabel="Редактирование категории"
+                eyebrow="Редактирование"
+                title="Изменить категорию"
+                description="Через текущий endpoint можно менять название и активность. Изображение обновляется через загрузку файла."
+                showImageUrlField={false}
+                formValues={formValues}
+                isSaving={isSaving || isImageUploading}
+                saveError={saveError}
+                saveSuccess={saveSuccess}
+                submitLabel="Сохранить изменения"
+                savingLabel="Сохранение..."
+                onFieldChange={handleFieldChange}
+                onIsActiveChange={handleIsActiveChange}
+                onSubmit={() => void handleSave()}
+              />
+            ) : null}
           </section>
         ) : (
           <section className="catalog-card product-detail-card">
