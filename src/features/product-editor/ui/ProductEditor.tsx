@@ -40,6 +40,7 @@ type ProductEditorProps = {
   categoryOptions: Array<[string, string]>;
   formValues: ProductEditorValues;
   isSaving: boolean;
+  variantEditorMode?: 'inline' | 'drawer';
   disableCategorySelect?: boolean;
   emptyCategoryLabel?: string;
   saveError?: string;
@@ -135,6 +136,7 @@ export function ProductEditor({
   categoryOptions,
   formValues,
   isSaving,
+  variantEditorMode = 'inline',
   disableCategorySelect = false,
   emptyCategoryLabel = 'Нет доступных категорий',
   saveError,
@@ -530,10 +532,224 @@ export function ProductEditor({
     variantEditorState && variantEditorState.mode === 'edit' && variantEditorState.variantIndex !== null
       ? String(variantEditorState.variantIndex)
       : 'new';
+  const variantEditorTitle =
+    variantEditorState?.mode === 'create'
+      ? 'Новый вариант'
+      : `Редактирование варианта #${(variantEditorState?.variantIndex ?? 0) + 1}`;
+  const variantEditorTitleId = `${idPrefix}-variant-editor-title-${variantEditorKey}`;
   const optionGroupEditorKey =
     optionGroupEditorState && optionGroupEditorState.mode === 'edit' && optionGroupEditorState.optionGroupIndex !== null
       ? String(optionGroupEditorState.optionGroupIndex)
       : 'new';
+
+  useEffect(() => {
+    if (!variantEditorState || variantEditorMode !== 'drawer') {
+      return;
+    }
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isSaving) {
+        handleCloseVariantEditor();
+      }
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [isSaving, variantEditorMode, variantEditorState]);
+
+  const variantEditorContent = variantEditorState ? (
+    <div
+      className={`product-variant-editor${variantEditorMode === 'drawer' ? ' product-variant-editor-drawer' : ''}`}
+      aria-label="Редактирование варианта товара"
+    >
+      {variantEditorMode === 'inline' ? (
+        <div className="product-editor-card-header">
+          <p className="product-editor-card-title">{variantEditorTitle}</p>
+        </div>
+      ) : null}
+
+      <div className="product-editor-inline-grid">
+        <div className="field">
+          <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-external-id`}>
+            External ID
+          </label>
+          <input
+            id={`${idPrefix}-variant-editor-${variantEditorKey}-external-id`}
+            className="field-input"
+            value={variantEditorState.draft.externalId}
+            onChange={(event) => handleVariantDraftFieldChange('externalId', event.target.value)}
+            disabled={isSaving}
+          />
+        </div>
+
+        <div className="field">
+          <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-sku`}>
+            SKU
+          </label>
+          <input
+            id={`${idPrefix}-variant-editor-${variantEditorKey}-sku`}
+            className="field-input"
+            value={variantEditorState.draft.sku}
+            onChange={(event) => handleVariantDraftFieldChange('sku', event.target.value)}
+            disabled={isSaving}
+          />
+        </div>
+
+        <div className="field">
+          <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-title`}>
+            Название
+          </label>
+          <input
+            id={`${idPrefix}-variant-editor-${variantEditorKey}-title`}
+            className="field-input"
+            value={variantEditorState.draft.title}
+            onChange={(event) => handleVariantDraftFieldChange('title', event.target.value)}
+            disabled={isSaving}
+          />
+        </div>
+
+        <div className="field">
+          <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-price`}>
+            Цена, руб.
+          </label>
+          <input
+            id={`${idPrefix}-variant-editor-${variantEditorKey}-price`}
+            className="field-input"
+            inputMode="decimal"
+            value={variantEditorState.draft.price}
+            onChange={(event) => handleVariantDraftFieldChange('price', event.target.value)}
+            disabled={isSaving}
+          />
+        </div>
+
+        <div className="field">
+          <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-old-price`}>
+            Старая цена, руб.
+          </label>
+          <input
+            id={`${idPrefix}-variant-editor-${variantEditorKey}-old-price`}
+            className="field-input"
+            inputMode="decimal"
+            value={variantEditorState.draft.oldPrice}
+            onChange={(event) => handleVariantDraftFieldChange('oldPrice', event.target.value)}
+            disabled={isSaving}
+          />
+        </div>
+
+        <div className="field">
+          <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-image-url`}>
+            Ссылка на изображение
+          </label>
+          <input
+            id={`${idPrefix}-variant-editor-${variantEditorKey}-image-url`}
+            className="field-input"
+            value={variantEditorState.draft.imageUrl}
+            onChange={(event) => handleVariantDraftFieldChange('imageUrl', event.target.value)}
+            disabled={isSaving}
+          />
+        </div>
+
+        <div className="field">
+          <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-sort-order`}>
+            Sort order
+          </label>
+          <input
+            id={`${idPrefix}-variant-editor-${variantEditorKey}-sort-order`}
+            className="field-input"
+            inputMode="numeric"
+            value={variantEditorState.draft.sortOrder}
+            onChange={(event) => handleVariantDraftFieldChange('sortOrder', event.target.value)}
+            disabled={isSaving}
+          />
+        </div>
+      </div>
+
+      <div className="field">
+        <label className="field-checkbox">
+          <input
+            id={`${idPrefix}-variant-editor-${variantEditorKey}-active`}
+            type="checkbox"
+            checked={variantEditorState.draft.isActive}
+            onChange={(event) => handleVariantDraftIsActiveChange(event.target.checked)}
+            disabled={isSaving}
+          />
+          <span className="field-label">Активен</span>
+        </label>
+      </div>
+
+      {formValues.optionGroups.length ? (
+        <div className="product-editor-list product-editor-list-compact">
+          {formValues.optionGroups.map((group, groupIndex) => {
+            const normalizedGroupCode = group.code.trim();
+            const selectedOption =
+              variantEditorState.draft.options.find((option) => option.optionGroupCode === normalizedGroupCode) ?? null;
+
+            return (
+              <div key={`variant-editor-option-${groupIndex}`} className="field">
+                <label className="field-label" htmlFor={`${idPrefix}-variant-editor-option-${variantEditorKey}-${groupIndex}`}>
+                  {group.title.trim() || `Группа #${groupIndex + 1}`}
+                </label>
+                <select
+                  id={`${idPrefix}-variant-editor-option-${variantEditorKey}-${groupIndex}`}
+                  className="field-input"
+                  value={selectedOption?.optionValueCode ?? ''}
+                  onChange={(event) => handleVariantDraftOptionValueChange(normalizedGroupCode, event.target.value)}
+                  disabled={isSaving || !normalizedGroupCode}
+                >
+                  <option value="">Выберите значение</option>
+                  {group.values.map((value, valueIndex) => {
+                    const normalizedValueCode = value.code.trim();
+
+                    return (
+                      <option
+                        key={`variant-editor-option-${groupIndex}-value-${valueIndex}`}
+                        value={normalizedValueCode}
+                        disabled={!normalizedValueCode}
+                      >
+                        {value.title.trim() || normalizedValueCode || `Значение #${valueIndex + 1}`}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="catalog-meta">Добавьте группы опций, чтобы выбрать значения для варианта.</p>
+      )}
+
+      <div className="product-variant-editor-actions">
+        {variantEditorState.mode === 'edit' ? (
+          <button
+            type="button"
+            className="secondary-button secondary-button-danger"
+            onClick={handleDeleteVariantFromEditor}
+            disabled={isSaving}
+          >
+            Удалить вариант
+          </button>
+        ) : null}
+        <button type="button" className="secondary-button" onClick={handleCloseVariantEditor} disabled={isSaving}>
+          Отменить
+        </button>
+        <button
+          type="button"
+          className="submit-button product-variant-editor-submit"
+          onClick={handleConfirmVariantEditor}
+          disabled={isSaving}
+        >
+          {variantEditorState.mode === 'create' ? 'Добавить вариант' : 'Сохранить вариант'}
+        </button>
+      </div>
+    </div>
+  ) : null;
 
   return (
     <section className="product-edit-section" aria-label={ariaLabel}>
@@ -947,194 +1163,7 @@ export function ProductEditor({
               <p className="catalog-meta">Варианты пока не добавлены.</p>
             )}
 
-            {variantEditorState ? (
-              <div className="product-variant-editor" aria-label="Редактирование варианта товара">
-                <div className="product-editor-card-header">
-                  <p className="product-editor-card-title">
-                    {variantEditorState.mode === 'create'
-                      ? 'Новый вариант'
-                      : `Редактирование варианта #${(variantEditorState.variantIndex ?? 0) + 1}`}
-                  </p>
-                </div>
-
-                <div className="product-editor-inline-grid">
-                  <div className="field">
-                    <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-external-id`}>
-                      External ID
-                    </label>
-                    <input
-                      id={`${idPrefix}-variant-editor-${variantEditorKey}-external-id`}
-                      className="field-input"
-                      value={variantEditorState.draft.externalId}
-                      onChange={(event) => handleVariantDraftFieldChange('externalId', event.target.value)}
-                      disabled={isSaving}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-sku`}>
-                      SKU
-                    </label>
-                    <input
-                      id={`${idPrefix}-variant-editor-${variantEditorKey}-sku`}
-                      className="field-input"
-                      value={variantEditorState.draft.sku}
-                      onChange={(event) => handleVariantDraftFieldChange('sku', event.target.value)}
-                      disabled={isSaving}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-title`}>
-                      Название
-                    </label>
-                    <input
-                      id={`${idPrefix}-variant-editor-${variantEditorKey}-title`}
-                      className="field-input"
-                      value={variantEditorState.draft.title}
-                      onChange={(event) => handleVariantDraftFieldChange('title', event.target.value)}
-                      disabled={isSaving}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-price`}>
-                      Цена, руб.
-                    </label>
-                    <input
-                      id={`${idPrefix}-variant-editor-${variantEditorKey}-price`}
-                      className="field-input"
-                      inputMode="decimal"
-                      value={variantEditorState.draft.price}
-                      onChange={(event) => handleVariantDraftFieldChange('price', event.target.value)}
-                      disabled={isSaving}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-old-price`}>
-                      Старая цена, руб.
-                    </label>
-                    <input
-                      id={`${idPrefix}-variant-editor-${variantEditorKey}-old-price`}
-                      className="field-input"
-                      inputMode="decimal"
-                      value={variantEditorState.draft.oldPrice}
-                      onChange={(event) => handleVariantDraftFieldChange('oldPrice', event.target.value)}
-                      disabled={isSaving}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-image-url`}>
-                      Ссылка на изображение
-                    </label>
-                    <input
-                      id={`${idPrefix}-variant-editor-${variantEditorKey}-image-url`}
-                      className="field-input"
-                      value={variantEditorState.draft.imageUrl}
-                      onChange={(event) => handleVariantDraftFieldChange('imageUrl', event.target.value)}
-                      disabled={isSaving}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-sort-order`}>
-                      Sort order
-                    </label>
-                    <input
-                      id={`${idPrefix}-variant-editor-${variantEditorKey}-sort-order`}
-                      className="field-input"
-                      inputMode="numeric"
-                      value={variantEditorState.draft.sortOrder}
-                      onChange={(event) => handleVariantDraftFieldChange('sortOrder', event.target.value)}
-                      disabled={isSaving}
-                    />
-                  </div>
-                </div>
-
-                <div className="field">
-                  <label className="field-checkbox">
-                    <input
-                      id={`${idPrefix}-variant-editor-${variantEditorKey}-active`}
-                      type="checkbox"
-                      checked={variantEditorState.draft.isActive}
-                      onChange={(event) => handleVariantDraftIsActiveChange(event.target.checked)}
-                      disabled={isSaving}
-                    />
-                    <span className="field-label">Активен</span>
-                  </label>
-                </div>
-
-                {formValues.optionGroups.length ? (
-                  <div className="product-editor-list product-editor-list-compact">
-                    {formValues.optionGroups.map((group, groupIndex) => {
-                      const normalizedGroupCode = group.code.trim();
-                      const selectedOption =
-                        variantEditorState.draft.options.find((option) => option.optionGroupCode === normalizedGroupCode) ?? null;
-
-                      return (
-                        <div key={`variant-editor-option-${groupIndex}`} className="field">
-                          <label className="field-label" htmlFor={`${idPrefix}-variant-editor-option-${variantEditorKey}-${groupIndex}`}>
-                            {group.title.trim() || `Группа #${groupIndex + 1}`}
-                          </label>
-                          <select
-                            id={`${idPrefix}-variant-editor-option-${variantEditorKey}-${groupIndex}`}
-                            className="field-input"
-                            value={selectedOption?.optionValueCode ?? ''}
-                            onChange={(event) =>
-                              handleVariantDraftOptionValueChange(normalizedGroupCode, event.target.value)
-                            }
-                            disabled={isSaving || !normalizedGroupCode}
-                          >
-                            <option value="">Выберите значение</option>
-                            {group.values.map((value, valueIndex) => {
-                              const normalizedValueCode = value.code.trim();
-
-                              return (
-                                <option
-                                  key={`variant-editor-option-${groupIndex}-value-${valueIndex}`}
-                                  value={normalizedValueCode}
-                                  disabled={!normalizedValueCode}
-                                >
-                                  {value.title.trim() || normalizedValueCode || `Значение #${valueIndex + 1}`}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="catalog-meta">Добавьте группы опций, чтобы выбрать значения для варианта.</p>
-                )}
-
-                <div className="product-variant-editor-actions">
-                  {variantEditorState.mode === 'edit' ? (
-                    <button
-                      type="button"
-                      className="secondary-button secondary-button-danger"
-                      onClick={handleDeleteVariantFromEditor}
-                      disabled={isSaving}
-                    >
-                      Удалить вариант
-                    </button>
-                  ) : null}
-                  <button type="button" className="secondary-button" onClick={handleCloseVariantEditor} disabled={isSaving}>
-                    Отменить
-                  </button>
-                  <button
-                    type="button"
-                    className="submit-button product-variant-editor-submit"
-                    onClick={handleConfirmVariantEditor}
-                    disabled={isSaving}
-                  >
-                    {variantEditorState.mode === 'create' ? 'Добавить вариант' : 'Сохранить вариант'}
-                  </button>
-                </div>
-              </div>
-            ) : null}
+            {variantEditorMode === 'inline' ? variantEditorContent : null}
           </section>
         </>
       ) : (
@@ -1171,6 +1200,34 @@ export function ProductEditor({
           {isSaving ? savingLabel : submitLabel}
         </button>
       </div>
+
+      {variantEditorState && variantEditorMode === 'drawer' ? (
+        <div className="product-variant-drawer-root" role="presentation">
+          <button
+            type="button"
+            className="product-variant-drawer-backdrop"
+            aria-label="Закрыть панель варианта товара"
+            onClick={handleCloseVariantEditor}
+            disabled={isSaving}
+          />
+
+          <aside className="product-variant-drawer" role="dialog" aria-modal="true" aria-labelledby={variantEditorTitleId}>
+            <header className="product-variant-drawer-header">
+              <div>
+                <p className="placeholder-eyebrow">Вариант товара</p>
+                <h3 id={variantEditorTitleId} className="product-variant-drawer-title">
+                  {variantEditorTitle}
+                </h3>
+              </div>
+              <button type="button" className="secondary-button" onClick={handleCloseVariantEditor} disabled={isSaving}>
+                Закрыть
+              </button>
+            </header>
+
+            <div className="product-variant-drawer-content">{variantEditorContent}</div>
+          </aside>
+        </div>
+      ) : null}
     </section>
   );
 }

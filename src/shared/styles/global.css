@@ -1120,6 +1120,68 @@ button:disabled {
   background-color: rgba(255, 255, 255, 0.9);
 }
 
+.product-variant-drawer-root {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.product-variant-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background-color: rgba(16, 34, 40, 0.42);
+  opacity: 0;
+  animation: product-variant-drawer-backdrop-in 180ms ease forwards;
+  pointer-events: auto;
+}
+
+.product-variant-drawer {
+  position: relative;
+  width: min(100%, 560px);
+  height: 100%;
+  padding: 24px;
+  background-color: #ffffff;
+  box-shadow: -24px 0 48px rgba(12, 35, 39, 0.28);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
+  overflow: hidden;
+  pointer-events: auto;
+  transform: translateX(100%);
+  animation: product-variant-drawer-in 220ms ease forwards;
+}
+
+.product-variant-drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.product-variant-drawer-title {
+  margin: 0;
+  font-size: clamp(1.3rem, 2vw, 1.8rem);
+}
+
+.product-variant-drawer-content {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.product-variant-editor-drawer {
+  min-height: 100%;
+  align-content: start;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+}
+
 .product-option-editor-actions,
 .product-variant-editor-actions {
   display: flex;
@@ -1131,6 +1193,26 @@ button:disabled {
 .product-option-editor-submit,
 .product-variant-editor-submit {
   min-width: 190px;
+}
+
+@keyframes product-variant-drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes product-variant-drawer-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .image-upload-button {
@@ -1573,6 +1655,15 @@ button:disabled {
   .product-media-card,
   .product-detail-card {
     padding: 24px;
+  }
+
+  .product-variant-drawer {
+    width: 100%;
+    padding: 20px;
+  }
+
+  .product-variant-drawer-header {
+    flex-direction: column;
   }
 
   .file-summary {

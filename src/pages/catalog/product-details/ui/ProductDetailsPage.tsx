@@ -389,6 +389,7 @@ export function ProductDetailsPage() {
                   categoryOptions={categoryOptions}
                   formValues={formValues}
                   isSaving={isSaving || isImageUploading}
+                  variantEditorMode="drawer"
                   saveError={saveError}
                   saveSuccess={saveSuccess}
                   submitLabel="Сохранить изменения"
