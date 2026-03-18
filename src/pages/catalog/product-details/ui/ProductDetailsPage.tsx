@@ -390,6 +390,7 @@ export function ProductDetailsPage() {
                   formValues={formValues}
                   isSaving={isSaving || isImageUploading}
                   variantEditorMode="drawer"
+                  variantImageUploadProductId={product.id}
                   saveError={saveError}
                   saveSuccess={saveSuccess}
                   submitLabel="Сохранить изменения"

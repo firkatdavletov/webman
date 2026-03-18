@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  completeProductImageUpload,
+  initProductImageUpload,
+  readFileAsDataUrl,
+  uploadProductImageToStorage,
+} from '@/entities/product';
 import {
   createEmptyProductOptionGroup,
   createEmptyProductOptionValue,
@@ -41,6 +47,7 @@ type ProductEditorProps = {
   formValues: ProductEditorValues;
   isSaving: boolean;
   variantEditorMode?: 'inline' | 'drawer';
+  variantImageUploadProductId?: string;
   disableCategorySelect?: boolean;
   emptyCategoryLabel?: string;
   saveError?: string;
@@ -50,6 +57,8 @@ type ProductEditorProps = {
   onValuesChange: (updater: (currentValues: ProductEditorValues) => ProductEditorValues) => void;
   onSubmit: () => void;
 };
+
+const SUPPORTED_PRODUCT_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 function updateOptionGroups(
   currentValues: ProductEditorValues,
@@ -137,6 +146,7 @@ export function ProductEditor({
   formValues,
   isSaving,
   variantEditorMode = 'inline',
+  variantImageUploadProductId,
   disableCategorySelect = false,
   emptyCategoryLabel = 'Нет доступных категорий',
   saveError,
@@ -148,6 +158,10 @@ export function ProductEditor({
 }: ProductEditorProps) {
   const [optionGroupEditorState, setOptionGroupEditorState] = useState<OptionGroupEditorState | null>(null);
   const [variantEditorState, setVariantEditorState] = useState<VariantEditorState | null>(null);
+  const [isVariantImageUploading, setIsVariantImageUploading] = useState(false);
+  const [variantImageUploadError, setVariantImageUploadError] = useState('');
+  const [variantImagePreviewDataUrl, setVariantImagePreviewDataUrl] = useState('');
+  const variantImageUploadInputRef = useRef<HTMLInputElement | null>(null);
   const colorOptionGroup = useMemo(() => {
     const matchedGroup = findOptionGroupByKeywords(formValues.optionGroups, ['color', 'цвет']);
 
@@ -398,6 +412,8 @@ export function ProductEditor({
   };
 
   const handleOpenVariantCreate = () => {
+    setVariantImageUploadError('');
+    setVariantImagePreviewDataUrl('');
     setVariantEditorState({
       mode: 'create',
       variantIndex: null,
@@ -412,6 +428,8 @@ export function ProductEditor({
       return;
     }
 
+    setVariantImageUploadError('');
+    setVariantImagePreviewDataUrl('');
     setVariantEditorState({
       mode: 'edit',
       variantIndex,
@@ -420,10 +438,21 @@ export function ProductEditor({
   };
 
   const handleCloseVariantEditor = () => {
+    if (isVariantImageUploading) {
+      return;
+    }
+
+    setVariantImageUploadError('');
+    setVariantImagePreviewDataUrl('');
     setVariantEditorState(null);
   };
 
   const handleVariantDraftFieldChange = (field: EditableVariantField, value: string) => {
+    if (field === 'imageUrl') {
+      setVariantImagePreviewDataUrl('');
+      setVariantImageUploadError('');
+    }
+
     setVariantEditorState((currentState) => {
       if (!currentState) {
         return currentState;
@@ -510,6 +539,8 @@ export function ProductEditor({
       };
     });
 
+    setVariantImageUploadError('');
+    setVariantImagePreviewDataUrl('');
     setVariantEditorState(null);
   };
 
@@ -525,18 +556,108 @@ export function ProductEditor({
       variants: currentValues.variants.filter((_, index) => index !== variantIndex),
     }));
 
+    setVariantImageUploadError('');
+    setVariantImagePreviewDataUrl('');
     setVariantEditorState(null);
+  };
+
+  const handleVariantImageUploadClick = () => {
+    if (!variantImageUploadProductId || isVariantImageUploading) {
+      return;
+    }
+
+    variantImageUploadInputRef.current?.click();
+  };
+
+  const handleVariantImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const imageFile = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!imageFile || !variantEditorState || !variantImageUploadProductId) {
+      return;
+    }
+
+    if (!SUPPORTED_PRODUCT_IMAGE_TYPES.has(imageFile.type)) {
+      setVariantImageUploadError('Выберите изображение в формате JPG, PNG или WEBP.');
+      return;
+    }
+
+    setVariantImageUploadError('');
+    setIsVariantImageUploading(true);
+
+    try {
+      const initResult = await initProductImageUpload({
+        productId: variantImageUploadProductId,
+        contentType: imageFile.type,
+        sizeBytes: imageFile.size,
+        fileName: imageFile.name || null,
+      });
+
+      if (!initResult.upload) {
+        setVariantImageUploadError(initResult.error ?? 'Не удалось получить данные для загрузки изображения.');
+        return;
+      }
+
+      const uploadData = initResult.upload;
+      const storageUploadResult = await uploadProductImageToStorage({
+        uploadUrl: uploadData.uploadUrl,
+        requiredHeaders: uploadData.requiredHeaders,
+        file: imageFile,
+      });
+
+      if (storageUploadResult.error) {
+        setVariantImageUploadError(storageUploadResult.error);
+        return;
+      }
+
+      const completeResult = await completeProductImageUpload({
+        uploadId: uploadData.uploadId,
+      });
+
+      if (completeResult.error) {
+        setVariantImageUploadError(completeResult.error);
+        return;
+      }
+
+      const nextImageUrl = completeResult.imageUrl ?? uploadData.objectKey;
+      const previewDataUrl = await readFileAsDataUrl(imageFile);
+
+      setVariantEditorState((currentState) => {
+        if (!currentState) {
+          return currentState;
+        }
+
+        return {
+          ...currentState,
+          draft: {
+            ...currentState.draft,
+            imageUrl: nextImageUrl,
+          },
+        };
+      });
+      setVariantImagePreviewDataUrl(previewDataUrl);
+    } catch {
+      setVariantImageUploadError('Не удалось обработать выбранный файл.');
+    } finally {
+      setIsVariantImageUploading(false);
+    }
   };
 
   const variantEditorKey =
     variantEditorState && variantEditorState.mode === 'edit' && variantEditorState.variantIndex !== null
       ? String(variantEditorState.variantIndex)
       : 'new';
+  const isVariantEditorBusy = isSaving || isVariantImageUploading;
   const variantEditorTitle =
     variantEditorState?.mode === 'create'
       ? 'Новый вариант'
       : `Редактирование варианта #${(variantEditorState?.variantIndex ?? 0) + 1}`;
   const variantEditorTitleId = `${idPrefix}-variant-editor-title-${variantEditorKey}`;
+  const variantImagePreviewUrl = variantImagePreviewDataUrl || variantEditorState?.draft.imageUrl.trim() || '';
+  const variantImageAlt =
+    variantEditorState?.draft.title.trim() ||
+    variantEditorState?.draft.sku.trim() ||
+    'Изображение варианта товара';
   const optionGroupEditorKey =
     optionGroupEditorState && optionGroupEditorState.mode === 'edit' && optionGroupEditorState.optionGroupIndex !== null
       ? String(optionGroupEditorState.optionGroupIndex)
@@ -549,7 +670,7 @@ export function ProductEditor({
 
     const previousBodyOverflow = document.body.style.overflow;
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !isSaving) {
+      if (event.key === 'Escape' && !isVariantEditorBusy) {
         handleCloseVariantEditor();
       }
     };
@@ -561,7 +682,7 @@ export function ProductEditor({
       document.body.style.overflow = previousBodyOverflow;
       window.removeEventListener('keydown', handleEscape);
     };
-  }, [isSaving, variantEditorMode, variantEditorState]);
+  }, [isVariantEditorBusy, variantEditorMode, variantEditorState]);
 
   const variantEditorContent = variantEditorState ? (
     <div
@@ -571,6 +692,41 @@ export function ProductEditor({
       {variantEditorMode === 'inline' ? (
         <div className="product-editor-card-header">
           <p className="product-editor-card-title">{variantEditorTitle}</p>
+        </div>
+      ) : null}
+
+      {variantImageUploadProductId ? (
+        <div className="product-variant-image-field">
+          {variantImagePreviewUrl ? (
+            <img className="product-variant-image-preview" src={variantImagePreviewUrl} alt={variantImageAlt} />
+          ) : (
+            <div className="product-variant-image-placeholder">Фото варианта не загружено</div>
+          )}
+
+          <div className="product-media-actions product-variant-image-actions">
+            <button
+              type="button"
+              className="secondary-button image-upload-button"
+              onClick={handleVariantImageUploadClick}
+              disabled={isVariantEditorBusy}
+            >
+              {isVariantImageUploading ? 'Загрузка...' : 'Загрузить фото'}
+            </button>
+            <input
+              ref={variantImageUploadInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="file-picker-input"
+              onChange={(event) => void handleVariantImageUpload(event)}
+              disabled={isVariantEditorBusy}
+              tabIndex={-1}
+            />
+            {variantImageUploadError ? (
+              <p className="field-error" role="alert">
+                {variantImageUploadError}
+              </p>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
@@ -584,7 +740,7 @@ export function ProductEditor({
             className="field-input"
             value={variantEditorState.draft.externalId}
             onChange={(event) => handleVariantDraftFieldChange('externalId', event.target.value)}
-            disabled={isSaving}
+            disabled={isVariantEditorBusy}
           />
         </div>
 
@@ -597,7 +753,7 @@ export function ProductEditor({
             className="field-input"
             value={variantEditorState.draft.sku}
             onChange={(event) => handleVariantDraftFieldChange('sku', event.target.value)}
-            disabled={isSaving}
+            disabled={isVariantEditorBusy}
           />
         </div>
 
@@ -610,7 +766,7 @@ export function ProductEditor({
             className="field-input"
             value={variantEditorState.draft.title}
             onChange={(event) => handleVariantDraftFieldChange('title', event.target.value)}
-            disabled={isSaving}
+            disabled={isVariantEditorBusy}
           />
         </div>
 
@@ -624,7 +780,7 @@ export function ProductEditor({
             inputMode="decimal"
             value={variantEditorState.draft.price}
             onChange={(event) => handleVariantDraftFieldChange('price', event.target.value)}
-            disabled={isSaving}
+            disabled={isVariantEditorBusy}
           />
         </div>
 
@@ -638,7 +794,7 @@ export function ProductEditor({
             inputMode="decimal"
             value={variantEditorState.draft.oldPrice}
             onChange={(event) => handleVariantDraftFieldChange('oldPrice', event.target.value)}
-            disabled={isSaving}
+            disabled={isVariantEditorBusy}
           />
         </div>
 
@@ -651,7 +807,7 @@ export function ProductEditor({
             className="field-input"
             value={variantEditorState.draft.imageUrl}
             onChange={(event) => handleVariantDraftFieldChange('imageUrl', event.target.value)}
-            disabled={isSaving}
+            disabled={isVariantEditorBusy}
           />
         </div>
 
@@ -665,7 +821,7 @@ export function ProductEditor({
             inputMode="numeric"
             value={variantEditorState.draft.sortOrder}
             onChange={(event) => handleVariantDraftFieldChange('sortOrder', event.target.value)}
-            disabled={isSaving}
+            disabled={isVariantEditorBusy}
           />
         </div>
       </div>
@@ -677,7 +833,7 @@ export function ProductEditor({
             type="checkbox"
             checked={variantEditorState.draft.isActive}
             onChange={(event) => handleVariantDraftIsActiveChange(event.target.checked)}
-            disabled={isSaving}
+            disabled={isVariantEditorBusy}
           />
           <span className="field-label">Активен</span>
         </label>
@@ -700,7 +856,7 @@ export function ProductEditor({
                   className="field-input"
                   value={selectedOption?.optionValueCode ?? ''}
                   onChange={(event) => handleVariantDraftOptionValueChange(normalizedGroupCode, event.target.value)}
-                  disabled={isSaving || !normalizedGroupCode}
+                  disabled={isVariantEditorBusy || !normalizedGroupCode}
                 >
                   <option value="">Выберите значение</option>
                   {group.values.map((value, valueIndex) => {
@@ -731,19 +887,19 @@ export function ProductEditor({
             type="button"
             className="secondary-button secondary-button-danger"
             onClick={handleDeleteVariantFromEditor}
-            disabled={isSaving}
+            disabled={isVariantEditorBusy}
           >
             Удалить вариант
           </button>
         ) : null}
-        <button type="button" className="secondary-button" onClick={handleCloseVariantEditor} disabled={isSaving}>
+        <button type="button" className="secondary-button" onClick={handleCloseVariantEditor} disabled={isVariantEditorBusy}>
           Отменить
         </button>
         <button
           type="button"
           className="submit-button product-variant-editor-submit"
           onClick={handleConfirmVariantEditor}
-          disabled={isSaving}
+          disabled={isVariantEditorBusy}
         >
           {variantEditorState.mode === 'create' ? 'Добавить вариант' : 'Сохранить вариант'}
         </button>
@@ -1113,7 +1269,7 @@ export function ProductEditor({
           <section className="product-editor-subsection product-editor-subsection-borderless" aria-label="Варианты товара">
             <div className="product-editor-subsection-header">
               <h5 className="product-editor-subsection-title">Варианты товара</h5>
-              <button type="button" className="secondary-button" onClick={handleOpenVariantCreate} disabled={isSaving}>
+              <button type="button" className="secondary-button" onClick={handleOpenVariantCreate} disabled={isVariantEditorBusy}>
                 Добавить вариант
               </button>
             </div>
@@ -1145,7 +1301,7 @@ export function ProductEditor({
                             type="button"
                             className="product-variant-row-button"
                             onClick={() => handleOpenVariantEdit(variantIndex)}
-                            disabled={isSaving}
+                            disabled={isVariantEditorBusy}
                           >
                             {variant.sku.trim() || `Вариант #${variantIndex + 1}`}
                           </button>
@@ -1196,7 +1352,7 @@ export function ProductEditor({
       ) : null}
 
       <div className="product-edit-actions">
-        <button type="button" className="submit-button" onClick={onSubmit} disabled={isSaving}>
+        <button type="button" className="submit-button" onClick={onSubmit} disabled={isVariantEditorBusy}>
           {isSaving ? savingLabel : submitLabel}
         </button>
       </div>
@@ -1208,7 +1364,7 @@ export function ProductEditor({
             className="product-variant-drawer-backdrop"
             aria-label="Закрыть панель варианта товара"
             onClick={handleCloseVariantEditor}
-            disabled={isSaving}
+            disabled={isVariantEditorBusy}
           />
 
           <aside className="product-variant-drawer" role="dialog" aria-modal="true" aria-labelledby={variantEditorTitleId}>
@@ -1219,7 +1375,7 @@ export function ProductEditor({
                   {variantEditorTitle}
                 </h3>
               </div>
-              <button type="button" className="secondary-button" onClick={handleCloseVariantEditor} disabled={isSaving}>
+              <button type="button" className="secondary-button" onClick={handleCloseVariantEditor} disabled={isVariantEditorBusy}>
                 Закрыть
               </button>
             </header>
