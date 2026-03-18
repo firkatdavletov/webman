@@ -46,6 +46,7 @@ type ProductEditorProps = {
   categoryOptions: Array<[string, string]>;
   formValues: ProductEditorValues;
   isSaving: boolean;
+  optionGroupEditorMode?: 'inline' | 'drawer';
   variantEditorMode?: 'inline' | 'drawer';
   variantImageUploadProductId?: string;
   disableCategorySelect?: boolean;
@@ -145,6 +146,7 @@ export function ProductEditor({
   categoryOptions,
   formValues,
   isSaving,
+  optionGroupEditorMode = 'inline',
   variantEditorMode = 'inline',
   variantImageUploadProductId,
   disableCategorySelect = false,
@@ -271,6 +273,12 @@ export function ProductEditor({
   };
 
   const handleOpenOptionGroupCreate = () => {
+    if (variantEditorMode === 'drawer') {
+      setVariantImageUploadError('');
+      setVariantImagePreviewDataUrl('');
+      setVariantEditorState(null);
+    }
+
     setOptionGroupEditorState({
       mode: 'create',
       optionGroupIndex: null,
@@ -283,6 +291,12 @@ export function ProductEditor({
 
     if (!optionGroup) {
       return;
+    }
+
+    if (variantEditorMode === 'drawer') {
+      setVariantImageUploadError('');
+      setVariantImagePreviewDataUrl('');
+      setVariantEditorState(null);
     }
 
     setOptionGroupEditorState({
@@ -412,6 +426,10 @@ export function ProductEditor({
   };
 
   const handleOpenVariantCreate = () => {
+    if (optionGroupEditorMode === 'drawer') {
+      setOptionGroupEditorState(null);
+    }
+
     setVariantImageUploadError('');
     setVariantImagePreviewDataUrl('');
     setVariantEditorState({
@@ -426,6 +444,10 @@ export function ProductEditor({
 
     if (!variant) {
       return;
+    }
+
+    if (optionGroupEditorMode === 'drawer') {
+      setOptionGroupEditorState(null);
     }
 
     setVariantImageUploadError('');
@@ -647,6 +669,7 @@ export function ProductEditor({
     variantEditorState && variantEditorState.mode === 'edit' && variantEditorState.variantIndex !== null
       ? String(variantEditorState.variantIndex)
       : 'new';
+  const isOptionGroupEditorBusy = isSaving;
   const isVariantEditorBusy = isSaving || isVariantImageUploading;
   const variantEditorTitle =
     variantEditorState?.mode === 'create'
@@ -662,15 +685,189 @@ export function ProductEditor({
     optionGroupEditorState && optionGroupEditorState.mode === 'edit' && optionGroupEditorState.optionGroupIndex !== null
       ? String(optionGroupEditorState.optionGroupIndex)
       : 'new';
+  const optionGroupEditorTitle =
+    optionGroupEditorState?.mode === 'create'
+      ? 'Новая опция'
+      : `Редактирование опции #${(optionGroupEditorState?.optionGroupIndex ?? 0) + 1}`;
+  const optionGroupEditorTitleId = `${idPrefix}-option-editor-title-${optionGroupEditorKey}`;
+
+  const optionGroupEditorContent = optionGroupEditorState ? (
+    <div
+      className={`product-option-editor${optionGroupEditorMode === 'drawer' ? ' product-option-editor-drawer' : ''}`}
+      aria-label="Редактирование опции товара"
+    >
+      {optionGroupEditorMode === 'inline' ? (
+        <div className="product-editor-card-header">
+          <p className="product-editor-card-title">{optionGroupEditorTitle}</p>
+        </div>
+      ) : null}
+
+      <div className="product-editor-inline-grid product-editor-inline-grid-3">
+        <div className="field">
+          <label className="field-label" htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-code`}>
+            Code
+          </label>
+          <input
+            id={`${idPrefix}-option-editor-${optionGroupEditorKey}-code`}
+            className="field-input"
+            value={optionGroupEditorState.draft.code}
+            onChange={(event) => handleOptionGroupDraftFieldChange('code', event.target.value)}
+            disabled={isOptionGroupEditorBusy}
+          />
+        </div>
+
+        <div className="field">
+          <label className="field-label" htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-title`}>
+            Название
+          </label>
+          <input
+            id={`${idPrefix}-option-editor-${optionGroupEditorKey}-title`}
+            className="field-input"
+            value={optionGroupEditorState.draft.title}
+            onChange={(event) => handleOptionGroupDraftFieldChange('title', event.target.value)}
+            disabled={isOptionGroupEditorBusy}
+          />
+        </div>
+
+        <div className="field">
+          <label className="field-label" htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-sort-order`}>
+            Sort order
+          </label>
+          <input
+            id={`${idPrefix}-option-editor-${optionGroupEditorKey}-sort-order`}
+            className="field-input"
+            inputMode="numeric"
+            value={optionGroupEditorState.draft.sortOrder}
+            onChange={(event) => handleOptionGroupDraftFieldChange('sortOrder', event.target.value)}
+            disabled={isOptionGroupEditorBusy}
+          />
+        </div>
+      </div>
+
+      <div className="product-editor-subsection-header">
+        <p className="product-editor-card-title">Значения опции</p>
+        <button type="button" className="secondary-button" onClick={handleAddOptionValueDraft} disabled={isOptionGroupEditorBusy}>
+          Добавить значение
+        </button>
+      </div>
+
+      {optionGroupEditorState.draft.values.length ? (
+        <div className="product-editor-list product-editor-list-compact">
+          {optionGroupEditorState.draft.values.map((value, valueIndex) => (
+            <div key={`option-editor-value-${valueIndex}`} className="product-editor-row">
+              <div className="product-editor-inline-grid product-editor-inline-grid-3">
+                <div className="field">
+                  <label className="field-label" htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-code`}>
+                    Code
+                  </label>
+                  <input
+                    id={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-code`}
+                    className="field-input"
+                    value={value.code}
+                    onChange={(event) => handleOptionValueDraftFieldChange(valueIndex, 'code', event.target.value)}
+                    disabled={isOptionGroupEditorBusy}
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field-label" htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-title`}>
+                    Название
+                  </label>
+                  <input
+                    id={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-title`}
+                    className="field-input"
+                    value={value.title}
+                    onChange={(event) => handleOptionValueDraftFieldChange(valueIndex, 'title', event.target.value)}
+                    disabled={isOptionGroupEditorBusy}
+                  />
+                </div>
+
+                <div className="field">
+                  <label
+                    className="field-label"
+                    htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-sort-order`}
+                  >
+                    Sort order
+                  </label>
+                  <input
+                    id={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-sort-order`}
+                    className="field-input"
+                    inputMode="numeric"
+                    value={value.sortOrder}
+                    onChange={(event) => handleOptionValueDraftFieldChange(valueIndex, 'sortOrder', event.target.value)}
+                    disabled={isOptionGroupEditorBusy}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="secondary-button secondary-button-danger"
+                onClick={() => handleRemoveOptionValueDraft(valueIndex)}
+                disabled={isOptionGroupEditorBusy}
+              >
+                Удалить
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="catalog-meta">Значения опции пока не добавлены.</p>
+      )}
+
+      <div className="product-option-editor-actions">
+        {optionGroupEditorState.mode === 'edit' ? (
+          <button
+            type="button"
+            className="secondary-button secondary-button-danger"
+            onClick={handleDeleteOptionGroupFromEditor}
+            disabled={isOptionGroupEditorBusy}
+          >
+            Удалить опцию
+          </button>
+        ) : null}
+        <button type="button" className="secondary-button" onClick={handleCloseOptionGroupEditor} disabled={isOptionGroupEditorBusy}>
+          Отменить
+        </button>
+        <button
+          type="button"
+          className="submit-button product-option-editor-submit"
+          onClick={handleConfirmOptionGroupEditor}
+          disabled={isOptionGroupEditorBusy}
+        >
+          {optionGroupEditorState.mode === 'create' ? 'Добавить опцию' : 'Сохранить опцию'}
+        </button>
+      </div>
+    </div>
+  ) : null;
 
   useEffect(() => {
-    if (!variantEditorState || variantEditorMode !== 'drawer') {
+    const isOptionGroupDrawerOpen = optionGroupEditorMode === 'drawer' && Boolean(optionGroupEditorState);
+    const isVariantDrawerOpen = variantEditorMode === 'drawer' && Boolean(variantEditorState);
+
+    if (!isOptionGroupDrawerOpen && !isVariantDrawerOpen) {
       return;
     }
 
     const previousBodyOverflow = document.body.style.overflow;
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !isVariantEditorBusy) {
+      if (event.key !== 'Escape') {
+        return;
+      }
+
+      if (isOptionGroupDrawerOpen && isOptionGroupEditorBusy) {
+        return;
+      }
+
+      if (isVariantDrawerOpen && isVariantEditorBusy) {
+        return;
+      }
+
+      if (isOptionGroupDrawerOpen) {
+        handleCloseOptionGroupEditor();
+      }
+
+      if (isVariantDrawerOpen) {
         handleCloseVariantEditor();
       }
     };
@@ -682,7 +879,14 @@ export function ProductEditor({
       document.body.style.overflow = previousBodyOverflow;
       window.removeEventListener('keydown', handleEscape);
     };
-  }, [isVariantEditorBusy, variantEditorMode, variantEditorState]);
+  }, [
+    isOptionGroupEditorBusy,
+    isVariantEditorBusy,
+    optionGroupEditorMode,
+    optionGroupEditorState,
+    variantEditorMode,
+    variantEditorState,
+  ]);
 
   const variantEditorContent = variantEditorState ? (
     <div
@@ -1116,154 +1320,7 @@ export function ProductEditor({
               <p className="catalog-meta">Группы опций пока не добавлены.</p>
             )}
 
-            {optionGroupEditorState ? (
-              <div className="product-option-editor" aria-label="Редактирование опции товара">
-                <div className="product-editor-card-header">
-                  <p className="product-editor-card-title">
-                    {optionGroupEditorState.mode === 'create'
-                      ? 'Новая опция'
-                      : `Редактирование опции #${(optionGroupEditorState.optionGroupIndex ?? 0) + 1}`}
-                  </p>
-                </div>
-
-                <div className="product-editor-inline-grid product-editor-inline-grid-3">
-                  <div className="field">
-                    <label className="field-label" htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-code`}>
-                      Code
-                    </label>
-                    <input
-                      id={`${idPrefix}-option-editor-${optionGroupEditorKey}-code`}
-                      className="field-input"
-                      value={optionGroupEditorState.draft.code}
-                      onChange={(event) => handleOptionGroupDraftFieldChange('code', event.target.value)}
-                      disabled={isSaving}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-title`}>
-                      Название
-                    </label>
-                    <input
-                      id={`${idPrefix}-option-editor-${optionGroupEditorKey}-title`}
-                      className="field-input"
-                      value={optionGroupEditorState.draft.title}
-                      onChange={(event) => handleOptionGroupDraftFieldChange('title', event.target.value)}
-                      disabled={isSaving}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-sort-order`}>
-                      Sort order
-                    </label>
-                    <input
-                      id={`${idPrefix}-option-editor-${optionGroupEditorKey}-sort-order`}
-                      className="field-input"
-                      inputMode="numeric"
-                      value={optionGroupEditorState.draft.sortOrder}
-                      onChange={(event) => handleOptionGroupDraftFieldChange('sortOrder', event.target.value)}
-                      disabled={isSaving}
-                    />
-                  </div>
-                </div>
-
-                <div className="product-editor-subsection-header">
-                  <p className="product-editor-card-title">Значения опции</p>
-                  <button type="button" className="secondary-button" onClick={handleAddOptionValueDraft} disabled={isSaving}>
-                    Добавить значение
-                  </button>
-                </div>
-
-                {optionGroupEditorState.draft.values.length ? (
-                  <div className="product-editor-list product-editor-list-compact">
-                    {optionGroupEditorState.draft.values.map((value, valueIndex) => (
-                      <div key={`option-editor-value-${valueIndex}`} className="product-editor-row">
-                        <div className="product-editor-inline-grid product-editor-inline-grid-3">
-                          <div className="field">
-                            <label className="field-label" htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-code`}>
-                              Code
-                            </label>
-                            <input
-                              id={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-code`}
-                              className="field-input"
-                              value={value.code}
-                              onChange={(event) => handleOptionValueDraftFieldChange(valueIndex, 'code', event.target.value)}
-                              disabled={isSaving}
-                            />
-                          </div>
-
-                          <div className="field">
-                            <label className="field-label" htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-title`}>
-                              Название
-                            </label>
-                            <input
-                              id={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-title`}
-                              className="field-input"
-                              value={value.title}
-                              onChange={(event) => handleOptionValueDraftFieldChange(valueIndex, 'title', event.target.value)}
-                              disabled={isSaving}
-                            />
-                          </div>
-
-                          <div className="field">
-                            <label
-                              className="field-label"
-                              htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-sort-order`}
-                            >
-                              Sort order
-                            </label>
-                            <input
-                              id={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-sort-order`}
-                              className="field-input"
-                              inputMode="numeric"
-                              value={value.sortOrder}
-                              onChange={(event) => handleOptionValueDraftFieldChange(valueIndex, 'sortOrder', event.target.value)}
-                              disabled={isSaving}
-                            />
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          className="secondary-button secondary-button-danger"
-                          onClick={() => handleRemoveOptionValueDraft(valueIndex)}
-                          disabled={isSaving}
-                        >
-                          Удалить
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="catalog-meta">Значения опции пока не добавлены.</p>
-                )}
-
-                <div className="product-option-editor-actions">
-                  {optionGroupEditorState.mode === 'edit' ? (
-                    <button
-                      type="button"
-                      className="secondary-button secondary-button-danger"
-                      onClick={handleDeleteOptionGroupFromEditor}
-                      disabled={isSaving}
-                    >
-                      Удалить опцию
-                    </button>
-                  ) : null}
-                  <button type="button" className="secondary-button" onClick={handleCloseOptionGroupEditor} disabled={isSaving}>
-                    Отменить
-                  </button>
-                  <button
-                    type="button"
-                    className="submit-button product-option-editor-submit"
-                    onClick={handleConfirmOptionGroupEditor}
-                    disabled={isSaving}
-                  >
-                    {optionGroupEditorState.mode === 'create' ? 'Добавить опцию' : 'Сохранить опцию'}
-                  </button>
-                </div>
-              </div>
-            ) : null}
+            {optionGroupEditorMode === 'inline' ? optionGroupEditorContent : null}
           </section>
 
           <section className="product-editor-subsection product-editor-subsection-borderless" aria-label="Варианты товара">
@@ -1357,21 +1414,49 @@ export function ProductEditor({
         </button>
       </div>
 
-      {variantEditorState && variantEditorMode === 'drawer' ? (
-        <div className="product-variant-drawer-root" role="presentation">
+      {optionGroupEditorState && optionGroupEditorMode === 'drawer' ? (
+        <div className="product-editor-drawer-root" role="presentation">
           <button
             type="button"
-            className="product-variant-drawer-backdrop"
+            className="product-editor-drawer-backdrop"
+            aria-label="Закрыть панель опции товара"
+            onClick={handleCloseOptionGroupEditor}
+            disabled={isOptionGroupEditorBusy}
+          />
+
+          <aside className="product-editor-drawer" role="dialog" aria-modal="true" aria-labelledby={optionGroupEditorTitleId}>
+            <header className="product-editor-drawer-header">
+              <div>
+                <p className="placeholder-eyebrow">Опция товара</p>
+                <h3 id={optionGroupEditorTitleId} className="product-editor-drawer-title">
+                  {optionGroupEditorTitle}
+                </h3>
+              </div>
+              <button type="button" className="secondary-button" onClick={handleCloseOptionGroupEditor} disabled={isOptionGroupEditorBusy}>
+                Закрыть
+              </button>
+            </header>
+
+            <div className="product-editor-drawer-content">{optionGroupEditorContent}</div>
+          </aside>
+        </div>
+      ) : null}
+
+      {variantEditorState && variantEditorMode === 'drawer' ? (
+        <div className="product-editor-drawer-root" role="presentation">
+          <button
+            type="button"
+            className="product-editor-drawer-backdrop"
             aria-label="Закрыть панель варианта товара"
             onClick={handleCloseVariantEditor}
             disabled={isVariantEditorBusy}
           />
 
-          <aside className="product-variant-drawer" role="dialog" aria-modal="true" aria-labelledby={variantEditorTitleId}>
-            <header className="product-variant-drawer-header">
+          <aside className="product-editor-drawer" role="dialog" aria-modal="true" aria-labelledby={variantEditorTitleId}>
+            <header className="product-editor-drawer-header">
               <div>
                 <p className="placeholder-eyebrow">Вариант товара</p>
-                <h3 id={variantEditorTitleId} className="product-variant-drawer-title">
+                <h3 id={variantEditorTitleId} className="product-editor-drawer-title">
                   {variantEditorTitle}
                 </h3>
               </div>
@@ -1380,7 +1465,7 @@ export function ProductEditor({
               </button>
             </header>
 
-            <div className="product-variant-drawer-content">{variantEditorContent}</div>
+            <div className="product-editor-drawer-content">{variantEditorContent}</div>
           </aside>
         </div>
       ) : null}

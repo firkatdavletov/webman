@@ -1120,7 +1120,7 @@ button:disabled {
   background-color: rgba(255, 255, 255, 0.9);
 }
 
-.product-variant-drawer-root {
+.product-editor-drawer-root {
   position: fixed;
   inset: 0;
   z-index: 85;
@@ -1129,17 +1129,17 @@ button:disabled {
   pointer-events: none;
 }
 
-.product-variant-drawer-backdrop {
+.product-editor-drawer-backdrop {
   position: absolute;
   inset: 0;
   border: 0;
   background-color: rgba(16, 34, 40, 0.42);
   opacity: 0;
-  animation: product-variant-drawer-backdrop-in 180ms ease forwards;
+  animation: product-editor-drawer-backdrop-in 180ms ease forwards;
   pointer-events: auto;
 }
 
-.product-variant-drawer {
+.product-editor-drawer {
   position: relative;
   width: min(100%, 560px);
   height: 100%;
@@ -1152,27 +1152,28 @@ button:disabled {
   overflow: hidden;
   pointer-events: auto;
   transform: translateX(100%);
-  animation: product-variant-drawer-in 220ms ease forwards;
+  animation: product-editor-drawer-in 220ms ease forwards;
 }
 
-.product-variant-drawer-header {
+.product-editor-drawer-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
 
-.product-variant-drawer-title {
+.product-editor-drawer-title {
   margin: 0;
   font-size: clamp(1.3rem, 2vw, 1.8rem);
 }
 
-.product-variant-drawer-content {
+.product-editor-drawer-content {
   min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
 }
 
+.product-option-editor-drawer,
 .product-variant-editor-drawer {
   min-height: 100%;
   align-content: start;
@@ -1226,7 +1227,7 @@ button:disabled {
   min-width: 190px;
 }
 
-@keyframes product-variant-drawer-in {
+@keyframes product-editor-drawer-in {
   from {
     transform: translateX(100%);
   }
@@ -1236,7 +1237,7 @@ button:disabled {
   }
 }
 
-@keyframes product-variant-drawer-backdrop-in {
+@keyframes product-editor-drawer-backdrop-in {
   from {
     opacity: 0;
   }
@@ -1688,12 +1689,12 @@ button:disabled {
     padding: 24px;
   }
 
-  .product-variant-drawer {
+  .product-editor-drawer {
     width: 100%;
     padding: 20px;
   }
 
-  .product-variant-drawer-header {
+  .product-editor-drawer-header {
     flex-direction: column;
   }
 

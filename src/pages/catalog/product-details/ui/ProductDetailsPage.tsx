@@ -389,6 +389,7 @@ export function ProductDetailsPage() {
                   categoryOptions={categoryOptions}
                   formValues={formValues}
                   isSaving={isSaving || isImageUploading}
+                  optionGroupEditorMode="drawer"
                   variantEditorMode="drawer"
                   variantImageUploadProductId={product.id}
                   saveError={saveError}
