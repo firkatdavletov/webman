@@ -1,4 +1,12 @@
-import type { Order, OrderDeliveryType, OrderItem, OrderItemUnit, OrderStatus } from '@/entities/order/model/types';
+import type {
+  Order,
+  OrderDeliveryAddress,
+  OrderDeliveryMethod,
+  OrderItem,
+  OrderItemUnit,
+  OrderPayment,
+  OrderStatus,
+} from '@/entities/order/model/types';
 
 const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   PENDING: 'Новый',
@@ -7,9 +15,10 @@ const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   COMPLETED: 'Выполнен',
 };
 
-const DELIVERY_TYPE_LABELS: Record<OrderDeliveryType, string> = {
+const DELIVERY_TYPE_LABELS: Record<OrderDeliveryMethod, string> = {
   PICKUP: 'Самовывоз',
-  DELIVERY: 'Доставка',
+  COURIER: 'Курьер',
+  YANDEX_PICKUP_POINT: 'Пункт выдачи Яндекс',
 };
 
 const UNIT_LABELS: Record<OrderItemUnit, string> = {
@@ -55,8 +64,14 @@ export function getOrderStatusTone(status: OrderStatus): 'pending' | 'success' |
   return 'neutral';
 }
 
-export function getDeliveryTypeLabel(deliveryType: OrderDeliveryType): string {
-  return DELIVERY_TYPE_LABELS[deliveryType] ?? deliveryType;
+function compactText(value: string | null | undefined): string | null {
+  const normalizedValue = value?.trim() ?? '';
+
+  return normalizedValue || null;
+}
+
+export function getDeliveryTypeLabel(deliveryMethod: OrderDeliveryMethod): string {
+  return DELIVERY_TYPE_LABELS[deliveryMethod] ?? deliveryMethod;
 }
 
 export function getCustomerLabel(order: Order): string {
@@ -107,10 +122,40 @@ export function formatOrderItemQuantity(item: OrderItem): string {
   return `${item.quantity} ${unit}`;
 }
 
-export function getPaymentStatusPlaceholderLabel(): string {
-  return 'Нет данных в API';
+export function getPaymentMethodLabel(payment: OrderPayment | null | undefined): string {
+  return compactText(payment?.name) ?? 'Не указан';
 }
 
-export function getPaymentMethodPlaceholderLabel(): string {
-  return 'Не поддерживается API';
+export function formatOrderDeliveryAddress(address: OrderDeliveryAddress | null | undefined): string {
+  if (!address) {
+    return '';
+  }
+
+  const localityParts = [compactText(address.country), compactText(address.region), compactText(address.city)].filter(Boolean);
+  const streetParts = [compactText(address.street), compactText(address.house)].filter(Boolean);
+  const extraParts = [
+    compactText(address.apartment) ? `кв. ${compactText(address.apartment)}` : null,
+    compactText(address.entrance) ? `подъезд ${compactText(address.entrance)}` : null,
+    compactText(address.floor) ? `этаж ${compactText(address.floor)}` : null,
+    compactText(address.intercom) ? `домофон ${compactText(address.intercom)}` : null,
+    compactText(address.postalCode) ? `индекс ${compactText(address.postalCode)}` : null,
+  ].filter(Boolean);
+
+  return [...localityParts, streetParts.join(' '), ...extraParts].filter(Boolean).join(', ');
+}
+
+export function formatOrderDeliveryDestination(order: Order): string {
+  const pickupParts = [compactText(order.delivery.pickupPointName), compactText(order.delivery.pickupPointAddress)].filter(Boolean);
+
+  if (pickupParts.length) {
+    return pickupParts.join(' • ');
+  }
+
+  const formattedAddress = formatOrderDeliveryAddress(order.delivery.address);
+
+  return formattedAddress || 'Не указано';
+}
+
+export function getPaymentStatusPlaceholderLabel(): string {
+  return 'Статус недоступен в API';
 }

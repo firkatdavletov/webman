@@ -1,4 +1,4 @@
-import type { Order, OrderDeliveryType, OrderStatus } from '@/entities/order';
+import type { Order, OrderDeliveryMethod, OrderStatus } from '@/entities/order';
 
 export const ORDER_PAGE_SIZE_OPTIONS = [10, 20, 40] as const;
 
@@ -6,7 +6,7 @@ export type OrderDateRangeFilter = 'all' | 'today' | '3d' | '7d' | '30d';
 
 export type OrderFilters = {
   statusFilter: 'all' | OrderStatus;
-  deliveryFilter: 'all' | OrderDeliveryType;
+  deliveryFilter: 'all' | OrderDeliveryMethod;
   paymentFilter: 'unsupported';
   dateRangeFilter: OrderDateRangeFilter;
 };
@@ -45,7 +45,7 @@ export function filterOrders(orders: Order[], filters: OrderFilters): Order[] {
     .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))
     .filter((order) => {
       const matchesStatus = filters.statusFilter === 'all' || order.status === filters.statusFilter;
-      const matchesDelivery = filters.deliveryFilter === 'all' || order.deliveryType === filters.deliveryFilter;
+      const matchesDelivery = filters.deliveryFilter === 'all' || order.deliveryMethod === filters.deliveryFilter;
       const matchesPayment = filters.paymentFilter === 'unsupported';
 
       if (!dateRangeStart) {

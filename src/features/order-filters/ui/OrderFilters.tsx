@@ -2,7 +2,7 @@ import {
   getDeliveryTypeLabel,
   getOrderStatusLabel,
   getPaymentStatusPlaceholderLabel,
-  type OrderDeliveryType,
+  type OrderDeliveryMethod,
   type OrderStatus,
 } from '@/entities/order';
 import type { OrderDateRangeFilter } from '@/pages/orders/model/orderPageView';
@@ -10,20 +10,20 @@ import type { OrderDateRangeFilter } from '@/pages/orders/model/orderPageView';
 type OrderFiltersProps = {
   statusFilter: 'all' | OrderStatus;
   paymentFilter: 'unsupported';
-  deliveryFilter: 'all' | OrderDeliveryType;
+  deliveryFilter: 'all' | OrderDeliveryMethod;
   dateRangeFilter: OrderDateRangeFilter;
   pageSize: number;
   pageSizeOptions: readonly number[];
   disabled?: boolean;
   onStatusFilterChange: (value: 'all' | OrderStatus) => void;
   onPaymentFilterChange: (value: 'unsupported') => void;
-  onDeliveryFilterChange: (value: 'all' | OrderDeliveryType) => void;
+  onDeliveryFilterChange: (value: 'all' | OrderDeliveryMethod) => void;
   onDateRangeFilterChange: (value: OrderDateRangeFilter) => void;
   onPageSizeChange: (value: number) => void;
 };
 
 const ORDER_STATUSES: OrderStatus[] = ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'];
-const DELIVERY_TYPES: OrderDeliveryType[] = ['PICKUP', 'DELIVERY'];
+const DELIVERY_TYPES: OrderDeliveryMethod[] = ['PICKUP', 'COURIER', 'YANDEX_PICKUP_POINT'];
 
 export function OrderFilters({
   statusFilter,
@@ -74,7 +74,7 @@ export function OrderFilters({
         >
           <option value="unsupported">{getPaymentStatusPlaceholderLabel()}</option>
         </select>
-        <p className="helper-text">Поле оплаты отсутствует в `OrderResponse` текущего API.</p>
+        <p className="helper-text">В `OrderResponse` есть способ оплаты, но нет статуса оплаты.</p>
       </div>
 
       <div className="field">
@@ -85,7 +85,7 @@ export function OrderFilters({
           id="orders-delivery-filter"
           className="field-input"
           value={deliveryFilter}
-          onChange={(event) => onDeliveryFilterChange(event.target.value as 'all' | OrderDeliveryType)}
+          onChange={(event) => onDeliveryFilterChange(event.target.value as 'all' | OrderDeliveryMethod)}
           disabled={disabled}
         >
           <option value="all">Все типы</option>

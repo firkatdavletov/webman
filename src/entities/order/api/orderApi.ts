@@ -1,5 +1,5 @@
 import { getAccessToken } from '@/entities/session';
-import type { Order, OrderStatus } from '@/entities/order/model/types';
+import type { Order, OrderDeliveryAddress, OrderStatus } from '@/entities/order/model/types';
 import { type ApiError, apiClient } from '@/shared/api/client';
 import { getApiErrorMessage } from '@/shared/api/error';
 import type { components } from '@/shared/api/schema';
@@ -54,11 +54,35 @@ function mapOrderItem(item: OrderResponse['items'][number]): Order['items'][numb
   return {
     id: item.id,
     productId: item.productId,
+    variantId: item.variantId ?? null,
+    sku: item.sku ?? null,
     title: item.title,
     unit: item.unit,
     quantity: item.quantity,
     priceMinor: item.priceMinor,
     totalMinor: item.totalMinor,
+  };
+}
+
+function mapDeliveryAddress(address: OrderResponse['delivery']['address']): OrderDeliveryAddress | null {
+  if (!address) {
+    return null;
+  }
+
+  return {
+    country: address.country ?? null,
+    region: address.region ?? null,
+    city: address.city ?? null,
+    street: address.street ?? null,
+    house: address.house ?? null,
+    apartment: address.apartment ?? null,
+    postalCode: address.postalCode ?? null,
+    entrance: address.entrance ?? null,
+    floor: address.floor ?? null,
+    intercom: address.intercom ?? null,
+    comment: address.comment ?? null,
+    latitude: address.latitude ?? null,
+    longitude: address.longitude ?? null,
   };
 }
 
@@ -73,8 +97,27 @@ function mapOrder(order: OrderResponse): Order {
     customerPhone: order.customerPhone ?? null,
     customerEmail: order.customerEmail ?? null,
     status: order.status,
-    deliveryType: order.deliveryType,
-    deliveryAddress: order.deliveryAddress ?? null,
+    payment: order.payment
+      ? {
+          code: order.payment.code,
+          name: order.payment.name,
+        }
+      : null,
+    deliveryMethod: order.deliveryMethod,
+    delivery: {
+      method: order.delivery.method,
+      methodName: order.delivery.methodName,
+      priceMinor: order.delivery.priceMinor,
+      currency: order.delivery.currency,
+      zoneCode: order.delivery.zoneCode ?? null,
+      zoneName: order.delivery.zoneName ?? null,
+      estimatedDays: order.delivery.estimatedDays ?? null,
+      pickupPointId: order.delivery.pickupPointId ?? null,
+      pickupPointExternalId: order.delivery.pickupPointExternalId ?? null,
+      pickupPointName: order.delivery.pickupPointName ?? null,
+      pickupPointAddress: order.delivery.pickupPointAddress ?? null,
+      address: mapDeliveryAddress(order.delivery.address),
+    },
     comment: order.comment ?? null,
     items: order.items.map(mapOrderItem),
     subtotalMinor: order.subtotalMinor,

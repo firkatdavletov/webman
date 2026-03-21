@@ -1,8 +1,21 @@
-export type { Order, OrderCustomerType, OrderDeliveryType, OrderItem, OrderItemUnit, OrderStatus } from './model/types';
+export type {
+  Order,
+  OrderCustomerType,
+  OrderDelivery,
+  OrderDeliveryAddress,
+  OrderDeliveryMethod,
+  OrderItem,
+  OrderItemUnit,
+  OrderPayment,
+  OrderPaymentMethodCode,
+  OrderStatus,
+} from './model/types';
 export { getAdminOrders, getOrderById, searchAdminOrderByNumber, updateOrderStatus } from './api/orderApi';
 export type { OrderListResult, OrderResult, UpdateOrderStatusResult } from './api/orderApi';
 export {
   formatMoneyMinor,
+  formatOrderDeliveryAddress,
+  formatOrderDeliveryDestination,
   formatOrderDateTime,
   formatOrderItemQuantity,
   formatOrderItemsSummary,
@@ -10,6 +23,6 @@ export {
   getDeliveryTypeLabel,
   getOrderStatusLabel,
   getOrderStatusTone,
-  getPaymentMethodPlaceholderLabel,
+  getPaymentMethodLabel,
   getPaymentStatusPlaceholderLabel,
 } from './lib/formatters';

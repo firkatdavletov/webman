@@ -55,6 +55,87 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/virtual-try-on/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a virtual try-on session
+         * @description Requires either a bearer token for an authenticated user or `X-Install-Id` for a guest installation.
+         *     The backend resolves the garment image from the active product or variant and submits the request to FASHN.
+         *     The response includes websocket connection details for real-time status updates.
+         */
+        post: operations["createVirtualTryOnSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/virtual-try-on/sessions/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a virtual try-on session
+         * @description Requires either a bearer token for an authenticated user or `X-Install-Id` for a guest installation.
+         *     Only the owner of the session can access it.
+         */
+        get: operations["getVirtualTryOnSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/virtual-try-on/sessions/{sessionId}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Force sync of a pending virtual try-on session with FASHN status API
+         * @description Requires either a bearer token for an authenticated user or `X-Install-Id` for a guest installation.
+         *     If the session is still pending, the backend fetches the latest state from FASHN and pushes any update to websocket subscribers.
+         */
+        post: operations["syncVirtualTryOnSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/virtual-try-on/webhooks/fashn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Receive FASHN webhook updates for virtual try-on sessions */
+        post: operations["handleFashnVirtualTryOnWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/email/start": {
         parameters: {
             query?: never;
@@ -243,6 +324,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cart/delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get current cart delivery draft */
+        get: operations["getCartDeliveryDraft"];
+        /** Create or replace current cart delivery draft */
+        put: operations["putCartDeliveryDraft"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cart/items": {
         parameters: {
             query?: never;
@@ -252,7 +351,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Add product to active cart */
+        /** Add product (or product variant) to active cart */
         post: operations["addCartItem"];
         delete?: never;
         options?: never;
@@ -271,7 +370,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remove product from active cart */
+        /** Remove product (or specific product variant) from active cart */
         delete: operations["removeCartItem"];
         options?: never;
         head?: never;
@@ -442,6 +541,211 @@ export interface paths {
          * @description Alias route is also available at `/api/admin/catalog-import/examples/{importType}/{importMode}`.
          */
         get: operations["downloadCatalogImportExample"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import catalog CSV file
+         * @deprecated
+         * @description Legacy alias for `/api/v1/admin/catalog-import`.
+         */
+        post: operations["importCatalogLegacy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog-import/examples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List available example CSV files for catalog import
+         * @deprecated
+         * @description Legacy alias for `/api/v1/admin/catalog-import/examples`.
+         */
+        get: operations["listCatalogImportExamplesLegacy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog-import/examples/{importType}/{importMode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download example CSV file for catalog import
+         * @deprecated
+         * @description Legacy alias for `/api/v1/admin/catalog-import/examples/{importType}/{importMode}`.
+         */
+        get: operations["downloadCatalogImportExampleLegacy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/checkout/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List available delivery methods with payment methods for checkout
+         * @description Returns delivery methods currently available in the system and payment methods allowed for each of them.
+         *     `YANDEX_PICKUP_POINT` is resolved dynamically from Yandex pickup point data and is included only when
+         *     `pickupPointId` is provided and at least one supported Yandex payment method can be mapped to active
+         *     payment methods in the backend.
+         */
+        get: operations["getCheckoutOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/delivery/methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get available delivery methods and active internal pickup points */
+        get: operations["getDeliveryMethods"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/delivery/yandex/location-detect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Detect Yandex geo locations by free-form query */
+        post: operations["detectYandexLocations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/delivery/yandex/pickup-points": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get Yandex pickup points for geo id */
+        post: operations["getYandexPickupPoints"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/delivery/quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Calculate delivery quote for selected method and order subtotal */
+        post: operations["calculateDeliveryQuote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List available payment methods */
+        get: operations["getAvailablePaymentMethods"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create payment for order visible to current actor */
+        post: operations["createPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{paymentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get payment visible to current actor */
+        get: operations["getPayment"];
         put?: never;
         post?: never;
         delete?: never;
@@ -729,17 +1033,81 @@ export interface components {
         LogoutRequest: {
             refreshToken?: string | null;
         };
+        CheckoutOptionsResponse: {
+            options: components["schemas"]["CheckoutDeliveryOptionResponse"][];
+        };
+        CheckoutDeliveryOptionResponse: {
+            code: components["schemas"]["DeliveryMethodType"];
+            name: string;
+            requiresAddress: boolean;
+            requiresPickupPoint: boolean;
+            paymentMethods: components["schemas"]["CheckoutPaymentMethodResponse"][];
+        };
+        CheckoutPaymentMethodResponse: {
+            code: components["schemas"]["PaymentMethodCode"];
+            name: string;
+            description?: string | null;
+            isOnline: boolean;
+            isActive: boolean;
+        };
+        PaymentMethodResponse: {
+            code: components["schemas"]["PaymentMethodCode"];
+            name: string;
+            description?: string | null;
+            isOnline: boolean;
+            isActive: boolean;
+        };
+        CreatePaymentRequest: {
+            /** Format: uuid */
+            orderId: string;
+            paymentMethodCode: components["schemas"]["PaymentMethodCode"];
+            details?: string | null;
+        };
+        PaymentResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            orderId: string;
+            paymentMethodCode: components["schemas"]["PaymentMethodCode"];
+            paymentMethodName: string;
+            status: components["schemas"]["PaymentStatus"];
+            /** Format: int64 */
+            amountMinor: number;
+            currency: string;
+            isOnline: boolean;
+            providerCode?: string | null;
+            externalPaymentId?: string | null;
+            confirmationUrl?: string | null;
+            details?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            paidAt?: string | null;
+        };
         AddCartItemRequest: {
             /** Format: uuid */
             productId: string;
+            /** Format: uuid */
+            variantId?: string | null;
             /** Format: int32 */
             quantity: number;
         };
         ChangeCartItemQuantityRequest: {
             /** Format: uuid */
             productId: string;
+            /** Format: uuid */
+            variantId?: string | null;
             /** Format: int32 */
             quantity: number;
+        };
+        PutCartDeliveryRequest: {
+            deliveryMethod: components["schemas"]["DeliveryMethodType"];
+            address?: components["schemas"]["DeliveryAddressRequest"] | null;
+            /** Format: uuid */
+            pickupPointId?: string | null;
+            pickupPointExternalId?: string | null;
         };
         CartResponse: {
             /** Format: uuid */
@@ -748,10 +1116,26 @@ export interface components {
             items: components["schemas"]["CartItemResponse"][];
             /** Format: int64 */
             totalPriceMinor: number;
+            delivery?: components["schemas"]["CartDeliveryDraftResponse"] | null;
+        };
+        CartDeliveryDraftResponse: {
+            deliveryMethod?: components["schemas"]["DeliveryMethodType"];
+            address?: components["schemas"]["DeliveryAddressResponse"] | null;
+            /** Format: uuid */
+            pickupPointId?: string | null;
+            pickupPointExternalId?: string | null;
+            pickupPointName?: string | null;
+            pickupPointAddress?: string | null;
+            quote?: components["schemas"]["DeliveryQuoteResponse"] | null;
+            quoteExpired: boolean;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         CartItemResponse: {
             /** Format: uuid */
             productId: string;
+            /** Format: uuid */
+            variantId?: string | null;
             title: string;
             unit: components["schemas"]["ProductUnit"];
             /** Format: int32 */
@@ -762,6 +1146,83 @@ export interface components {
             priceMinor: number;
             /** Format: int64 */
             lineTotalMinor: number;
+        };
+        DeliveryMethodsResponse: {
+            methods: components["schemas"]["DeliveryMethodResponse"][];
+            pickupPoints: components["schemas"]["PickupPointResponse"][];
+        };
+        DeliveryMethodResponse: {
+            code: components["schemas"]["DeliveryMethodType"];
+            name: string;
+            requiresAddress: boolean;
+            requiresPickupPoint: boolean;
+        };
+        PickupPointResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            address: components["schemas"]["DeliveryAddressResponse"];
+            isActive: boolean;
+        };
+        YandexLocationDetectRequest: {
+            query: string;
+        };
+        YandexLocationDetectResponse: {
+            variants: components["schemas"]["YandexLocationVariantResponse"][];
+        };
+        YandexLocationVariantResponse: {
+            /** Format: int64 */
+            geoId: number;
+            address: string;
+        };
+        YandexPickupPointsRequest: {
+            /** Format: int64 */
+            geoId: number;
+        };
+        YandexPickupPointsResponse: {
+            points: components["schemas"]["YandexPickupPointResponse"][];
+        };
+        YandexPickupPointResponse: {
+            id: string;
+            name: string;
+            address: string;
+            fullAddress?: string | null;
+            instruction?: string | null;
+            /** Format: double */
+            latitude?: number | null;
+            /** Format: double */
+            longitude?: number | null;
+            paymentMethods: string[];
+            isYandexBranded: boolean;
+        };
+        CalculateDeliveryQuoteRequest: {
+            /** Format: int64 */
+            subtotalMinor: number;
+            /** Format: int32 */
+            itemCount: number;
+            deliveryMethod: components["schemas"]["DeliveryMethodType"];
+            address?: components["schemas"]["DeliveryAddressRequest"] | null;
+            /** Format: uuid */
+            pickupPointId?: string | null;
+            pickupPointExternalId?: string | null;
+        };
+        DeliveryQuoteResponse: {
+            deliveryMethod: components["schemas"]["DeliveryMethodType"];
+            available: boolean;
+            /** Format: int64 */
+            priceMinor?: number | null;
+            currency: string;
+            zoneCode?: string | null;
+            zoneName?: string | null;
+            /** Format: int32 */
+            estimatedDays?: number | null;
+            message?: string | null;
+            /** Format: uuid */
+            pickupPointId?: string | null;
+            pickupPointExternalId?: string | null;
+            pickupPointName?: string | null;
+            pickupPointAddress?: string | null;
         };
         CategoryResponse: {
             /** Format: uuid */
@@ -779,6 +1240,7 @@ export interface components {
             title: string;
             slug: string;
             description?: string | null;
+            brand?: string | null;
             /** Format: int64 */
             priceMinor: number;
             /** Format: int64 */
@@ -958,11 +1420,10 @@ export interface components {
             downloadUrl: string;
         };
         CheckoutRequest: {
+            paymentMethodCode: components["schemas"]["PaymentMethodCode"];
             customerName?: string | null;
             customerPhone?: string | null;
             customerEmail?: string | null;
-            deliveryType: components["schemas"]["OrderDeliveryType"];
-            deliveryAddress?: string | null;
             comment?: string | null;
         };
         GuestCheckoutRequest: {
@@ -970,13 +1431,19 @@ export interface components {
             customerName: string;
             customerPhone: string;
             customerEmail?: string | null;
-            deliveryType: components["schemas"]["OrderDeliveryType"];
-            deliveryAddress?: string | null;
+            paymentMethodCode: components["schemas"]["PaymentMethodCode"];
+            deliveryMethod: components["schemas"]["DeliveryMethodType"];
+            address?: components["schemas"]["DeliveryAddressRequest"] | null;
+            /** Format: uuid */
+            pickupPointId?: string | null;
+            pickupPointExternalId?: string | null;
             comment?: string | null;
         };
         GuestCheckoutItemRequest: {
             /** Format: uuid */
             productId: string;
+            /** Format: uuid */
+            variantId?: string | null;
             /** Format: int32 */
             quantity: number;
         };
@@ -995,8 +1462,9 @@ export interface components {
             customerPhone?: string | null;
             customerEmail?: string | null;
             status: components["schemas"]["OrderStatus"];
-            deliveryType: components["schemas"]["OrderDeliveryType"];
-            deliveryAddress?: string | null;
+            payment?: components["schemas"]["OrderPaymentResponse"] | null;
+            deliveryMethod: components["schemas"]["DeliveryMethodType"];
+            delivery: components["schemas"]["OrderDeliveryResponse"];
             comment?: string | null;
             items: components["schemas"]["OrderItemResponse"][];
             /** Format: int64 */
@@ -1015,6 +1483,9 @@ export interface components {
             id: string;
             /** Format: uuid */
             productId: string;
+            /** Format: uuid */
+            variantId?: string | null;
+            sku?: string | null;
             title: string;
             unit: components["schemas"]["ProductUnit"];
             /** Format: int32 */
@@ -1023,6 +1494,61 @@ export interface components {
             priceMinor: number;
             /** Format: int64 */
             totalMinor: number;
+        };
+        OrderPaymentResponse: {
+            code: components["schemas"]["PaymentMethodCode"];
+            name: string;
+        };
+        OrderDeliveryResponse: {
+            method: components["schemas"]["DeliveryMethodType"];
+            methodName: string;
+            /** Format: int64 */
+            priceMinor: number;
+            currency: string;
+            zoneCode?: string | null;
+            zoneName?: string | null;
+            /** Format: int32 */
+            estimatedDays?: number | null;
+            /** Format: uuid */
+            pickupPointId?: string | null;
+            pickupPointExternalId?: string | null;
+            pickupPointName?: string | null;
+            pickupPointAddress?: string | null;
+            address?: components["schemas"]["DeliveryAddressResponse"] | null;
+        };
+        DeliveryAddressRequest: {
+            country?: string | null;
+            region?: string | null;
+            city?: string | null;
+            street?: string | null;
+            house?: string | null;
+            apartment?: string | null;
+            postalCode?: string | null;
+            entrance?: string | null;
+            floor?: string | null;
+            intercom?: string | null;
+            comment?: string | null;
+            /** Format: double */
+            latitude?: number | null;
+            /** Format: double */
+            longitude?: number | null;
+        };
+        DeliveryAddressResponse: {
+            country?: string | null;
+            region?: string | null;
+            city?: string | null;
+            street?: string | null;
+            house?: string | null;
+            apartment?: string | null;
+            postalCode?: string | null;
+            entrance?: string | null;
+            floor?: string | null;
+            intercom?: string | null;
+            comment?: string | null;
+            /** Format: double */
+            latitude?: number | null;
+            /** Format: double */
+            longitude?: number | null;
         };
         CreateUploadSessionRequest: {
             targetType: components["schemas"]["MediaTargetType"];
@@ -1109,17 +1635,94 @@ export interface components {
         /** @enum {string} */
         ProductUnit: "PIECE" | "KILOGRAM" | "GRAM" | "LITER" | "MILLILITER";
         /** @enum {string} */
+        DeliveryMethodType: "PICKUP" | "COURIER" | "YANDEX_PICKUP_POINT";
+        /** @enum {string} */
+        PaymentMethodCode: "CASH" | "CARD_ON_DELIVERY" | "CARD_ONLINE" | "SBP";
+        /** @enum {string} */
+        PaymentStatus: "AWAITING_PAYMENT" | "PENDING" | "SUCCEEDED" | "FAILED" | "CANCELED";
+        /** @enum {string} */
         CartStatus: "ACTIVE" | "ORDERED" | "MERGED" | "ABANDONED";
         /** @enum {string} */
         OrderCustomerType: "USER" | "GUEST";
-        /** @enum {string} */
-        OrderDeliveryType: "PICKUP" | "DELIVERY";
         /** @enum {string} */
         OrderStatus: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
         /** @enum {string} */
         MediaTargetType: "PRODUCT" | "CATEGORY";
         /** @enum {string} */
         MediaImageStatus: "PENDING" | "READY";
+        CreateVirtualTryOnSessionRequest: {
+            /** Format: uuid */
+            productId: string;
+            /** Format: uuid */
+            variantId?: string | null;
+            /** @description Public image URL or base64 data URI accepted by FASHN as `model_image`. */
+            modelImage: string;
+            category?: components["schemas"]["VirtualTryOnCategory"];
+            garmentPhotoType?: components["schemas"]["VirtualTryOnGarmentPhotoType"];
+            mode?: components["schemas"]["VirtualTryOnMode"];
+            moderationLevel?: components["schemas"]["VirtualTryOnModerationLevel"];
+            /** @default true */
+            segmentationFree: boolean;
+            /** Format: int64 */
+            seed?: number | null;
+            /** Format: int32 */
+            numSamples?: number | null;
+            outputFormat?: components["schemas"]["VirtualTryOnOutputFormat"];
+        };
+        /**
+         * @description Session snapshot returned by REST endpoints and broadcast to websocket subscribers.
+         *     To receive live updates, connect to `websocketEndpoint` and subscribe to `websocketDestination`.
+         */
+        VirtualTryOnSessionResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            productId: string;
+            /** Format: uuid */
+            variantId?: string | null;
+            garmentImageUrl: string;
+            status: components["schemas"]["VirtualTryOnSessionStatus"];
+            /** @description Raw provider state returned by FASHN, for example `starting`, `processing`, `completed`, `failed`. */
+            providerStatus?: string | null;
+            outputImages: string[];
+            error?: components["schemas"]["VirtualTryOnSessionErrorResponse"];
+            /** @description STOMP/SockJS websocket endpoint path on this backend. */
+            websocketEndpoint: string;
+            /** @description Topic destination to subscribe to for session updates. */
+            websocketDestination: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            completedAt?: string | null;
+        };
+        VirtualTryOnSessionErrorResponse: {
+            name?: string | null;
+            message?: string | null;
+        } | null;
+        FashnWebhookRequest: {
+            id?: string;
+            status?: string;
+            output?: string[];
+            error?: components["schemas"]["FashnWebhookErrorRequest"];
+        };
+        FashnWebhookErrorRequest: {
+            name?: string | null;
+            message?: string | null;
+        };
+        /** @enum {string} */
+        VirtualTryOnCategory: "auto" | "tops" | "bottoms" | "one-pieces";
+        /** @enum {string} */
+        VirtualTryOnGarmentPhotoType: "auto" | "flat-lay" | "model";
+        /** @enum {string} */
+        VirtualTryOnMode: "performance" | "balanced" | "quality";
+        /** @enum {string} */
+        VirtualTryOnModerationLevel: "conservative" | "permissive" | "none";
+        /** @enum {string} */
+        VirtualTryOnOutputFormat: "png" | "jpeg";
+        /** @enum {string} */
+        VirtualTryOnSessionStatus: "pending" | "completed" | "failed";
     };
     responses: {
         /** @description Request validation failed or business rule violation */
@@ -1151,6 +1754,15 @@ export interface components {
         };
         /** @description Resource not found */
         NotFoundError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ApiError"];
+            };
+        };
+        /** @description Request conflicts with current resource state */
+        ConflictError: {
             headers: {
                 [name: string]: unknown;
             };
@@ -1251,6 +1863,121 @@ export interface operations {
             400: components["responses"]["BadRequestError"];
             403: components["responses"]["ForbiddenError"];
             404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    createVirtualTryOnSession: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Guest installation identifier used when no bearer token is provided. */
+                "X-Install-Id"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateVirtualTryOnSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description Virtual try-on session created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VirtualTryOnSessionResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getVirtualTryOnSession: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Guest installation identifier used when no bearer token is provided. */
+                "X-Install-Id"?: string;
+            };
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Virtual try-on session details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VirtualTryOnSessionResponse"];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    syncVirtualTryOnSession: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Guest installation identifier used when no bearer token is provided. */
+                "X-Install-Id"?: string;
+            };
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Synchronized virtual try-on session */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VirtualTryOnSessionResponse"];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    handleFashnVirtualTryOnWebhook: {
+        parameters: {
+            query?: {
+                /** @description Shared webhook secret appended to the configured FASHN `webhook_url`. */
+                token?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FashnWebhookRequest"];
+            };
+        };
+        responses: {
+            /** @description Webhook accepted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequestError"];
+            403: components["responses"]["ForbiddenError"];
             500: components["responses"]["InternalServerError"];
         };
     };
@@ -1557,6 +2284,56 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    getCartDeliveryDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current cart delivery draft or `null` when not selected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CartDeliveryDraftResponse"] | null;
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    putCartDeliveryDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutCartDeliveryRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated cart delivery draft */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CartDeliveryDraftResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     addCartItem: {
         parameters: {
             query?: never;
@@ -1614,7 +2391,10 @@ export interface operations {
     };
     removeCartItem: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Variant id to remove. When omitted, removes all cart items for the product. */
+                variantId?: string;
+            };
             header?: never;
             path: {
                 productId: components["parameters"]["ProductIdPathParam"];
@@ -1924,6 +2704,296 @@ export interface operations {
                     "text/csv": string;
                 };
             };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    importCatalogLegacy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    importType: components["schemas"]["CatalogImportType"];
+                    importMode: components["schemas"]["CatalogImportMode"];
+                };
+            };
+        };
+        responses: {
+            /** @description Import report */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogImportResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    listCatalogImportExamplesLegacy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Available example files */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogImportExampleResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    downloadCatalogImportExampleLegacy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                importType: components["schemas"]["CatalogImportType"];
+                importMode: components["schemas"]["CatalogImportMode"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV file content */
+            200: {
+                headers: {
+                    /** @description Suggested attachment filename. */
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getCheckoutOptions: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Optional Yandex pickup point id used to resolve `YANDEX_PICKUP_POINT` payment methods
+                 *     for the selected pickup point.
+                 */
+                pickupPointId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Checkout options */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutOptionsResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getDeliveryMethods: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Delivery methods and pickup points */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryMethodsResponse"];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    detectYandexLocations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["YandexLocationDetectRequest"];
+            };
+        };
+        responses: {
+            /** @description Matching Yandex locations */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YandexLocationDetectResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getYandexPickupPoints: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["YandexPickupPointsRequest"];
+            };
+        };
+        responses: {
+            /** @description Yandex pickup points */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YandexPickupPointsResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    calculateDeliveryQuote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalculateDeliveryQuoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Delivery quote */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryQuoteResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getAvailablePaymentMethods: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payment methods */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMethodResponse"][];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    createPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePaymentRequest"];
+            };
+        };
+        responses: {
+            /** @description Payment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            409: components["responses"]["ConflictError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paymentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
             404: components["responses"]["NotFoundError"];

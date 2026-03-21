@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import {
   formatMoneyMinor,
+  formatOrderDeliveryDestination,
   formatOrderDateTime,
   formatOrderItemQuantity,
   getDeliveryTypeLabel,
   getOrderStatusLabel,
   getOrderStatusTone,
-  getPaymentMethodPlaceholderLabel,
+  getPaymentMethodLabel,
   getPaymentStatusPlaceholderLabel,
   type Order,
   type OrderStatus,
@@ -144,6 +145,7 @@ export function OrderDetailsDrawer({
                   {order.items.map((item) => {
                     const itemMeta = productMetaById.get(item.productId);
                     const imageUrl = itemMeta?.imageUrl?.trim() ?? '';
+                    const itemSku = renderInfoValue(item.sku, renderInfoValue(itemMeta?.sku, 'Не указан'));
 
                     return (
                       <li key={item.id} className="order-item-row">
@@ -155,7 +157,7 @@ export function OrderDetailsDrawer({
 
                         <div className="order-item-main">
                           <p className="orders-cell-title">{item.title}</p>
-                          <p className="orders-cell-meta">SKU: {renderInfoValue(itemMeta?.sku, 'Не указан')}</p>
+                          <p className="orders-cell-meta">SKU: {itemSku}</p>
                           <p className="orders-cell-meta">Количество: {formatOrderItemQuantity(item)}</p>
                         </div>
 
@@ -200,16 +202,22 @@ export function OrderDetailsDrawer({
               <h4 className="order-detail-title">Доставка</h4>
               <div className="order-detail-grid">
                 <div>
-                  <p className="orders-cell-meta">Тип доставки</p>
-                  <p className="orders-cell-title">{getDeliveryTypeLabel(order.deliveryType)}</p>
+                  <p className="orders-cell-meta">Способ доставки</p>
+                  <p className="orders-cell-title">{order.delivery.methodName || getDeliveryTypeLabel(order.deliveryMethod)}</p>
                 </div>
                 <div>
                   <p className="orders-cell-meta">Стоимость доставки</p>
-                  <p className="orders-cell-title">{formatMoneyMinor(order.deliveryFeeMinor)}</p>
+                  <p className="orders-cell-title">{formatMoneyMinor(order.delivery.priceMinor)}</p>
+                </div>
+                <div>
+                  <p className="orders-cell-meta">Срок</p>
+                  <p className="orders-cell-title">
+                    {order.delivery.estimatedDays === null ? 'Не указан' : `${order.delivery.estimatedDays} дн.`}
+                  </p>
                 </div>
                 <div className="order-detail-grid-full">
                   <p className="orders-cell-meta">Адрес / пункт выдачи</p>
-                  <p className="orders-cell-title">{renderInfoValue(order.deliveryAddress, 'Не указан')}</p>
+                  <p className="orders-cell-title">{formatOrderDeliveryDestination(order)}</p>
                 </div>
               </div>
             </section>
@@ -219,7 +227,7 @@ export function OrderDetailsDrawer({
               <div className="order-detail-grid">
                 <div>
                   <p className="orders-cell-meta">Способ оплаты</p>
-                  <p className="orders-cell-title">{getPaymentMethodPlaceholderLabel()}</p>
+                  <p className="orders-cell-title">{getPaymentMethodLabel(order.payment)}</p>
                 </div>
                 <div>
                   <p className="orders-cell-meta">Статус оплаты</p>

@@ -1,11 +1,13 @@
 import {
   formatMoneyMinor,
+  formatOrderDeliveryDestination,
   formatOrderDateTime,
   formatOrderItemsSummary,
   getCustomerLabel,
   getDeliveryTypeLabel,
   getOrderStatusLabel,
   getOrderStatusTone,
+  getPaymentMethodLabel,
   getPaymentStatusPlaceholderLabel,
   type Order,
 } from '@/entities/order';
@@ -63,11 +65,12 @@ export function OrdersTable({ orders, selectedOrderId, onOpenOrder }: OrdersTabl
                 </td>
                 <td className="orders-cell-amount">{formatMoneyMinor(order.totalMinor)}</td>
                 <td>
-                  <span className="order-pill order-pill-muted">{getPaymentStatusPlaceholderLabel()}</span>
+                  <p className="orders-cell-title">{getPaymentMethodLabel(order.payment)}</p>
+                  <p className="orders-cell-meta">{getPaymentStatusPlaceholderLabel()}</p>
                 </td>
                 <td>
-                  <p className="orders-cell-title">{getDeliveryTypeLabel(order.deliveryType)}</p>
-                  <p className="orders-cell-meta orders-cell-ellipsis">{order.deliveryAddress?.trim() || 'Адрес не указан'}</p>
+                  <p className="orders-cell-title">{order.delivery.methodName || getDeliveryTypeLabel(order.deliveryMethod)}</p>
+                  <p className="orders-cell-meta orders-cell-ellipsis">{formatOrderDeliveryDestination(order)}</p>
                 </td>
                 <td>
                   <span className={`order-pill order-pill-${statusTone}`}>{getOrderStatusLabel(order.status)}</span>
