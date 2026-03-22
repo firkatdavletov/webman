@@ -3,13 +3,17 @@ import type { Product, ProductOptionGroup, ProductVariant, ProductVariantOption 
 import { type ApiError, apiClient } from '@/shared/api/client';
 import { getApiErrorMessage } from '@/shared/api/error';
 import type { components } from '@/shared/api/schema';
-import { buildMediaImagesFromUrls, getMediaImageIdsForSave } from '@/shared/lib/media/images';
+import {
+  buildMediaImagesFromUrls,
+  getMediaImageIdsForSave,
+  hasMediaImagesWithMissingIds,
+} from '@/shared/lib/media/images';
 import type { MediaImage } from '@/shared/model/media';
 
 type ProductResponse = components['schemas']['ProductResponse'];
-type ProductDetailsResponse = components['schemas']['ProductDetailsResponse'];
+type AdminProductDetailsResponse = components['schemas']['AdminProductDetailsResponse'];
 type ProductOptionGroupResponse = components['schemas']['ProductOptionGroupResponse'];
-type ProductVariantResponse = components['schemas']['ProductVariantResponse'];
+type AdminProductVariantResponse = components['schemas']['AdminProductVariantResponse'];
 type UpsertProductRequest = components['schemas']['UpsertProductRequest'];
 type UpsertProductOptionGroupRequest = components['schemas']['UpsertProductOptionGroupRequest'];
 type UpsertProductVariantRequest = components['schemas']['UpsertProductVariantRequest'];
@@ -45,7 +49,7 @@ type AdminProductListResult = {
 };
 
 type AdminProductDetailsResult = {
-  data?: ProductDetailsResponse;
+  data?: AdminProductDetailsResponse;
   error?: ApiError;
 };
 
@@ -130,8 +134,9 @@ function getProtectedErrorMessage(error: ApiError | undefined, fallbackMessage: 
   return getApiErrorMessage(error, fallbackMessage);
 }
 
-function mapBaseProduct(product: ProductResponse | ProductDetailsResponse): Omit<Product, 'defaultVariantId' | 'optionGroups' | 'variants'> {
-  const productWithActiveFlag = product as (ProductResponse | ProductDetailsResponse) & { isActive?: boolean };
+function mapBaseProduct(product: ProductResponse | AdminProductDetailsResponse): Omit<Product, 'defaultVariantId' | 'optionGroups' | 'variants'> {
+  const productWithActiveFlag = product as (ProductResponse | AdminProductDetailsResponse) & { isActive?: boolean };
+  const imageIds = 'imageIds' in product ? product.imageIds : undefined;
 
   return {
     id: product.id,
@@ -142,7 +147,7 @@ function mapBaseProduct(product: ProductResponse | ProductDetailsResponse): Omit
     description: product.description ?? null,
     price: product.priceMinor,
     oldPrice: product.oldPriceMinor ?? null,
-    images: buildMediaImagesFromUrls(product.imageUrls),
+    images: buildMediaImagesFromUrls(product.imageUrls, imageIds),
     unit: product.unit,
     displayWeight: null,
     countStep: product.countStep,
@@ -194,7 +199,7 @@ function buildOptionValueLookup(optionGroups: ProductOptionGroup[]): Map<string,
 }
 
 function mapProductVariants(
-  variants: ProductVariantResponse[],
+  variants: AdminProductVariantResponse[],
   optionValueLookup: Map<string, ProductVariantOption>,
 ): ProductVariant[] {
   return variants.map((variant) => ({
@@ -204,7 +209,7 @@ function mapProductVariants(
     title: variant.title ?? null,
     price: variant.priceMinor ?? null,
     oldPrice: variant.oldPriceMinor ?? null,
-    images: buildMediaImagesFromUrls(variant.imageUrls),
+    images: buildMediaImagesFromUrls(variant.imageUrls, variant.imageIds),
     sortOrder: variant.sortOrder,
     isActive: variant.isActive,
     options: variant.optionValueIds
@@ -213,7 +218,7 @@ function mapProductVariants(
   }));
 }
 
-function mapProductDetails(product: ProductDetailsResponse): Product {
+function mapProductDetails(product: AdminProductDetailsResponse): Product {
   const optionGroups = mapProductOptionGroups(product.optionGroups);
   const optionValueLookup = buildOptionValueLookup(optionGroups);
 
@@ -398,6 +403,22 @@ export async function getProductById(id: string): Promise<ProductResult> {
 }
 
 export async function saveProduct(product: Product): Promise<SaveProductResult> {
+  if (hasMediaImagesWithMissingIds(product.images)) {
+    return {
+      product: null,
+      error:
+        'Нельзя сохранить товар: для части фотографий товара не хватает imageIds. Это может удалить фото товара при сохранении.',
+    };
+  }
+
+  if (product.variants.some((variant) => hasMediaImagesWithMissingIds(variant.images))) {
+    return {
+      product: null,
+      error:
+        'Нельзя сохранить товар: для части фотографий вариантов не хватает imageIds. Это может удалить фото товара или варианта при сохранении.',
+    };
+  }
+
   try {
     const result = await apiClient.POST('/api/v1/admin/catalog/products', {
       headers: buildAuthHeaders(),
@@ -421,6 +442,10 @@ export async function saveProduct(product: Product): Promise<SaveProductResult> 
     return {
       product: {
         ...mapProduct(result.data),
+        images: buildMediaImagesFromUrls(
+          result.data.imageUrls,
+          product.images.map((image) => image.id),
+        ),
         defaultVariantId: product.defaultVariantId,
         optionGroups: product.optionGroups,
         variants: product.variants,

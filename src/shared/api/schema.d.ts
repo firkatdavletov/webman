@@ -1275,6 +1275,30 @@ export interface components {
             defaultVariantId?: string | null;
             variants: components["schemas"]["ProductVariantResponse"][];
         };
+        AdminProductDetailsResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            categoryId: string;
+            title: string;
+            slug: string;
+            description?: string | null;
+            /** Format: int64 */
+            priceMinor: number;
+            /** Format: int64 */
+            oldPriceMinor?: number | null;
+            sku?: string | null;
+            imageIds: string[];
+            imageUrls: string[];
+            unit: components["schemas"]["ProductUnit"];
+            /** Format: int32 */
+            countStep: number;
+            isActive: boolean;
+            optionGroups: components["schemas"]["ProductOptionGroupResponse"][];
+            /** Format: uuid */
+            defaultVariantId?: string | null;
+            variants: components["schemas"]["AdminProductVariantResponse"][];
+        };
         ProductOptionGroupResponse: {
             /** Format: uuid */
             id: string;
@@ -1302,6 +1326,23 @@ export interface components {
             priceMinor?: number | null;
             /** Format: int64 */
             oldPriceMinor?: number | null;
+            imageUrls: string[];
+            /** Format: int32 */
+            sortOrder: number;
+            isActive: boolean;
+            optionValueIds: string[];
+        };
+        AdminProductVariantResponse: {
+            /** Format: uuid */
+            id: string;
+            externalId?: string | null;
+            sku: string;
+            title?: string | null;
+            /** Format: int64 */
+            priceMinor?: number | null;
+            /** Format: int64 */
+            oldPriceMinor?: number | null;
+            imageIds: string[];
             imageUrls: string[];
             /** Format: int32 */
             sortOrder: number;
@@ -2620,7 +2661,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductDetailsResponse"];
+                    "application/json": components["schemas"]["AdminProductDetailsResponse"];
                 };
             };
             400: components["responses"]["BadRequestError"];
