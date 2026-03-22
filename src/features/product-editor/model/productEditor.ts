@@ -1,4 +1,5 @@
 import type { Product, ProductOptionGroup, ProductVariant } from '@/entities/product';
+import type { MediaImage } from '@/shared/model/media';
 
 export type ProductEditorOptionValueValues = {
   code: string;
@@ -19,12 +20,13 @@ export type ProductEditorVariantOptionValues = {
 };
 
 export type ProductEditorVariantValues = {
+  id: string | null;
   externalId: string;
   sku: string;
   title: string;
   price: string;
   oldPrice: string;
-  imageUrl: string;
+  images: MediaImage[];
   sortOrder: string;
   isActive: boolean;
   options: ProductEditorVariantOptionValues[];
@@ -37,7 +39,6 @@ export type ProductEditorValues = {
   price: string;
   oldPrice: string;
   isActive: boolean;
-  imageUrl: string;
   unit: string;
   displayWeight: string;
   countStep: string;
@@ -62,7 +63,6 @@ export const EMPTY_PRODUCT_EDITOR_VALUES: ProductEditorValues = {
   price: '',
   oldPrice: '',
   isActive: true,
-  imageUrl: '',
   unit: 'PIECE',
   displayWeight: '',
   countStep: '1',
@@ -160,12 +160,13 @@ export function createEmptyProductVariant(
   options: ProductEditorVariantOptionValues[] = [],
 ): ProductEditorVariantValues {
   return {
+    id: null,
     externalId: '',
     sku: '',
     title: '',
     price: '',
     oldPrice: '',
-    imageUrl: '',
+    images: [],
     sortOrder: '0',
     isActive: true,
     options: normalizeVariantOptions(optionGroups, options),
@@ -201,7 +202,6 @@ export function buildProductEditorValues(product: Product): ProductEditorValues 
     price: formatEditablePrice(product.price),
     oldPrice: product.oldPrice === null ? '' : formatEditablePrice(product.oldPrice),
     isActive: product.isActive,
-    imageUrl: product.imageUrl ?? '',
     unit: product.unit,
     displayWeight: product.displayWeight ?? '',
     countStep: String(product.countStep),
@@ -209,12 +209,15 @@ export function buildProductEditorValues(product: Product): ProductEditorValues 
     hasVariants: product.optionGroups.length > 0 || product.variants.length > 0,
     optionGroups,
     variants: product.variants.map((variant) => ({
+      id: variant.id,
       externalId: variant.externalId ?? '',
       sku: variant.sku,
       title: variant.title ?? '',
       price: formatOptionalEditablePrice(variant.price),
       oldPrice: formatOptionalEditablePrice(variant.oldPrice),
-      imageUrl: variant.imageUrl ?? '',
+      images: variant.images.map((image) => ({
+        ...image,
+      })),
       sortOrder: String(variant.sortOrder),
       isActive: variant.isActive,
       options: normalizeVariantOptions(optionGroups, variant.options),
@@ -267,13 +270,15 @@ function mapFormVariantsToProduct(
     const normalizedOldPrice = parseOptionalProductPrice(variant.oldPrice);
 
     return {
-      id: null,
+      id: variant.id,
       externalId: variant.externalId.trim() || null,
       sku: variant.sku.trim(),
       title: variant.title.trim() || null,
       price: normalizedPrice === undefined ? null : normalizedPrice,
       oldPrice: normalizedOldPrice === undefined ? null : normalizedOldPrice,
-      imageUrl: variant.imageUrl.trim() || null,
+      images: variant.images.map((image) => ({
+        ...image,
+      })),
       sortOrder: parseSortOrder(variant.sortOrder) ?? 0,
       isActive: variant.isActive,
       options: normalizeVariantOptions(optionGroups, variant.options)

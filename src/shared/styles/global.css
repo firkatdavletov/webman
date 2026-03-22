@@ -1012,6 +1012,13 @@ button:disabled {
   justify-items: start;
 }
 
+.product-detail-image-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: min(100%, 220px);
+}
+
 .product-detail-summary {
   display: grid;
   gap: 8px;
@@ -1290,8 +1297,15 @@ button:disabled {
   justify-items: start;
 }
 
-.product-variant-image-preview {
+.product-variant-image-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   width: min(100%, 180px);
+}
+
+.product-variant-image-preview {
+  width: 100%;
   aspect-ratio: 1 / 1;
   border-radius: 18px;
   object-fit: cover;

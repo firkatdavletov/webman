@@ -1,4 +1,5 @@
 import type { components } from '@/shared/api/schema';
+import type { MediaImage } from '@/shared/model/media';
 
 export type ProductUnit = components['schemas']['ProductUnit'];
 
@@ -29,7 +30,7 @@ export type ProductVariant = {
   title: string | null;
   price: number | null;
   oldPrice: number | null;
-  imageUrl: string | null;
+  images: MediaImage[];
   sortOrder: number;
   isActive: boolean;
   options: ProductVariantOption[];
@@ -44,7 +45,7 @@ export type Product = {
   description: string | null;
   price: number;
   oldPrice: number | null;
-  imageUrl: string | null;
+  images: MediaImage[];
   unit: ProductUnit;
   displayWeight: string | null;
   countStep: number;

@@ -37,7 +37,6 @@ export function ProductDetailsPage() {
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
   const [isImageUploading, setIsImageUploading] = useState(false);
-  const [uploadedImagePreviewDataUrl, setUploadedImagePreviewDataUrl] = useState('');
   const [imageUploadError, setImageUploadError] = useState('');
   const imageUploadInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -66,7 +65,6 @@ export function ProductDetailsPage() {
       setSaveError('');
       setSaveSuccess('');
       setImageUploadError('');
-      setUploadedImagePreviewDataUrl('');
       setIsImageUploading(false);
       setIsLoading(false);
     };
@@ -76,7 +74,6 @@ export function ProductDetailsPage() {
 
   const categoryLookup = useMemo(() => buildCategoryLookup(categories), [categories]);
   const categoryTitle = product ? categoryLookup.get(product.categoryId) ?? `#${product.categoryId}` : 'Не определена';
-  const previewImageUrl = uploadedImagePreviewDataUrl || (formValues ? formValues.imageUrl.trim() : product?.imageUrl ?? '');
   const categoryOptions = useMemo(() => {
     const entries = Array.from(categoryLookup.entries());
 
@@ -108,14 +105,14 @@ export function ProductDetailsPage() {
   };
 
   const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const imageFile = event.target.files?.[0];
+    const imageFiles = Array.from(event.target.files ?? []);
     event.target.value = '';
 
-    if (!imageFile || !formValues || !product) {
+    if (!imageFiles.length || !formValues || !product) {
       return;
     }
 
-    if (!SUPPORTED_PRODUCT_IMAGE_TYPES.has(imageFile.type)) {
+    if (imageFiles.some((imageFile) => !SUPPORTED_PRODUCT_IMAGE_TYPES.has(imageFile.type))) {
       setImageUploadError('Выберите изображение в формате JPG, PNG или WEBP.');
       return;
     }
@@ -124,54 +121,58 @@ export function ProductDetailsPage() {
     setIsImageUploading(true);
 
     try {
-      const initResult = await initProductImageUpload({
-        productId: product.id,
-        contentType: imageFile.type,
-        sizeBytes: imageFile.size,
-        fileName: imageFile.name || null,
-      });
+      for (const imageFile of imageFiles) {
+        const initResult = await initProductImageUpload({
+          targetType: 'PRODUCT',
+          targetId: product.id,
+          contentType: imageFile.type,
+          sizeBytes: imageFile.size,
+          fileName: imageFile.name || null,
+        });
 
-      if (!initResult.upload) {
-        setImageUploadError(initResult.error ?? 'Не удалось получить данные для загрузки изображения.');
-        return;
+        if (!initResult.upload) {
+          setImageUploadError(initResult.error ?? 'Не удалось получить данные для загрузки изображения.');
+          return;
+        }
+
+        const uploadData = initResult.upload;
+        const storageUploadResult = await uploadProductImageToStorage({
+          uploadUrl: uploadData.uploadUrl,
+          requiredHeaders: uploadData.requiredHeaders,
+          file: imageFile,
+        });
+
+        if (storageUploadResult.error) {
+          setImageUploadError(storageUploadResult.error);
+          return;
+        }
+
+        const completeResult = await completeProductImageUpload({
+          uploadId: uploadData.uploadId,
+        });
+
+        if (completeResult.error) {
+          setImageUploadError(completeResult.error);
+          return;
+        }
+
+        const previewDataUrl = await readFileAsDataUrl(imageFile);
+
+        setProduct((currentProduct) =>
+          currentProduct
+            ? {
+                ...currentProduct,
+                images: [
+                  ...currentProduct.images,
+                  {
+                    id: completeResult.image?.id ?? null,
+                    url: previewDataUrl,
+                  },
+                ],
+              }
+            : currentProduct,
+        );
       }
-      const uploadData = initResult.upload;
-
-      const storageUploadResult = await uploadProductImageToStorage({
-        uploadUrl: uploadData.uploadUrl,
-        requiredHeaders: uploadData.requiredHeaders,
-        file: imageFile,
-      });
-
-      if (storageUploadResult.error) {
-        setImageUploadError(storageUploadResult.error);
-        return;
-      }
-
-      const completeResult = await completeProductImageUpload({
-        uploadId: uploadData.uploadId,
-      });
-
-      if (completeResult.error) {
-        setImageUploadError(completeResult.error);
-        return;
-      }
-
-      const previewDataUrl = await readFileAsDataUrl(imageFile);
-
-      setProduct((currentProduct) =>
-        currentProduct
-          ? {
-              ...currentProduct,
-              imageUrl: completeResult.imageUrl ?? uploadData.objectKey,
-            }
-          : currentProduct,
-      );
-      handleValuesChange((currentValues) => ({
-        ...currentValues,
-        imageUrl: completeResult.imageUrl ?? uploadData.objectKey,
-      }));
-      setUploadedImagePreviewDataUrl(previewDataUrl);
     } catch {
       setImageUploadError('Не удалось обработать выбранный файл.');
     } finally {
@@ -241,7 +242,7 @@ export function ProductDetailsPage() {
       description: formValues.description.trim() || null,
       price: normalizedPrice,
       oldPrice: normalizedOldPrice ?? null,
-      imageUrl: formValues.imageUrl.trim() || null,
+      images: product.images,
       unit: formValues.unit as Product['unit'],
       displayWeight: formValues.displayWeight.trim() || null,
       countStep: normalizedCountStep,
@@ -305,11 +306,20 @@ export function ProductDetailsPage() {
         ) : product ? (
           <section className="catalog-card product-detail-card" aria-label="Информация о товаре">
             <div className="product-detail-hero">
-              <div className="product-detail-media" aria-label="Изображение товара">
-                {previewImageUrl ? (
-                  <img className="product-detail-image" src={previewImageUrl} alt={formValues?.title || product.title} />
+              <div className="product-detail-media" aria-label="Фотографии товара">
+                {product.images.length ? (
+                  <div className="product-detail-image-list">
+                    {product.images.map((image, imageIndex) => (
+                      <img
+                        key={`${image.url}-${imageIndex}`}
+                        className="product-detail-image"
+                        src={image.url}
+                        alt={`${formValues?.title || product.title} • фото ${imageIndex + 1}`}
+                      />
+                    ))}
+                  </div>
                 ) : (
-                  <div className="product-image-placeholder">Изображение отсутствует</div>
+                  <div className="product-image-placeholder">Фотографии отсутствуют</div>
                 )}
 
                 <div className="product-media-actions">
@@ -325,6 +335,7 @@ export function ProductDetailsPage() {
                     ref={imageUploadInputRef}
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
+                    multiple
                     className="file-picker-input"
                     onChange={(event) => void handleImageUpload(event)}
                     disabled={isSaving || isImageUploading || !formValues}
@@ -392,7 +403,6 @@ export function ProductDetailsPage() {
                 isSaving={isSaving || isImageUploading}
                 optionGroupEditorMode="drawer"
                 variantEditorMode="drawer"
-                variantImageUploadProductId={product.id}
                 saveError={saveError}
                 saveSuccess={saveSuccess}
                 submitLabel="Сохранить изменения"

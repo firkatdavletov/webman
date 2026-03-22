@@ -61,7 +61,6 @@ export function ProductCreatePage() {
   const selectedCategoryTitle = selectedCategoryId ? categoryLookup.get(selectedCategoryId) ?? `#${selectedCategoryId}` : 'Не выбрана';
   const parsedPrice = parseProductPrice(formValues.price);
   const parsedOldPrice = parseOptionalProductPrice(formValues.oldPrice);
-  const previewImageUrl = formValues.imageUrl.trim();
 
   const handleValuesChange = (updater: (currentValues: ProductEditorValues) => ProductEditorValues) => {
     setFormValues((currentValues) => updater(currentValues));
@@ -132,7 +131,7 @@ export function ProductCreatePage() {
       description: formValues.description.trim() || null,
       price: parsedPrice,
       oldPrice: parsedOldPrice ?? null,
-      imageUrl: previewImageUrl || null,
+      images: [],
       unit: formValues.unit as Product['unit'],
       displayWeight: formValues.displayWeight.trim() || null,
       countStep: normalizedCountStep,

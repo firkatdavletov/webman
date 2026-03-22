@@ -3,6 +3,8 @@ import type { Product, ProductOptionGroup, ProductVariant, ProductVariantOption 
 import { type ApiError, apiClient } from '@/shared/api/client';
 import { getApiErrorMessage } from '@/shared/api/error';
 import type { components } from '@/shared/api/schema';
+import { buildMediaImagesFromUrls, getMediaImageIdsForSave } from '@/shared/lib/media/images';
+import type { MediaImage } from '@/shared/model/media';
 
 type ProductResponse = components['schemas']['ProductResponse'];
 type ProductDetailsResponse = components['schemas']['ProductDetailsResponse'];
@@ -12,9 +14,12 @@ type UpsertProductRequest = components['schemas']['UpsertProductRequest'];
 type UpsertProductOptionGroupRequest = components['schemas']['UpsertProductOptionGroupRequest'];
 type UpsertProductVariantRequest = components['schemas']['UpsertProductVariantRequest'];
 type CreateUploadSessionResponse = components['schemas']['CreateUploadSessionResponse'];
+type MediaImageResponse = components['schemas']['MediaImageResponse'];
+type MediaTargetType = components['schemas']['MediaTargetType'];
 
 type InitProductImageUploadRequest = {
-  productId: string;
+  targetType?: MediaTargetType;
+  targetId?: string | null;
   contentType: string;
   sizeBytes: number;
   fileName?: string | null;
@@ -98,7 +103,7 @@ export type ProductImageUploadInitResult = {
 
 export type ProductImageUploadStepResult = {
   error: string | null;
-  imageUrl?: string | null;
+  image?: MediaImage | null;
 };
 
 function buildAuthHeaders(): HeadersInit | undefined {
@@ -137,7 +142,7 @@ function mapBaseProduct(product: ProductResponse | ProductDetailsResponse): Omit
     description: product.description ?? null,
     price: product.priceMinor,
     oldPrice: product.oldPriceMinor ?? null,
-    imageUrl: product.imageUrl ?? null,
+    images: buildMediaImagesFromUrls(product.imageUrls),
     unit: product.unit,
     displayWeight: null,
     countStep: product.countStep,
@@ -199,7 +204,7 @@ function mapProductVariants(
     title: variant.title ?? null,
     price: variant.priceMinor ?? null,
     oldPrice: variant.oldPriceMinor ?? null,
-    imageUrl: variant.imageUrl ?? null,
+    images: buildMediaImagesFromUrls(variant.imageUrls),
     sortOrder: variant.sortOrder,
     isActive: variant.isActive,
     options: variant.optionValueIds
@@ -240,7 +245,7 @@ function mapSaveProductVariants(variants: ProductVariant[]): UpsertProductVarian
     title: variant.title,
     priceMinor: variant.price,
     oldPriceMinor: variant.oldPrice,
-    imageUrl: variant.imageUrl,
+    imageIds: getMediaImageIdsForSave(variant.images),
     sortOrder: variant.sortOrder,
     isActive: variant.isActive,
     options: variant.options.map((option) => ({
@@ -260,7 +265,7 @@ function mapSaveProductRequest(product: Product): UpsertProductRequest {
     priceMinor: product.price,
     oldPriceMinor: product.oldPrice,
     sku: product.sku,
-    imageUrl: product.imageUrl,
+    imageIds: getMediaImageIdsForSave(product.images),
     unit: product.unit,
     countStep: product.countStep,
     isActive: product.isActive,
@@ -275,6 +280,13 @@ function mapUploadSession(data: CreateUploadSessionResponse): ProductImageUpload
     objectKey: data.objectKey,
     uploadUrl: data.uploadUrl,
     requiredHeaders: data.requiredHeaders,
+  };
+}
+
+function mapUploadedMediaImage(data: MediaImageResponse): MediaImage {
+  return {
+    id: data.id,
+    url: data.publicUrl ?? data.objectKey,
   };
 }
 
@@ -424,7 +436,8 @@ export async function saveProduct(product: Product): Promise<SaveProductResult> 
 }
 
 export async function initProductImageUpload({
-  productId,
+  targetType = 'PRODUCT',
+  targetId = null,
   contentType,
   sizeBytes,
   fileName,
@@ -433,8 +446,8 @@ export async function initProductImageUpload({
     const result = await apiClient.POST('/api/v1/admin/media/uploads', {
       headers: buildAuthHeaders(),
       body: {
-        targetType: 'PRODUCT',
-        targetId: productId,
+        targetType,
+        targetId,
         originalFilename: fileName ?? 'image',
         contentType,
         fileSize: sizeBytes,
@@ -528,7 +541,7 @@ export async function completeProductImageUpload({
 
     return {
       error: null,
-      imageUrl: result.data.publicUrl ?? result.data.objectKey,
+      image: mapUploadedMediaImage(result.data),
     };
   } catch {
     return {

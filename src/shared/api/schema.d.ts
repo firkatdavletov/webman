@@ -1229,7 +1229,7 @@ export interface components {
             id: string;
             name: string;
             slug: string;
-            imageUrl?: string | null;
+            imageUrls: string[];
             isActive: boolean;
         };
         ProductResponse: {
@@ -1246,7 +1246,7 @@ export interface components {
             /** Format: int64 */
             oldPriceMinor?: number | null;
             sku?: string | null;
-            imageUrl?: string | null;
+            imageUrls: string[];
             unit: components["schemas"]["ProductUnit"];
             /** Format: int32 */
             countStep: number;
@@ -1265,7 +1265,7 @@ export interface components {
             /** Format: int64 */
             oldPriceMinor?: number | null;
             sku?: string | null;
-            imageUrl?: string | null;
+            imageUrls: string[];
             unit: components["schemas"]["ProductUnit"];
             /** Format: int32 */
             countStep: number;
@@ -1302,7 +1302,7 @@ export interface components {
             priceMinor?: number | null;
             /** Format: int64 */
             oldPriceMinor?: number | null;
-            imageUrl?: string | null;
+            imageUrls: string[];
             /** Format: int32 */
             sortOrder: number;
             isActive: boolean;
@@ -1313,7 +1313,7 @@ export interface components {
             id?: string | null;
             name: string;
             slug?: string | null;
-            imageUrl?: string | null;
+            imageIds?: string[];
             /** @default true */
             isActive: boolean;
         };
@@ -1330,7 +1330,7 @@ export interface components {
             /** Format: int64 */
             oldPriceMinor?: number | null;
             sku?: string | null;
-            imageUrl?: string | null;
+            imageIds?: string[];
             unit: components["schemas"]["ProductUnit"];
             /** Format: int32 */
             countStep: number;
@@ -1366,7 +1366,7 @@ export interface components {
             priceMinor?: number | null;
             /** Format: int64 */
             oldPriceMinor?: number | null;
-            imageUrl?: string | null;
+            imageIds?: string[];
             /**
              * Format: int32
              * @default 0
@@ -1553,7 +1553,7 @@ export interface components {
         CreateUploadSessionRequest: {
             targetType: components["schemas"]["MediaTargetType"];
             /** Format: uuid */
-            targetId: string;
+            targetId?: string | null;
             originalFilename: string;
             /**
              * @description MIME type. Allowed values come from runtime config `media.upload.allowed-content-types`
@@ -1568,7 +1568,7 @@ export interface components {
             id: string;
             targetType: components["schemas"]["MediaTargetType"];
             /** Format: uuid */
-            targetId: string;
+            targetId?: string | null;
             bucket: string;
             objectKey: string;
             originalFilename: string;
@@ -1594,7 +1594,7 @@ export interface components {
             id: string;
             targetType: components["schemas"]["MediaTargetType"];
             /** Format: uuid */
-            targetId: string;
+            targetId?: string | null;
             bucket: string;
             objectKey: string;
             originalFilename: string;
@@ -1647,9 +1647,9 @@ export interface components {
         /** @enum {string} */
         OrderStatus: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
         /** @enum {string} */
-        MediaTargetType: "PRODUCT" | "CATEGORY";
+        MediaTargetType: "PRODUCT" | "CATEGORY" | "VARIANT";
         /** @enum {string} */
-        MediaImageStatus: "PENDING" | "READY";
+        MediaImageStatus: "PENDING" | "READY" | "DELETED";
         CreateVirtualTryOnSessionRequest: {
             /** Format: uuid */
             productId: string;

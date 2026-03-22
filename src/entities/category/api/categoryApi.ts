@@ -3,10 +3,13 @@ import { getAccessToken } from '@/entities/session';
 import { type ApiError, apiClient } from '@/shared/api/client';
 import { getApiErrorMessage } from '@/shared/api/error';
 import type { components } from '@/shared/api/schema';
+import { buildMediaImagesFromUrls, getMediaImageIdsForSave } from '@/shared/lib/media/images';
+import type { MediaImage } from '@/shared/model/media';
 
 type CategoryResponse = components['schemas']['CategoryResponse'];
 type UpsertCategoryRequest = components['schemas']['UpsertCategoryRequest'];
 type CreateUploadSessionResponse = components['schemas']['CreateUploadSessionResponse'];
+type MediaImageResponse = components['schemas']['MediaImageResponse'];
 
 type InitCategoryImageUploadRequest = {
   categoryId: string;
@@ -77,7 +80,7 @@ export type CategoryImageUploadInitResult = {
 
 export type CategoryImageUploadStepResult = {
   error: string | null;
-  imageUrl?: string | null;
+  image?: MediaImage | null;
 };
 
 function buildAuthHeaders(): HeadersInit | undefined {
@@ -113,7 +116,7 @@ function mapCategory(category: CategoryResponse): Category {
     title: category.name,
     slug: category.slug,
     isActive: categoryWithActiveFlag.isActive ?? true,
-    imageUrl: category.imageUrl ?? null,
+    images: buildMediaImagesFromUrls(category.imageUrls),
     products: [],
     children: [],
   };
@@ -124,7 +127,7 @@ function mapSaveCategoryRequest(category: Category): UpsertCategoryRequest {
     id: category.id || null,
     name: category.title,
     slug: category.slug || null,
-    imageUrl: category.imageUrl,
+    imageIds: getMediaImageIdsForSave(category.images),
     isActive: category.isActive,
   };
 }
@@ -135,6 +138,13 @@ function mapUploadSession(data: CreateUploadSessionResponse): CategoryImageUploa
     objectKey: data.objectKey,
     uploadUrl: data.uploadUrl,
     requiredHeaders: data.requiredHeaders,
+  };
+}
+
+function mapUploadedMediaImage(data: MediaImageResponse): MediaImage {
+  return {
+    id: data.id,
+    url: data.publicUrl ?? data.objectKey,
   };
 }
 
@@ -355,7 +365,7 @@ export async function completeCategoryImageUpload({
 
     return {
       error: null,
-      imageUrl: result.data.publicUrl ?? result.data.objectKey,
+      image: mapUploadedMediaImage(result.data),
     };
   } catch {
     return {

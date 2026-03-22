@@ -8,6 +8,7 @@ import {
   updateOrderStatus,
 } from '@/entities/order';
 import { getAllProducts } from '@/entities/product';
+import { getPrimaryMediaImageUrl } from '@/shared/lib/media/images';
 import { OrderSearch } from '@/features/order-search';
 import { paginateItems } from '@/pages/orders/model/orderPageView';
 import { NavBar } from '@/shared/ui/NavBar';
@@ -78,7 +79,7 @@ export function OrdersPage() {
 
     result.products.forEach((product) => {
       nextProductMetaById.set(product.id, {
-        imageUrl: product.imageUrl,
+        imageUrl: getPrimaryMediaImageUrl(product.images) || null,
         sku: product.sku,
       });
     });

@@ -15,8 +15,6 @@ export function CategoryCreatePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
-  const normalizedImageUrl = formValues.imageUrl.trim();
-
   const handleFieldChange = (field: Exclude<keyof CategoryEditorValues, 'isActive'>, value: string) => {
     setFormValues((currentValues) => ({
       ...currentValues,
@@ -56,7 +54,7 @@ export function CategoryCreatePage() {
       title: normalizedTitle,
       slug: '',
       isActive: formValues.isActive,
-      imageUrl: normalizedImageUrl || null,
+      images: [],
       products: [],
       children: [],
     };
@@ -124,7 +122,6 @@ export function CategoryCreatePage() {
             ariaLabel="Форма создания категории"
             eyebrow="Создание"
             title="Новая категория"
-            showImageUrlField={false}
             formValues={formValues}
             isSaving={isSaving}
             saveError={saveError}

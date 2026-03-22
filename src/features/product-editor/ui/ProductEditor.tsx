@@ -20,7 +20,7 @@ type EditableProductField = Exclude<
   'isActive' | 'hasVariants' | 'optionGroups' | 'variants'
 >;
 
-type EditableVariantField = Exclude<keyof ProductEditorValues['variants'][number], 'isActive' | 'options'>;
+type EditableVariantField = Exclude<keyof ProductEditorValues['variants'][number], 'id' | 'images' | 'isActive' | 'options'>;
 type ProductEditorVariantValues = ProductEditorValues['variants'][number];
 type EditableOptionGroupField = Exclude<keyof ProductEditorOptionGroupValues, 'values'>;
 type ProductEditorOptionValueValues = ProductEditorOptionGroupValues['values'][number];
@@ -48,7 +48,6 @@ type ProductEditorProps = {
   isSaving: boolean;
   optionGroupEditorMode?: 'inline' | 'drawer';
   variantEditorMode?: 'inline' | 'drawer';
-  variantImageUploadProductId?: string;
   disableCategorySelect?: boolean;
   emptyCategoryLabel?: string;
   saveError?: string;
@@ -78,6 +77,9 @@ function updateOptionGroups(
 function cloneVariant(variant: ProductEditorVariantValues): ProductEditorVariantValues {
   return {
     ...variant,
+    images: variant.images.map((image) => ({
+      ...image,
+    })),
     options: variant.options.map((option) => ({
       ...option,
     })),
@@ -148,7 +150,6 @@ export function ProductEditor({
   isSaving,
   optionGroupEditorMode = 'inline',
   variantEditorMode = 'inline',
-  variantImageUploadProductId,
   disableCategorySelect = false,
   emptyCategoryLabel = 'Нет доступных категорий',
   saveError,
@@ -162,7 +163,6 @@ export function ProductEditor({
   const [variantEditorState, setVariantEditorState] = useState<VariantEditorState | null>(null);
   const [isVariantImageUploading, setIsVariantImageUploading] = useState(false);
   const [variantImageUploadError, setVariantImageUploadError] = useState('');
-  const [variantImagePreviewDataUrl, setVariantImagePreviewDataUrl] = useState('');
   const variantImageUploadInputRef = useRef<HTMLInputElement | null>(null);
   const colorOptionGroup = useMemo(() => {
     const matchedGroup = findOptionGroupByKeywords(formValues.optionGroups, ['color', 'цвет']);
@@ -275,7 +275,6 @@ export function ProductEditor({
   const handleOpenOptionGroupCreate = () => {
     if (variantEditorMode === 'drawer') {
       setVariantImageUploadError('');
-      setVariantImagePreviewDataUrl('');
       setVariantEditorState(null);
     }
 
@@ -295,7 +294,6 @@ export function ProductEditor({
 
     if (variantEditorMode === 'drawer') {
       setVariantImageUploadError('');
-      setVariantImagePreviewDataUrl('');
       setVariantEditorState(null);
     }
 
@@ -431,7 +429,6 @@ export function ProductEditor({
     }
 
     setVariantImageUploadError('');
-    setVariantImagePreviewDataUrl('');
     setVariantEditorState({
       mode: 'create',
       variantIndex: null,
@@ -451,7 +448,6 @@ export function ProductEditor({
     }
 
     setVariantImageUploadError('');
-    setVariantImagePreviewDataUrl('');
     setVariantEditorState({
       mode: 'edit',
       variantIndex,
@@ -465,16 +461,10 @@ export function ProductEditor({
     }
 
     setVariantImageUploadError('');
-    setVariantImagePreviewDataUrl('');
     setVariantEditorState(null);
   };
 
   const handleVariantDraftFieldChange = (field: EditableVariantField, value: string) => {
-    if (field === 'imageUrl') {
-      setVariantImagePreviewDataUrl('');
-      setVariantImageUploadError('');
-    }
-
     setVariantEditorState((currentState) => {
       if (!currentState) {
         return currentState;
@@ -562,7 +552,6 @@ export function ProductEditor({
     });
 
     setVariantImageUploadError('');
-    setVariantImagePreviewDataUrl('');
     setVariantEditorState(null);
   };
 
@@ -579,12 +568,11 @@ export function ProductEditor({
     }));
 
     setVariantImageUploadError('');
-    setVariantImagePreviewDataUrl('');
     setVariantEditorState(null);
   };
 
   const handleVariantImageUploadClick = () => {
-    if (!variantImageUploadProductId || isVariantImageUploading) {
+    if (isVariantImageUploading) {
       return;
     }
 
@@ -592,14 +580,14 @@ export function ProductEditor({
   };
 
   const handleVariantImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const imageFile = event.target.files?.[0];
+    const imageFiles = Array.from(event.target.files ?? []);
     event.target.value = '';
 
-    if (!imageFile || !variantEditorState || !variantImageUploadProductId) {
+    if (!imageFiles.length || !variantEditorState) {
       return;
     }
 
-    if (!SUPPORTED_PRODUCT_IMAGE_TYPES.has(imageFile.type)) {
+    if (imageFiles.some((imageFile) => !SUPPORTED_PRODUCT_IMAGE_TYPES.has(imageFile.type))) {
       setVariantImageUploadError('Выберите изображение в формате JPG, PNG или WEBP.');
       return;
     }
@@ -608,56 +596,63 @@ export function ProductEditor({
     setIsVariantImageUploading(true);
 
     try {
-      const initResult = await initProductImageUpload({
-        productId: variantImageUploadProductId,
-        contentType: imageFile.type,
-        sizeBytes: imageFile.size,
-        fileName: imageFile.name || null,
-      });
+      for (const imageFile of imageFiles) {
+        const initResult = await initProductImageUpload({
+          targetType: 'VARIANT',
+          targetId: variantEditorState.draft.id,
+          contentType: imageFile.type,
+          sizeBytes: imageFile.size,
+          fileName: imageFile.name || null,
+        });
 
-      if (!initResult.upload) {
-        setVariantImageUploadError(initResult.error ?? 'Не удалось получить данные для загрузки изображения.');
-        return;
-      }
-
-      const uploadData = initResult.upload;
-      const storageUploadResult = await uploadProductImageToStorage({
-        uploadUrl: uploadData.uploadUrl,
-        requiredHeaders: uploadData.requiredHeaders,
-        file: imageFile,
-      });
-
-      if (storageUploadResult.error) {
-        setVariantImageUploadError(storageUploadResult.error);
-        return;
-      }
-
-      const completeResult = await completeProductImageUpload({
-        uploadId: uploadData.uploadId,
-      });
-
-      if (completeResult.error) {
-        setVariantImageUploadError(completeResult.error);
-        return;
-      }
-
-      const nextImageUrl = completeResult.imageUrl ?? uploadData.objectKey;
-      const previewDataUrl = await readFileAsDataUrl(imageFile);
-
-      setVariantEditorState((currentState) => {
-        if (!currentState) {
-          return currentState;
+        if (!initResult.upload) {
+          setVariantImageUploadError(initResult.error ?? 'Не удалось получить данные для загрузки изображения.');
+          return;
         }
 
-        return {
-          ...currentState,
-          draft: {
-            ...currentState.draft,
-            imageUrl: nextImageUrl,
-          },
-        };
-      });
-      setVariantImagePreviewDataUrl(previewDataUrl);
+        const uploadData = initResult.upload;
+        const storageUploadResult = await uploadProductImageToStorage({
+          uploadUrl: uploadData.uploadUrl,
+          requiredHeaders: uploadData.requiredHeaders,
+          file: imageFile,
+        });
+
+        if (storageUploadResult.error) {
+          setVariantImageUploadError(storageUploadResult.error);
+          return;
+        }
+
+        const completeResult = await completeProductImageUpload({
+          uploadId: uploadData.uploadId,
+        });
+
+        if (completeResult.error) {
+          setVariantImageUploadError(completeResult.error);
+          return;
+        }
+
+        const previewDataUrl = await readFileAsDataUrl(imageFile);
+
+        setVariantEditorState((currentState) => {
+          if (!currentState) {
+            return currentState;
+          }
+
+          return {
+            ...currentState,
+            draft: {
+              ...currentState.draft,
+              images: [
+                ...currentState.draft.images,
+                {
+                  id: completeResult.image?.id ?? null,
+                  url: previewDataUrl,
+                },
+              ],
+            },
+          };
+        });
+      }
     } catch {
       setVariantImageUploadError('Не удалось обработать выбранный файл.');
     } finally {
@@ -676,8 +671,7 @@ export function ProductEditor({
       ? 'Новый вариант'
       : `Редактирование варианта #${(variantEditorState?.variantIndex ?? 0) + 1}`;
   const variantEditorTitleId = `${idPrefix}-variant-editor-title-${variantEditorKey}`;
-  const variantImagePreviewUrl = variantImagePreviewDataUrl || variantEditorState?.draft.imageUrl.trim() || '';
-  const variantImageAlt =
+  const variantImageAltBase =
     variantEditorState?.draft.title.trim() ||
     variantEditorState?.draft.sku.trim() ||
     'Изображение варианта товара';
@@ -899,40 +893,50 @@ export function ProductEditor({
         </div>
       ) : null}
 
-      {variantImageUploadProductId ? (
-        <div className="product-variant-image-field">
-          {variantImagePreviewUrl ? (
-            <img className="product-variant-image-preview" src={variantImagePreviewUrl} alt={variantImageAlt} />
-          ) : (
-            <div className="product-variant-image-placeholder">Фото варианта не загружено</div>
-          )}
-
-          <div className="product-media-actions product-variant-image-actions">
-            <button
-              type="button"
-              className="secondary-button image-upload-button"
-              onClick={handleVariantImageUploadClick}
-              disabled={isVariantEditorBusy}
-            >
-              {isVariantImageUploading ? 'Загрузка...' : 'Загрузить фото'}
-            </button>
-            <input
-              ref={variantImageUploadInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="file-picker-input"
-              onChange={(event) => void handleVariantImageUpload(event)}
-              disabled={isVariantEditorBusy}
-              tabIndex={-1}
-            />
-            {variantImageUploadError ? (
-              <p className="field-error" role="alert">
-                {variantImageUploadError}
-              </p>
-            ) : null}
+      <div className="product-variant-image-field">
+        {variantEditorState.draft.images.length ? (
+          <div className="product-variant-image-list">
+            {variantEditorState.draft.images.map((image, imageIndex) => (
+              <img
+                key={`${image.url}-${imageIndex}`}
+                className="product-variant-image-preview"
+                src={image.url}
+                alt={`${variantImageAltBase} • фото ${imageIndex + 1}`}
+              />
+            ))}
           </div>
+        ) : (
+          <div className="product-variant-image-placeholder">Фотографии варианта не загружены</div>
+        )}
+
+        <div className="product-media-actions product-variant-image-actions">
+          <button
+            type="button"
+            className="secondary-button image-upload-button"
+            onClick={handleVariantImageUploadClick}
+            disabled={isVariantEditorBusy}
+          >
+            {isVariantImageUploading ? 'Загрузка...' : 'Загрузить фото'}
+          </button>
+          <input
+            ref={variantImageUploadInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            className="file-picker-input"
+            onChange={(event) => void handleVariantImageUpload(event)}
+            disabled={isVariantEditorBusy}
+            tabIndex={-1}
+          />
+          {variantImageUploadError ? (
+            <p className="field-error" role="alert">
+              {variantImageUploadError}
+            </p>
+          ) : (
+            null
+          )}
         </div>
-      ) : null}
+      </div>
 
       <div className="product-editor-inline-grid">
         <div className="field">
@@ -998,19 +1002,6 @@ export function ProductEditor({
             inputMode="decimal"
             value={variantEditorState.draft.oldPrice}
             onChange={(event) => handleVariantDraftFieldChange('oldPrice', event.target.value)}
-            disabled={isVariantEditorBusy}
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-image-url`}>
-            Ссылка на изображение
-          </label>
-          <input
-            id={`${idPrefix}-variant-editor-${variantEditorKey}-image-url`}
-            className="field-input"
-            value={variantEditorState.draft.imageUrl}
-            onChange={(event) => handleVariantDraftFieldChange('imageUrl', event.target.value)}
             disabled={isVariantEditorBusy}
           />
         </div>
