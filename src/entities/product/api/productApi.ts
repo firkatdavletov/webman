@@ -1,3 +1,4 @@
+import type { ProductModifierGroupLink } from '@/entities/modifier-group/model/types';
 import { getAccessToken } from '@/entities/session';
 import type { Product, ProductOptionGroup, ProductVariant, ProductVariantOption } from '@/entities/product/model/types';
 import { type ApiError, apiClient } from '@/shared/api/client';
@@ -13,8 +14,10 @@ import type { MediaImage } from '@/shared/model/media';
 type ProductResponse = components['schemas']['ProductResponse'];
 type AdminProductDetailsResponse = components['schemas']['AdminProductDetailsResponse'];
 type ProductOptionGroupResponse = components['schemas']['ProductOptionGroupResponse'];
+type ProductModifierGroupResponse = components['schemas']['ProductModifierGroupResponse'];
 type AdminProductVariantResponse = components['schemas']['AdminProductVariantResponse'];
 type UpsertProductRequest = components['schemas']['UpsertProductRequest'];
+type UpsertProductModifierGroupLinkRequest = components['schemas']['UpsertProductModifierGroupLinkRequest'];
 type UpsertProductOptionGroupRequest = components['schemas']['UpsertProductOptionGroupRequest'];
 type UpsertProductVariantRequest = components['schemas']['UpsertProductVariantRequest'];
 type CreateUploadSessionResponse = components['schemas']['CreateUploadSessionResponse'];
@@ -134,7 +137,9 @@ function getProtectedErrorMessage(error: ApiError | undefined, fallbackMessage: 
   return getApiErrorMessage(error, fallbackMessage);
 }
 
-function mapBaseProduct(product: ProductResponse | AdminProductDetailsResponse): Omit<Product, 'defaultVariantId' | 'optionGroups' | 'variants'> {
+function mapBaseProduct(
+  product: ProductResponse | AdminProductDetailsResponse,
+): Omit<Product, 'defaultVariantId' | 'optionGroups' | 'modifierGroups' | 'variants'> {
   const productWithActiveFlag = product as (ProductResponse | AdminProductDetailsResponse) & { isActive?: boolean };
   const imageIds = 'imageIds' in product ? product.imageIds : undefined;
 
@@ -160,6 +165,7 @@ function mapProduct(product: ProductResponse): Product {
     ...mapBaseProduct(product),
     defaultVariantId: null,
     optionGroups: [],
+    modifierGroups: [],
     variants: [],
   };
 }
@@ -198,6 +204,31 @@ function buildOptionValueLookup(optionGroups: ProductOptionGroup[]): Map<string,
   return lookup;
 }
 
+function mapProductModifierGroups(modifierGroups: ProductModifierGroupResponse[]): ProductModifierGroupLink[] {
+  return modifierGroups.map((group) => ({
+    modifierGroupId: group.id,
+    code: group.code,
+    name: group.name,
+    minSelected: group.minSelected,
+    maxSelected: group.maxSelected,
+    isRequired: group.isRequired,
+    isActive: group.isActive,
+    sortOrder: group.sortOrder,
+    options: group.options.map((option) => ({
+      id: option.id,
+      code: option.code,
+      name: option.name,
+      description: option.description ?? null,
+      priceType: option.priceType,
+      price: option.price,
+      applicationScope: option.applicationScope,
+      isDefault: option.isDefault,
+      isActive: option.isActive,
+      sortOrder: option.sortOrder,
+    })),
+  }));
+}
+
 function mapProductVariants(
   variants: AdminProductVariantResponse[],
   optionValueLookup: Map<string, ProductVariantOption>,
@@ -226,8 +257,17 @@ function mapProductDetails(product: AdminProductDetailsResponse): Product {
     ...mapBaseProduct(product),
     defaultVariantId: product.defaultVariantId ?? null,
     optionGroups,
+    modifierGroups: mapProductModifierGroups(product.modifierGroups),
     variants: mapProductVariants(product.variants, optionValueLookup),
   };
+}
+
+function mapSaveProductModifierGroups(modifierGroups: ProductModifierGroupLink[]): UpsertProductModifierGroupLinkRequest[] {
+  return modifierGroups.map((group) => ({
+    modifierGroupId: group.modifierGroupId,
+    sortOrder: group.sortOrder,
+    isActive: group.isActive,
+  }));
 }
 
 function mapSaveProductOptionGroups(optionGroups: ProductOptionGroup[]): UpsertProductOptionGroupRequest[] {
@@ -275,6 +315,7 @@ function mapSaveProductRequest(product: Product): UpsertProductRequest {
     countStep: product.countStep,
     isActive: product.isActive,
     optionGroups: mapSaveProductOptionGroups(product.optionGroups),
+    modifierGroups: mapSaveProductModifierGroups(product.modifierGroups),
     variants: mapSaveProductVariants(product.variants),
   };
 }
@@ -448,6 +489,7 @@ export async function saveProduct(product: Product): Promise<SaveProductResult> 
         ),
         defaultVariantId: product.defaultVariantId,
         optionGroups: product.optionGroups,
+        modifierGroups: product.modifierGroups,
         variants: product.variants,
       },
       error: null,

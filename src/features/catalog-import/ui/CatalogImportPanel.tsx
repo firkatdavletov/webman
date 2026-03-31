@@ -18,6 +18,13 @@ import {
 
 type StatusKind = 'idle' | 'success' | 'error';
 
+type CatalogImportPanelProps = {
+  title?: string;
+  description?: string;
+  initialImportType?: CatalogImportType;
+  allowedImportTypes?: CatalogImportType[];
+};
+
 function formatFileSize(size: number): string {
   if (size < 1024) {
     return `${size} B`;
@@ -34,10 +41,15 @@ function buildExampleKey(example: Pick<CatalogImportExample, 'importType' | 'imp
   return `${example.importType}:${example.importMode}`;
 }
 
-export function CatalogImportPanel() {
+export function CatalogImportPanel({
+  title = 'Импорт CSV каталога',
+  description = 'Выберите тип данных, режим импорта и загрузите CSV-файл в кодировке UTF-8.',
+  initialImportType = 'PRODUCT',
+  allowedImportTypes,
+}: CatalogImportPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [importType, setImportType] = useState<CatalogImportType>('PRODUCT');
+  const [importType, setImportType] = useState<CatalogImportType>(initialImportType);
   const [importMode, setImportMode] = useState<CatalogImportMode>('UPSERT');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,8 +64,29 @@ export function CatalogImportPanel() {
   const [isDownloadingExampleKey, setIsDownloadingExampleKey] = useState<string | null>(null);
   const [downloadStatusMessage, setDownloadStatusMessage] = useState('');
   const [downloadStatusKind, setDownloadStatusKind] = useState<StatusKind>('idle');
+  const visibleImportTypeOptions = useMemo(() => {
+    if (!allowedImportTypes?.length) {
+      return catalogImportTypeOptions;
+    }
 
-  const selectedImportTypeOption = catalogImportTypeOptions.find((option) => option.value === importType) ?? null;
+    const allowedImportTypeSet = new Set(allowedImportTypes);
+
+    return catalogImportTypeOptions.filter((option) => allowedImportTypeSet.has(option.value));
+  }, [allowedImportTypes]);
+
+  useEffect(() => {
+    if (!visibleImportTypeOptions.length) {
+      return;
+    }
+
+    const hasSelectedImportType = visibleImportTypeOptions.some((option) => option.value === importType);
+
+    if (!hasSelectedImportType) {
+      setImportType(visibleImportTypeOptions[0].value);
+    }
+  }, [importType, visibleImportTypeOptions]);
+
+  const selectedImportTypeOption = visibleImportTypeOptions.find((option) => option.value === importType) ?? null;
   const selectedImportModeOption = catalogImportModeOptions.find((option) => option.value === importMode) ?? null;
 
   const currentExample = useMemo(
@@ -159,10 +192,8 @@ export function CatalogImportPanel() {
     <form className="catalog-card catalog-form" onSubmit={handleSubmit} noValidate>
       <div className="catalog-card-copy">
         <p className="placeholder-eyebrow">Импорт</p>
-        <h3 className="catalog-card-title">Импорт CSV каталога</h3>
-        <p className="catalog-card-text">
-          Выберите тип данных, режим импорта и загрузите CSV-файл в кодировке UTF-8.
-        </p>
+        <h3 className="catalog-card-title">{title}</h3>
+        <p className="catalog-card-text">{description}</p>
       </div>
 
       <div className="catalog-import-control-grid">
@@ -178,7 +209,7 @@ export function CatalogImportPanel() {
             onChange={(event) => setImportType(event.target.value as CatalogImportType)}
             disabled={isSubmitting}
           >
-            {catalogImportTypeOptions.map((option) => (
+            {visibleImportTypeOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>

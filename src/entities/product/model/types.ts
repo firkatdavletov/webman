@@ -1,3 +1,4 @@
+import type { ProductModifierGroupLink } from '@/entities/modifier-group/model/types';
 import type { components } from '@/shared/api/schema';
 import type { MediaImage } from '@/shared/model/media';
 
@@ -52,5 +53,6 @@ export type Product = {
   sku: string | null;
   defaultVariantId: string | null;
   optionGroups: ProductOptionGroup[];
+  modifierGroups: ProductModifierGroupLink[];
   variants: ProductVariant[];
 };

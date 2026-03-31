@@ -20,9 +20,14 @@ const catalogImportErrorLabels: Record<CatalogImportErrorCode, string> = {
   MISSING_REQUIRED_FIELD: 'Не заполнено обязательное поле',
   INVALID_BOOLEAN: 'Неверное булево значение',
   INVALID_NUMBER: 'Некорректное число',
+  INVALID_ENUM: 'Недопустимое значение из справочника',
   DUPLICATE_KEY_IN_FILE: 'Дублирование ключа в файле',
   CATEGORY_NOT_FOUND: 'Категория не найдена',
   PARENT_CATEGORY_NOT_FOUND: 'Родительская категория не найдена',
+  MODIFIER_GROUP_NOT_FOUND: 'Группа модификаторов не найдена',
+  PRODUCT_NOT_FOUND: 'Товар не найден',
+  ENTITY_ALREADY_EXISTS: 'Сущность уже существует',
+  INVALID_MIN_MAX_RULE: 'Некорректные ограничения min/max',
   AMBIGUOUS_MATCH: 'Найдено несколько совпадений',
   INVALID_RELATION: 'Некорректная связь между сущностями',
   PERSISTENCE_ERROR: 'Ошибка сохранения в базе данных',
@@ -31,6 +36,9 @@ const catalogImportErrorLabels: Record<CatalogImportErrorCode, string> = {
 const catalogImportTypeLabels: Record<CatalogImportType, string> = {
   CATEGORY: 'Категории',
   PRODUCT: 'Продукты',
+  MODIFIER_GROUP: 'Группы модификаторов',
+  MODIFIER_OPTION: 'Опции модификаторов',
+  PRODUCT_MODIFIER_GROUP_LINK: 'Связи товар ↔ модификатор',
 };
 
 const catalogImportModeLabels: Record<CatalogImportMode, string> = {
@@ -49,6 +57,21 @@ export const catalogImportTypeOptions: CatalogImportTypeOption[] = [
     value: 'CATEGORY',
     label: catalogImportTypeLabels.CATEGORY,
     description: 'Импортирует дерево категорий и связи между родительскими узлами.',
+  },
+  {
+    value: 'MODIFIER_GROUP',
+    label: catalogImportTypeLabels.MODIFIER_GROUP,
+    description: 'Импортирует справочник групп модификаторов, правила выбора и статус активности.',
+  },
+  {
+    value: 'MODIFIER_OPTION',
+    label: catalogImportTypeLabels.MODIFIER_OPTION,
+    description: 'Импортирует опции модификаторов внутри групп, цены и поведение по умолчанию.',
+  },
+  {
+    value: 'PRODUCT_MODIFIER_GROUP_LINK',
+    label: catalogImportTypeLabels.PRODUCT_MODIFIER_GROUP_LINK,
+    description: 'Импортирует связи между товарами и группами модификаторов.',
   },
 ];
 

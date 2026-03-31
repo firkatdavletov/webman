@@ -351,16 +351,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Add product (or product variant) to active cart */
+        /** Add product (or product variant) with optional modifiers to active cart */
         post: operations["addCartItem"];
         delete?: never;
         options?: never;
         head?: never;
-        /** Change quantity of a cart item */
-        patch: operations["changeCartItemQuantity"];
+        patch?: never;
         trace?: never;
     };
-    "/api/v1/cart/items/{productId}": {
+    "/api/v1/cart/items/{itemId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -370,11 +369,12 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remove product (or specific product variant) from active cart */
+        /** Remove one configured cart item from active cart */
         delete: operations["removeCartItem"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Change quantity of a cart item */
+        patch: operations["changeCartItemQuantity"];
         trace?: never;
     };
     "/api/v1/catalog/categories": {
@@ -465,6 +465,24 @@ export interface paths {
         put?: never;
         /** Create or update product */
         post: operations["upsertProduct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/catalog/modifier-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List modifier groups */
+        get: operations["getAdminModifierGroups"];
+        put?: never;
+        /** Create or update modifier group */
+        post: operations["upsertModifierGroup"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1093,12 +1111,20 @@ export interface components {
             variantId?: string | null;
             /** Format: int32 */
             quantity: number;
+            modifiers?: components["schemas"]["AddCartItemModifierRequest"][];
+        };
+        AddCartItemModifierRequest: {
+            /** Format: uuid */
+            modifierGroupId: string;
+            /** Format: uuid */
+            modifierOptionId: string;
+            /**
+             * Format: int32
+             * @default 1
+             */
+            quantity: number;
         };
         ChangeCartItemQuantityRequest: {
-            /** Format: uuid */
-            productId: string;
-            /** Format: uuid */
-            variantId?: string | null;
             /** Format: int32 */
             quantity: number;
         };
@@ -1133,6 +1159,8 @@ export interface components {
         };
         CartItemResponse: {
             /** Format: uuid */
+            id: string;
+            /** Format: uuid */
             productId: string;
             /** Format: uuid */
             variantId?: string | null;
@@ -1145,7 +1173,27 @@ export interface components {
             /** Format: int64 */
             priceMinor: number;
             /** Format: int64 */
+            unitPriceMinor: number;
+            /** Format: int64 */
+            modifiersTotalMinor: number;
+            /** Format: int64 */
             lineTotalMinor: number;
+            modifiers: components["schemas"]["CartItemModifierResponse"][];
+        };
+        CartItemModifierResponse: {
+            /** Format: uuid */
+            modifierGroupId: string;
+            /** Format: uuid */
+            modifierOptionId: string;
+            groupCode: string;
+            groupName: string;
+            optionCode: string;
+            optionName: string;
+            applicationScope: components["schemas"]["ModifierApplicationScope"];
+            /** Format: int64 */
+            priceMinor: number;
+            /** Format: int32 */
+            quantity: number;
         };
         DeliveryMethodsResponse: {
             methods: components["schemas"]["DeliveryMethodResponse"][];
@@ -1271,6 +1319,7 @@ export interface components {
             countStep: number;
             isActive: boolean;
             optionGroups: components["schemas"]["ProductOptionGroupResponse"][];
+            modifierGroups: components["schemas"]["ProductModifierGroupResponse"][];
             /** Format: uuid */
             defaultVariantId?: string | null;
             variants: components["schemas"]["ProductVariantResponse"][];
@@ -1295,6 +1344,7 @@ export interface components {
             countStep: number;
             isActive: boolean;
             optionGroups: components["schemas"]["ProductOptionGroupResponse"][];
+            modifierGroups: components["schemas"]["ProductModifierGroupResponse"][];
             /** Format: uuid */
             defaultVariantId?: string | null;
             variants: components["schemas"]["AdminProductVariantResponse"][];
@@ -1307,6 +1357,66 @@ export interface components {
             /** Format: int32 */
             sortOrder: number;
             values: components["schemas"]["ProductOptionValueResponse"][];
+        };
+        ProductModifierGroupResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            /** Format: int32 */
+            minSelected: number;
+            /** Format: int32 */
+            maxSelected: number;
+            isRequired: boolean;
+            isActive: boolean;
+            /** Format: int32 */
+            sortOrder: number;
+            options: components["schemas"]["ProductModifierOptionResponse"][];
+        };
+        ProductModifierOptionResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            description?: string | null;
+            priceType: components["schemas"]["ModifierPriceType"];
+            /** Format: int64 */
+            price: number;
+            applicationScope: components["schemas"]["ModifierApplicationScope"];
+            isDefault: boolean;
+            isActive: boolean;
+            /** Format: int32 */
+            sortOrder: number;
+        };
+        ModifierGroupResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            /** Format: int32 */
+            minSelected: number;
+            /** Format: int32 */
+            maxSelected: number;
+            isRequired: boolean;
+            isActive: boolean;
+            /** Format: int32 */
+            sortOrder: number;
+            options: components["schemas"]["ModifierOptionResponse"][];
+        };
+        ModifierOptionResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            description?: string | null;
+            priceType: components["schemas"]["ModifierPriceType"];
+            /** Format: int64 */
+            price: number;
+            applicationScope: components["schemas"]["ModifierApplicationScope"];
+            isDefault: boolean;
+            isActive: boolean;
+            /** Format: int32 */
+            sortOrder: number;
         };
         ProductOptionValueResponse: {
             /** Format: uuid */
@@ -1378,7 +1488,57 @@ export interface components {
             /** @default true */
             isActive: boolean;
             optionGroups?: components["schemas"]["UpsertProductOptionGroupRequest"][];
+            modifierGroups?: components["schemas"]["UpsertProductModifierGroupLinkRequest"][];
             variants?: components["schemas"]["UpsertProductVariantRequest"][];
+        };
+        UpsertModifierGroupRequest: {
+            /** Format: uuid */
+            id?: string | null;
+            code: string;
+            name: string;
+            /** Format: int32 */
+            minSelected: number;
+            /** Format: int32 */
+            maxSelected: number;
+            /** @default false */
+            isRequired: boolean;
+            /** @default true */
+            isActive: boolean;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            sortOrder: number;
+            options?: components["schemas"]["UpsertModifierOptionRequest"][];
+        };
+        UpsertModifierOptionRequest: {
+            code: string;
+            name: string;
+            description?: string | null;
+            priceType: components["schemas"]["ModifierPriceType"];
+            /** Format: int64 */
+            price?: number;
+            applicationScope: components["schemas"]["ModifierApplicationScope"];
+            /** @default false */
+            isDefault: boolean;
+            /** @default true */
+            isActive: boolean;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            sortOrder: number;
+        };
+        UpsertProductModifierGroupLinkRequest: {
+            /** Format: uuid */
+            modifierGroupId: string;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            sortOrder: number;
+            /** @default true */
+            isActive: boolean;
         };
         UpsertProductOptionGroupRequest: {
             code: string;
@@ -1424,7 +1584,7 @@ export interface components {
         CatalogImportMultipartRequest: {
             /**
              * Format: binary
-             * @description CSV file encoded in UTF-8 with comma delimiter.
+             * @description Header-based CSV file encoded in UTF-8 with comma delimiter.
              */
             file: string;
             importType: components["schemas"]["CatalogImportType"];
@@ -1534,7 +1694,25 @@ export interface components {
             /** Format: int64 */
             priceMinor: number;
             /** Format: int64 */
+            modifiersTotalMinor: number;
+            /** Format: int64 */
             totalMinor: number;
+            modifiers: components["schemas"]["OrderItemModifierResponse"][];
+        };
+        OrderItemModifierResponse: {
+            /** Format: uuid */
+            modifierGroupId: string;
+            /** Format: uuid */
+            modifierOptionId: string;
+            groupCode: string;
+            groupName: string;
+            optionCode: string;
+            optionName: string;
+            applicationScope: components["schemas"]["ModifierApplicationScope"];
+            /** Format: int64 */
+            priceMinor: number;
+            /** Format: int32 */
+            quantity: number;
         };
         OrderPaymentResponse: {
             code: components["schemas"]["PaymentMethodCode"];
@@ -1591,6 +1769,10 @@ export interface components {
             /** Format: double */
             longitude?: number | null;
         };
+        /** @enum {string} */
+        ModifierPriceType: "FIXED" | "FREE";
+        /** @enum {string} */
+        ModifierApplicationScope: "PER_ITEM" | "PER_LINE";
         CreateUploadSessionRequest: {
             targetType: components["schemas"]["MediaTargetType"];
             /** Format: uuid */
@@ -1668,11 +1850,11 @@ export interface components {
         /** @enum {string} */
         AuthMethodStartPhone: "PHONE_SMS" | "PHONE_CALL";
         /** @enum {string} */
-        CatalogImportType: "CATEGORY" | "PRODUCT";
+        CatalogImportType: "CATEGORY" | "PRODUCT" | "MODIFIER_GROUP" | "MODIFIER_OPTION" | "PRODUCT_MODIFIER_GROUP_LINK";
         /** @enum {string} */
         CatalogImportMode: "VALIDATE_ONLY" | "CREATE_ONLY" | "UPSERT";
         /** @enum {string} */
-        CatalogImportErrorCode: "MISSING_REQUIRED_FIELD" | "INVALID_BOOLEAN" | "INVALID_NUMBER" | "DUPLICATE_KEY_IN_FILE" | "CATEGORY_NOT_FOUND" | "PARENT_CATEGORY_NOT_FOUND" | "AMBIGUOUS_MATCH" | "INVALID_RELATION" | "PERSISTENCE_ERROR";
+        CatalogImportErrorCode: "MISSING_REQUIRED_FIELD" | "INVALID_BOOLEAN" | "INVALID_NUMBER" | "INVALID_ENUM" | "DUPLICATE_KEY_IN_FILE" | "CATEGORY_NOT_FOUND" | "PARENT_CATEGORY_NOT_FOUND" | "MODIFIER_GROUP_NOT_FOUND" | "PRODUCT_NOT_FOUND" | "ENTITY_ALREADY_EXISTS" | "INVALID_MIN_MAX_RULE" | "AMBIGUOUS_MATCH" | "INVALID_RELATION" | "PERSISTENCE_ERROR";
         /** @enum {string} */
         ProductUnit: "PIECE" | "KILOGRAM" | "GRAM" | "LITER" | "MILLILITER";
         /** @enum {string} */
@@ -1823,6 +2005,7 @@ export interface components {
     };
     parameters: {
         ProductIdPathParam: string;
+        CartItemIdPathParam: string;
         OrderIdPathParam: string;
         UploadIdPathParam: string;
     };
@@ -2403,18 +2586,16 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
-    changeCartItemQuantity: {
+    removeCartItem: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                itemId: components["parameters"]["CartItemIdPathParam"];
+            };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChangeCartItemQuantityRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Updated cart */
             200: {
@@ -2430,19 +2611,20 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
-    removeCartItem: {
+    changeCartItemQuantity: {
         parameters: {
-            query?: {
-                /** @description Variant id to remove. When omitted, removes all cart items for the product. */
-                variantId?: string;
-            };
+            query?: never;
             header?: never;
             path: {
-                productId: components["parameters"]["ProductIdPathParam"];
+                itemId: components["parameters"]["CartItemIdPathParam"];
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeCartItemQuantityRequest"];
+            };
+        };
         responses: {
             /** @description Updated cart */
             200: {
@@ -2641,6 +2823,60 @@ export interface operations {
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
             404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getAdminModifierGroups: {
+        parameters: {
+            query?: {
+                /** @description When provided, filters modifier groups by activity flag. */
+                isActive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Modifier groups */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModifierGroupResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    upsertModifierGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertModifierGroupRequest"];
+            };
+        };
+        responses: {
+            /** @description Saved modifier group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModifierGroupResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
             500: components["responses"]["InternalServerError"];
         };
     };

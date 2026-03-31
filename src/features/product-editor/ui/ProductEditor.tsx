@@ -1,11 +1,16 @@
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  formatModifierConstraints,
+  type ModifierGroup,
+} from '@/entities/modifier-group';
+import {
   completeProductImageUpload,
   initProductImageUpload,
   readFileAsDataUrl,
   uploadProductImageToStorage,
 } from '@/entities/product';
 import {
+  createEmptyProductModifierGroup,
   createEmptyProductOptionGroup,
   createEmptyProductOptionValue,
   createEmptyProductVariant,
@@ -17,11 +22,12 @@ import {
 
 type EditableProductField = Exclude<
   keyof ProductEditorValues,
-  'isActive' | 'hasVariants' | 'optionGroups' | 'variants'
+  'isActive' | 'hasVariants' | 'optionGroups' | 'modifierGroups' | 'variants'
 >;
 
 type EditableVariantField = Exclude<keyof ProductEditorValues['variants'][number], 'id' | 'images' | 'isActive' | 'options'>;
 type ProductEditorVariantValues = ProductEditorValues['variants'][number];
+type EditableModifierGroupField = Exclude<keyof ProductEditorValues['modifierGroups'][number], 'isActive'>;
 type EditableOptionGroupField = Exclude<keyof ProductEditorOptionGroupValues, 'values'>;
 type ProductEditorOptionValueValues = ProductEditorOptionGroupValues['values'][number];
 
@@ -44,6 +50,7 @@ type ProductEditorProps = {
   title: string;
   description?: string;
   categoryOptions: Array<[string, string]>;
+  availableModifierGroups: ModifierGroup[];
   formValues: ProductEditorValues;
   isSaving: boolean;
   optionGroupEditorMode?: 'inline' | 'drawer';
@@ -146,6 +153,7 @@ export function ProductEditor({
   title,
   description,
   categoryOptions,
+  availableModifierGroups,
   formValues,
   isSaving,
   optionGroupEditorMode = 'inline',
@@ -164,6 +172,10 @@ export function ProductEditor({
   const [isVariantImageUploading, setIsVariantImageUploading] = useState(false);
   const [variantImageUploadError, setVariantImageUploadError] = useState('');
   const variantImageUploadInputRef = useRef<HTMLInputElement | null>(null);
+  const modifierGroupLookup = useMemo(
+    () => new Map(availableModifierGroups.map((group) => [group.id, group])),
+    [availableModifierGroups],
+  );
   const colorOptionGroup = useMemo(() => {
     const matchedGroup = findOptionGroupByKeywords(formValues.optionGroups, ['color', 'цвет']);
 
@@ -270,6 +282,52 @@ export function ProductEditor({
         variants: [],
       };
     });
+  };
+
+  const handleAddModifierGroup = () => {
+    onValuesChange((currentValues) => ({
+      ...currentValues,
+      modifierGroups: [...currentValues.modifierGroups, createEmptyProductModifierGroup()],
+    }));
+  };
+
+  const handleModifierGroupFieldChange = (modifierGroupIndex: number, field: EditableModifierGroupField, value: string) => {
+    onValuesChange((currentValues) => ({
+      ...currentValues,
+      modifierGroups: currentValues.modifierGroups.map((modifierGroup, currentModifierGroupIndex) => {
+        if (currentModifierGroupIndex !== modifierGroupIndex) {
+          return modifierGroup;
+        }
+
+        return {
+          ...modifierGroup,
+          [field]: value,
+        };
+      }),
+    }));
+  };
+
+  const handleModifierGroupIsActiveChange = (modifierGroupIndex: number, value: boolean) => {
+    onValuesChange((currentValues) => ({
+      ...currentValues,
+      modifierGroups: currentValues.modifierGroups.map((modifierGroup, currentModifierGroupIndex) => {
+        if (currentModifierGroupIndex !== modifierGroupIndex) {
+          return modifierGroup;
+        }
+
+        return {
+          ...modifierGroup,
+          isActive: value,
+        };
+      }),
+    }));
+  };
+
+  const handleRemoveModifierGroup = (modifierGroupIndex: number) => {
+    onValuesChange((currentValues) => ({
+      ...currentValues,
+      modifierGroups: currentValues.modifierGroups.filter((_, currentModifierGroupIndex) => currentModifierGroupIndex !== modifierGroupIndex),
+    }));
   };
 
   const handleOpenOptionGroupCreate = () => {
@@ -1373,6 +1431,125 @@ export function ProductEditor({
       ) : (
         <p className="catalog-meta">Режим вариантов выключен. Товар сохранится как обычный (simple product).</p>
       )}
+
+      <section className="product-editor-subsection" aria-label="Модификаторы товара">
+        <div className="product-editor-subsection-header">
+          <div className="catalog-card-copy">
+            <h5 className="product-editor-subsection-title">Модификаторы товара</h5>
+            <p className="catalog-meta">Привяжите к товару готовые группы модификаторов из административного справочника.</p>
+          </div>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={handleAddModifierGroup}
+            disabled={isSaving || !availableModifierGroups.length}
+          >
+            Добавить модификатор
+          </button>
+        </div>
+
+        {!availableModifierGroups.length ? (
+          <p className="catalog-meta">Сначала создайте хотя бы одну группу модификаторов в соответствующем разделе каталога.</p>
+        ) : formValues.modifierGroups.length ? (
+          <div className="product-editor-list">
+            {formValues.modifierGroups.map((modifierGroup, modifierGroupIndex) => {
+              const selectedModifierGroupId = modifierGroup.modifierGroupId.trim();
+              const selectedModifierGroup = modifierGroupLookup.get(selectedModifierGroupId) ?? null;
+
+              return (
+                <div key={`modifier-group-${modifierGroupIndex}`} className="product-editor-row">
+                  <div className="product-editor-inline-grid product-editor-inline-grid-3">
+                    <div className="field">
+                      <label className="field-label" htmlFor={`${idPrefix}-modifier-group-${modifierGroupIndex}-id`}>
+                        Группа
+                      </label>
+                      <select
+                        id={`${idPrefix}-modifier-group-${modifierGroupIndex}-id`}
+                        className="field-input"
+                        value={modifierGroup.modifierGroupId}
+                        onChange={(event) =>
+                          handleModifierGroupFieldChange(modifierGroupIndex, 'modifierGroupId', event.target.value)
+                        }
+                        disabled={isSaving}
+                      >
+                        <option value="">Выберите группу</option>
+                        {availableModifierGroups.map((group) => {
+                          const isTakenByAnotherRow = formValues.modifierGroups.some(
+                            (currentModifierGroup, currentModifierGroupIndex) =>
+                              currentModifierGroupIndex !== modifierGroupIndex &&
+                              currentModifierGroup.modifierGroupId.trim() === group.id,
+                          );
+
+                          return (
+                            <option key={group.id} value={group.id} disabled={isTakenByAnotherRow}>
+                              {group.name} ({group.code})
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+
+                    <div className="field">
+                      <label className="field-label" htmlFor={`${idPrefix}-modifier-group-${modifierGroupIndex}-sort-order`}>
+                        Sort order
+                      </label>
+                      <input
+                        id={`${idPrefix}-modifier-group-${modifierGroupIndex}-sort-order`}
+                        className="field-input"
+                        inputMode="numeric"
+                        value={modifierGroup.sortOrder}
+                        onChange={(event) => handleModifierGroupFieldChange(modifierGroupIndex, 'sortOrder', event.target.value)}
+                        disabled={isSaving}
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label className="field-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={modifierGroup.isActive}
+                          onChange={(event) => handleModifierGroupIsActiveChange(modifierGroupIndex, event.target.checked)}
+                          disabled={isSaving}
+                        />
+                        <span className="field-label">Привязка активна</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {selectedModifierGroup ? (
+                    <div className="product-editor-helper-list">
+                      <p className="catalog-meta">
+                        {selectedModifierGroup.code} • {selectedModifierGroup.options.length} опций •{' '}
+                        {formatModifierConstraints(selectedModifierGroup)}
+                      </p>
+                      <p className="catalog-meta">
+                        Справочник: {selectedModifierGroup.isActive ? 'активен' : 'выключен'}
+                      </p>
+                    </div>
+                  ) : selectedModifierGroupId ? (
+                    <p className="form-error">Выбранная группа модификаторов не найдена в справочнике.</p>
+                  ) : (
+                    <p className="catalog-meta">Выберите группу, чтобы увидеть ограничения и состав опций.</p>
+                  )}
+
+                  <div className="product-option-editor-actions">
+                    <button
+                      type="button"
+                      className="secondary-button secondary-button-danger"
+                      onClick={() => handleRemoveModifierGroup(modifierGroupIndex)}
+                      disabled={isSaving}
+                    >
+                      Удалить модификатор
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="catalog-meta">Модификаторы пока не привязаны.</p>
+        )}
+      </section>
 
       <div className="field">
         <label className="field-label" htmlFor={`${idPrefix}-description`}>

@@ -14,6 +14,11 @@ const navItems = [
     badge: 'Активно',
   },
   {
+    label: 'Модификаторы',
+    to: '/modifier-groups',
+    badge: 'Активно',
+  },
+  {
     label: 'Импорт CSV',
     to: '/catalog-import',
     badge: 'Активно',

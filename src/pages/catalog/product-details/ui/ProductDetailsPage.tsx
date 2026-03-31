@@ -1,6 +1,7 @@
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { type Category, buildCategoryLookup, getCategories } from '@/entities/category';
+import { type ModifierGroup, getAllModifierGroups } from '@/entities/modifier-group';
 import {
   completeProductImageUpload,
   formatPrice,
@@ -19,6 +20,7 @@ import {
   parseProductPrice,
   ProductEditor,
   type ProductEditorValues,
+  validateProductModifierGroupsSection,
   validateProductVariantsSection,
 } from '@/features/product-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
@@ -31,6 +33,7 @@ export function ProductDetailsPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [formValues, setFormValues] = useState<ProductEditorValues | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -55,12 +58,17 @@ export function ProductDetailsPage() {
       setIsLoading(true);
       setErrorMessage('');
 
-      const [productResult, categoriesResult] = await Promise.all([getProductById(normalizedProductId), getCategories()]);
-      const nextErrors = [productResult.error, categoriesResult.error].filter(Boolean).join(' ');
+      const [productResult, categoriesResult, modifierGroupsResult] = await Promise.all([
+        getProductById(normalizedProductId),
+        getCategories(),
+        getAllModifierGroups(),
+      ]);
+      const nextErrors = [productResult.error, categoriesResult.error, modifierGroupsResult.error].filter(Boolean).join(' ');
 
       setProduct(productResult.product);
       setFormValues(productResult.product ? buildProductEditorValues(productResult.product) : null);
       setCategories(categoriesResult.categories);
+      setModifierGroups(modifierGroupsResult.modifierGroups);
       setErrorMessage(nextErrors);
       setSaveError('');
       setSaveSuccess('');
@@ -228,11 +236,21 @@ export function ProductDetailsPage() {
       return;
     }
 
+    const modifierGroupsValidationError = validateProductModifierGroupsSection(formValues, modifierGroups);
+
+    if (modifierGroupsValidationError) {
+      setSaveError(modifierGroupsValidationError);
+      return;
+    }
+
     setIsSaving(true);
     setSaveError('');
     setSaveSuccess('');
 
-    const { optionGroups, variants } = mapProductEditorValuesToProductStructures(formValues);
+    const { optionGroups, modifierGroups: productModifierGroups, variants } = mapProductEditorValuesToProductStructures(
+      formValues,
+      modifierGroups,
+    );
 
     const result = await saveProduct({
       ...product,
@@ -248,6 +266,7 @@ export function ProductDetailsPage() {
       countStep: normalizedCountStep,
       sku: formValues.sku.trim() || null,
       optionGroups,
+      modifierGroups: productModifierGroups,
       variants,
     });
 
@@ -387,6 +406,13 @@ export function ProductDetailsPage() {
               </div>
 
               <div className="detail-block">
+                <h4 className="detail-title">Модификаторы</h4>
+                <p className="detail-copy">
+                  Привязано групп: {product.modifierGroups.length} • В справочнике: {modifierGroups.length}
+                </p>
+              </div>
+
+              <div className="detail-block">
                 <h4 className="detail-title">Описание</h4>
                 <p className="detail-copy">{product.description ?? 'Описание отсутствует.'}</p>
               </div>
@@ -399,6 +425,7 @@ export function ProductDetailsPage() {
                 eyebrow="Редактирование"
                 title="Изменить товар"
                 categoryOptions={categoryOptions}
+                availableModifierGroups={modifierGroups}
                 formValues={formValues}
                 isSaving={isSaving || isImageUploading}
                 optionGroupEditorMode="drawer"

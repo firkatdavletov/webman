@@ -1,3 +1,4 @@
+import type { ModifierGroup, ProductModifierGroupLink } from '@/entities/modifier-group';
 import type { Product, ProductOptionGroup, ProductVariant } from '@/entities/product';
 import type { MediaImage } from '@/shared/model/media';
 
@@ -32,6 +33,12 @@ export type ProductEditorVariantValues = {
   options: ProductEditorVariantOptionValues[];
 };
 
+export type ProductEditorModifierGroupValues = {
+  modifierGroupId: string;
+  sortOrder: string;
+  isActive: boolean;
+};
+
 export type ProductEditorValues = {
   categoryId: string;
   title: string;
@@ -45,6 +52,7 @@ export type ProductEditorValues = {
   sku: string;
   hasVariants: boolean;
   optionGroups: ProductEditorOptionGroupValues[];
+  modifierGroups: ProductEditorModifierGroupValues[];
   variants: ProductEditorVariantValues[];
 };
 
@@ -69,6 +77,7 @@ export const EMPTY_PRODUCT_EDITOR_VALUES: ProductEditorValues = {
   sku: '',
   hasVariants: false,
   optionGroups: [],
+  modifierGroups: [],
   variants: [],
 };
 
@@ -173,6 +182,14 @@ export function createEmptyProductVariant(
   };
 }
 
+export function createEmptyProductModifierGroup(): ProductEditorModifierGroupValues {
+  return {
+    modifierGroupId: '',
+    sortOrder: '0',
+    isActive: true,
+  };
+}
+
 export function syncVariantOptionsByOptionGroups(
   optionGroups: ProductEditorOptionGroupValues[],
   variant: ProductEditorVariantValues,
@@ -208,6 +225,11 @@ export function buildProductEditorValues(product: Product): ProductEditorValues 
     sku: product.sku ?? '',
     hasVariants: product.optionGroups.length > 0 || product.variants.length > 0,
     optionGroups,
+    modifierGroups: product.modifierGroups.map((group) => ({
+      modifierGroupId: group.modifierGroupId,
+      sortOrder: String(group.sortOrder),
+      isActive: group.isActive,
+    })),
     variants: product.variants.map((variant) => ({
       id: variant.id,
       externalId: variant.externalId ?? '',
@@ -291,18 +313,56 @@ function mapFormVariantsToProduct(
   });
 }
 
+function mapFormModifierGroupsToProduct(
+  modifierGroups: ProductEditorModifierGroupValues[],
+  availableModifierGroups: ModifierGroup[],
+): ProductModifierGroupLink[] {
+  const modifierGroupLookup = new Map<string, ModifierGroup>();
+
+  availableModifierGroups.forEach((group) => {
+    modifierGroupLookup.set(group.id, group);
+  });
+
+  return modifierGroups
+    .map((group) => {
+      const normalizedModifierGroupId = group.modifierGroupId.trim();
+      const modifierDefinition = modifierGroupLookup.get(normalizedModifierGroupId) ?? null;
+
+      return {
+        modifierGroupId: normalizedModifierGroupId,
+        code: modifierDefinition?.code ?? '',
+        name: modifierDefinition?.name ?? '',
+        minSelected: modifierDefinition?.minSelected ?? 0,
+        maxSelected: modifierDefinition?.maxSelected ?? 0,
+        isRequired: modifierDefinition?.isRequired ?? false,
+        isActive: group.isActive,
+        sortOrder: parseSortOrder(group.sortOrder) ?? 0,
+        options:
+          modifierDefinition?.options.map((option) => ({
+            ...option,
+          })) ?? [],
+      };
+    })
+    .filter((group) => Boolean(group.modifierGroupId));
+}
+
 export function mapProductEditorValuesToProductStructures(
   values: ProductEditorValues,
-): Pick<Product, 'optionGroups' | 'variants'> {
+  availableModifierGroups: ModifierGroup[],
+): Pick<Product, 'optionGroups' | 'modifierGroups' | 'variants'> {
+  const modifierGroups = mapFormModifierGroupsToProduct(values.modifierGroups, availableModifierGroups);
+
   if (!values.hasVariants) {
     return {
       optionGroups: [],
+      modifierGroups,
       variants: [],
     };
   }
 
   return {
     optionGroups: mapFormOptionGroupsToProduct(values.optionGroups),
+    modifierGroups,
     variants: mapFormVariantsToProduct(values.variants, values.optionGroups),
   };
 }
@@ -436,6 +496,45 @@ export function validateProductVariantsSection(values: ProductEditorValues): str
         return `У варианта "${variantLabel}" должно быть выбрано по одному значению для каждой группы опций.`;
       }
     }
+  }
+
+  return null;
+}
+
+export function validateProductModifierGroupsSection(
+  values: ProductEditorValues,
+  availableModifierGroups: ModifierGroup[],
+): string | null {
+  const modifierGroupLookup = new Map<string, ModifierGroup>();
+
+  availableModifierGroups.forEach((group) => {
+    modifierGroupLookup.set(group.id, group);
+  });
+
+  const selectedModifierGroupIds = new Set<string>();
+
+  for (let modifierGroupIndex = 0; modifierGroupIndex < values.modifierGroups.length; modifierGroupIndex += 1) {
+    const modifierGroup = values.modifierGroups[modifierGroupIndex];
+    const normalizedModifierGroupId = modifierGroup.modifierGroupId.trim();
+    const modifierSortOrder = parseSortOrder(modifierGroup.sortOrder);
+
+    if (!normalizedModifierGroupId) {
+      return `Выберите группу модификаторов в строке №${modifierGroupIndex + 1}.`;
+    }
+
+    if (selectedModifierGroupIds.has(normalizedModifierGroupId)) {
+      return 'Одна и та же группа модификаторов не может быть привязана к товару несколько раз.';
+    }
+
+    if (!modifierGroupLookup.has(normalizedModifierGroupId)) {
+      return 'Одна из выбранных групп модификаторов отсутствует в справочнике.';
+    }
+
+    if (modifierSortOrder === null) {
+      return `Sort order у модификатора №${modifierGroupIndex + 1} должен быть целым числом.`;
+    }
+
+    selectedModifierGroupIds.add(normalizedModifierGroupId);
   }
 
   return null;

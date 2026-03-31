@@ -13,11 +13,14 @@ export function CatalogImportPage() {
             <h2 className="page-title">Импорт CSV</h2>
           </div>
           <div className="dashboard-actions">
-            <span className="status-chip">Импорт категорий и продуктов</span>
+            <span className="status-chip">Категории, продукты и модификаторы</span>
           </div>
         </header>
 
-        <CatalogImportPanel />
+        <CatalogImportPanel
+          title="Импорт CSV каталога"
+          description="Выберите тип данных, режим импорта и загрузите CSV-файл в кодировке UTF-8."
+        />
       </main>
     </div>
   );

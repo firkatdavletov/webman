@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { type Category, buildCategoryLookup, getCategories } from '@/entities/category';
+import { type ModifierGroup, getAllModifierGroups } from '@/entities/modifier-group';
 import {
   formatPrice,
   formatUnitLabel,
@@ -14,6 +15,7 @@ import {
   parseProductPrice,
   ProductEditor,
   type ProductEditorValues,
+  validateProductModifierGroupsSection,
   validateProductVariantsSection,
 } from '@/features/product-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
@@ -22,6 +24,7 @@ import { NavBar } from '@/shared/ui/NavBar';
 export function ProductCreatePage() {
   const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([]);
   const [formValues, setFormValues] = useState<ProductEditorValues>(EMPTY_PRODUCT_EDITOR_VALUES);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -32,10 +35,12 @@ export function ProductCreatePage() {
     const loadCategoriesData = async () => {
       setIsLoading(true);
 
-      const result = await getCategories();
+      const [categoriesResult, modifierGroupsResult] = await Promise.all([getCategories(), getAllModifierGroups()]);
+      const nextError = [categoriesResult.error, modifierGroupsResult.error].filter(Boolean).join(' ');
 
-      setCategories(result.categories);
-      setErrorMessage(result.error ?? '');
+      setCategories(categoriesResult.categories);
+      setModifierGroups(modifierGroupsResult.modifierGroups);
+      setErrorMessage(nextError);
       setIsLoading(false);
     };
 
@@ -117,10 +122,20 @@ export function ProductCreatePage() {
       return;
     }
 
+    const modifierGroupsValidationError = validateProductModifierGroupsSection(formValues, modifierGroups);
+
+    if (modifierGroupsValidationError) {
+      setSaveError(modifierGroupsValidationError);
+      return;
+    }
+
     setIsSaving(true);
     setSaveError('');
 
-    const { optionGroups, variants } = mapProductEditorValuesToProductStructures(formValues);
+    const { optionGroups, modifierGroups: productModifierGroups, variants } = mapProductEditorValuesToProductStructures(
+      formValues,
+      modifierGroups,
+    );
 
     const newProduct: Product = {
       id: '',
@@ -138,6 +153,7 @@ export function ProductCreatePage() {
       sku: formValues.sku.trim() || null,
       defaultVariantId: null,
       optionGroups,
+      modifierGroups: productModifierGroups,
       variants,
     };
 
@@ -217,18 +233,25 @@ export function ProductCreatePage() {
                 ) : (
                   <p className="detail-copy">Категория: не выбрана</p>
                 )}
-                <p className="detail-copy">Единица: {formatUnitLabel(formValues.unit)}</p>
-              </div>
+              <p className="detail-copy">Единица: {formatUnitLabel(formValues.unit)}</p>
+            </div>
 
-              <div className="detail-block">
-                <h4 className="detail-title">Параметры продажи</h4>
-                <p className="detail-copy">Шаг: {formValues.countStep || 'Не указан'}</p>
-                <p className="detail-copy">Вес на витрине: {formValues.displayWeight.trim() || 'Не указан'}</p>
-              </div>
+            <div className="detail-block">
+              <h4 className="detail-title">Параметры продажи</h4>
+              <p className="detail-copy">Шаг: {formValues.countStep || 'Не указан'}</p>
+              <p className="detail-copy">Вес на витрине: {formValues.displayWeight.trim() || 'Не указан'}</p>
+            </div>
 
-              <div className="detail-block">
-                <h4 className="detail-title">API</h4>
-                <p className="detail-copy">POST /api/v1/admin/catalog/products</p>
+            <div className="detail-block">
+              <h4 className="detail-title">Модификаторы</h4>
+              <p className="detail-copy">
+                Доступно групп: {modifierGroups.length} • Привязано к товару: {formValues.modifierGroups.length}
+              </p>
+            </div>
+
+            <div className="detail-block">
+              <h4 className="detail-title">API</h4>
+              <p className="detail-copy">POST /api/v1/admin/catalog/products</p>
               </div>
             </div>
             <ProductEditor
@@ -237,6 +260,7 @@ export function ProductCreatePage() {
               eyebrow="Создание"
               title="Новый товар"
               categoryOptions={categoryOptions}
+              availableModifierGroups={modifierGroups}
               formValues={formValues}
               isSaving={isSaving}
               disableCategorySelect={!categoryOptions.length}

@@ -1113,6 +1113,11 @@ button:disabled {
   gap: 12px;
 }
 
+.product-editor-helper-list {
+  display: grid;
+  gap: 4px;
+}
+
 .product-editor-list-compact {
   gap: 10px;
 }
@@ -1340,6 +1345,24 @@ button:disabled {
 .product-option-editor-submit,
 .product-variant-editor-submit {
   min-width: 190px;
+}
+
+.modifier-editor-check-list {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.modifier-editor-option-description {
+  min-height: 108px;
+}
+
+.modifier-editor-option-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 @keyframes product-editor-drawer-in {
