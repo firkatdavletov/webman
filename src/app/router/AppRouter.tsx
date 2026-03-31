@@ -11,6 +11,7 @@ import { ModifierGroupCreatePage } from '@/pages/catalog/modifier-group-create/u
 import { ModifierGroupDetailsPage } from '@/pages/catalog/modifier-group-details/ui/ModifierGroupDetailsPage';
 import { ModifierImportPage } from '@/pages/catalog/modifier-import/ui/ModifierImportPage';
 import { ModifierGroupsPage } from '@/pages/catalog/modifier-groups/ui/ModifierGroupsPage';
+import { DeliveryConditionsPage } from '@/pages/delivery/ui/DeliveryConditionsPage';
 import { LoginPage } from '@/pages/login/ui/LoginPage';
 import { OrdersPage } from '@/pages/orders/ui/OrdersPage';
 import { ProtectedRoute } from '@/shared/routing/ProtectedRoute';
@@ -44,6 +45,7 @@ export function AppRouter() {
         <Route path="/catalog-import" element={<CatalogImportPage />} />
         <Route path="/modifier-import" element={<ModifierImportPage />} />
         <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/delivery" element={<DeliveryConditionsPage />} />
         <Route path="/admin/orders" element={<OrdersPage />} />
       </Route>
       <Route path="*" element={<Navigate to={fallbackPath} replace />} />

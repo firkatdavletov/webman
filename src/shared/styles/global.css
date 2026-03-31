@@ -1414,6 +1414,172 @@ button:disabled {
   border-color: rgba(200, 76, 73, 0.55);
 }
 
+.delivery-page-error {
+  margin-bottom: 24px;
+}
+
+.delivery-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.delivery-stat-card {
+  display: grid;
+  gap: 8px;
+  padding: 22px;
+}
+
+.delivery-stat-value,
+.delivery-subtitle {
+  margin: 0;
+}
+
+.delivery-stat-value {
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  line-height: 1;
+  color: var(--accent-strong);
+}
+
+.delivery-sections {
+  display: grid;
+  gap: 24px;
+}
+
+.delivery-method-grid,
+.delivery-payment-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.delivery-method-card,
+.delivery-payment-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(212, 226, 223, 0.9);
+  border-radius: 22px;
+  background-color: rgba(248, 252, 251, 0.9);
+}
+
+.delivery-method-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.delivery-status-pill,
+.delivery-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.delivery-status-pill {
+  background-color: rgba(90, 109, 113, 0.12);
+  color: var(--text-muted);
+}
+
+.delivery-status-pill-live {
+  background-color: rgba(17, 117, 108, 0.12);
+  color: var(--accent-strong);
+}
+
+.delivery-method-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.delivery-flag {
+  background-color: rgba(255, 255, 255, 0.88);
+  color: var(--text);
+}
+
+.delivery-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.delivery-checkbox-card {
+  min-height: 56px;
+  padding: 12px 14px;
+  border: 1px solid rgba(212, 226, 223, 0.9);
+  border-radius: 16px;
+  background-color: rgba(255, 255, 255, 0.82);
+}
+
+.delivery-section-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.delivery-table-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(212, 226, 223, 0.9);
+  border-radius: 22px;
+  background-color: rgba(248, 252, 251, 0.9);
+}
+
+.delivery-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.delivery-table th,
+.delivery-table td {
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: middle;
+  word-break: break-word;
+}
+
+.delivery-table thead th {
+  background-color: rgba(248, 252, 251, 0.96);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.delivery-table tbody tr + tr td {
+  border-top: 1px solid rgba(212, 226, 223, 0.82);
+}
+
+.delivery-table-row-active {
+  background-color: rgba(17, 117, 108, 0.08);
+}
+
+.delivery-table-actions {
+  white-space: nowrap;
+}
+
+.delivery-form-panel {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid rgba(212, 226, 223, 0.9);
+  border-radius: 22px;
+  background-color: rgba(248, 252, 251, 0.9);
+}
+
+.delivery-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .orders-controls {
   gap: 20px;
 }
@@ -1744,6 +1910,13 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .delivery-stats-grid,
+  .delivery-method-grid,
+  .delivery-payment-rules-grid,
+  .delivery-section-grid {
+    grid-template-columns: 1fr;
+  }
+
   .product-detail-hero,
   .product-detail-grid,
   .product-edit-grid,
@@ -1783,6 +1956,9 @@ button:disabled {
 }
 
 @media (max-width: 640px) {
+  .delivery-checkbox-grid {
+    grid-template-columns: 1fr;
+  }
   .auth-card,
   .dashboard,
   .sidebar {

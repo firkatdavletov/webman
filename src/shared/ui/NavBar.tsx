@@ -29,6 +29,11 @@ const navItems = [
     badge: 'Активно',
   },
   {
+    label: 'Доставка',
+    to: '/delivery',
+    badge: 'Активно',
+  },
+  {
     label: 'Контент',
     badge: 'Скоро',
   },

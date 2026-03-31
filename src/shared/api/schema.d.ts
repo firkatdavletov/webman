@@ -630,6 +630,116 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/delivery/methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List delivery method settings */
+        get: operations["getAdminDeliveryMethodSettings"];
+        put?: never;
+        /** Create or update delivery method setting */
+        post: operations["upsertAdminDeliveryMethodSetting"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/delivery/zones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List delivery zones */
+        get: operations["getAdminDeliveryZones"];
+        put?: never;
+        /** Create or update delivery zone */
+        post: operations["upsertAdminDeliveryZone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/delivery/tariffs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List delivery tariffs */
+        get: operations["getAdminDeliveryTariffs"];
+        put?: never;
+        /** Create or update delivery tariff */
+        post: operations["upsertAdminDeliveryTariff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/delivery/pickup-points": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List internal pickup points */
+        get: operations["getAdminPickupPoints"];
+        put?: never;
+        /** Create or update internal pickup point */
+        post: operations["upsertAdminPickupPoint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/delivery/payment-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List checkout payment rules by delivery method */
+        get: operations["getAdminCheckoutPaymentRules"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/delivery/payment-rules/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace checkout payment rules for static delivery methods
+         * @description Replaces configured payment methods for delivery methods with static checkout rules.
+         *     Dynamic methods such as `YANDEX_PICKUP_POINT` are returned in responses but cannot be changed here.
+         */
+        post: operations["replaceAdminCheckoutPaymentRules"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/checkout/options": {
         parameters: {
             query?: never;
@@ -1271,6 +1381,100 @@ export interface components {
             pickupPointExternalId?: string | null;
             pickupPointName?: string | null;
             pickupPointAddress?: string | null;
+        };
+        DeliveryMethodSettingResponse: {
+            method: components["schemas"]["DeliveryMethodType"];
+            name: string;
+            requiresAddress: boolean;
+            requiresPickupPoint: boolean;
+            isEnabled: boolean;
+            /** Format: int32 */
+            sortOrder: number;
+        };
+        UpsertDeliveryMethodSettingRequest: {
+            method: components["schemas"]["DeliveryMethodType"];
+            isEnabled: boolean;
+            /** Format: int32 */
+            sortOrder: number;
+        };
+        DeliveryZoneResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            city?: string | null;
+            postalCode?: string | null;
+            isActive: boolean;
+        };
+        UpsertDeliveryZoneRequest: {
+            /** Format: uuid */
+            id?: string | null;
+            code: string;
+            name: string;
+            city?: string | null;
+            postalCode?: string | null;
+            isActive: boolean;
+        };
+        DeliveryTariffResponse: {
+            /** Format: uuid */
+            id: string;
+            method: components["schemas"]["DeliveryMethodType"];
+            /** Format: uuid */
+            zoneId?: string | null;
+            zoneCode?: string | null;
+            zoneName?: string | null;
+            isAvailable: boolean;
+            /** Format: int64 */
+            fixedPriceMinor: number;
+            /** Format: int64 */
+            freeFromAmountMinor?: number | null;
+            currency: string;
+            /** Format: int32 */
+            estimatedDays?: number | null;
+        };
+        UpsertDeliveryTariffRequest: {
+            /** Format: uuid */
+            id?: string | null;
+            method: components["schemas"]["DeliveryMethodType"];
+            /** Format: uuid */
+            zoneId?: string | null;
+            isAvailable: boolean;
+            /** Format: int64 */
+            fixedPriceMinor: number;
+            /** Format: int64 */
+            freeFromAmountMinor?: number | null;
+            currency: string;
+            /** Format: int32 */
+            estimatedDays?: number | null;
+        };
+        AdminPickupPointResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            address: components["schemas"]["DeliveryAddressResponse"];
+            isActive: boolean;
+        };
+        UpsertPickupPointRequest: {
+            /** Format: uuid */
+            id?: string | null;
+            code: string;
+            name: string;
+            address: components["schemas"]["DeliveryAddressRequest"];
+            isActive: boolean;
+        };
+        CheckoutPaymentRuleResponse: {
+            deliveryMethod: components["schemas"]["DeliveryMethodType"];
+            deliveryMethodName: string;
+            paymentMethods: components["schemas"]["PaymentMethodCode"][];
+            isDynamic: boolean;
+        };
+        ReplaceCheckoutPaymentRulesRequest: {
+            rules: components["schemas"]["UpsertCheckoutPaymentRuleRequest"][];
+        };
+        UpsertCheckoutPaymentRuleRequest: {
+            deliveryMethod: components["schemas"]["DeliveryMethodType"];
+            paymentMethods?: components["schemas"]["PaymentMethodCode"][];
         };
         CategoryResponse: {
             /** Format: uuid */
@@ -3069,6 +3273,267 @@ export interface operations {
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
             404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getAdminDeliveryMethodSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Delivery method settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryMethodSettingResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    upsertAdminDeliveryMethodSetting: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertDeliveryMethodSettingRequest"];
+            };
+        };
+        responses: {
+            /** @description Saved delivery method setting */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryMethodSettingResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getAdminDeliveryZones: {
+        parameters: {
+            query?: {
+                /** @description When provided, filters delivery zones by activity flag. */
+                isActive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Delivery zones */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryZoneResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    upsertAdminDeliveryZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertDeliveryZoneRequest"];
+            };
+        };
+        responses: {
+            /** @description Saved delivery zone */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryZoneResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getAdminDeliveryTariffs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Delivery tariffs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryTariffResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    upsertAdminDeliveryTariff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertDeliveryTariffRequest"];
+            };
+        };
+        responses: {
+            /** @description Saved delivery tariff */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryTariffResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getAdminPickupPoints: {
+        parameters: {
+            query?: {
+                /** @description When provided, filters pickup points by activity flag. */
+                isActive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pickup points */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPickupPointResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    upsertAdminPickupPoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertPickupPointRequest"];
+            };
+        };
+        responses: {
+            /** @description Saved pickup point */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPickupPointResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getAdminCheckoutPaymentRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Checkout payment rules */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutPaymentRuleResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    replaceAdminCheckoutPaymentRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceCheckoutPaymentRulesRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated checkout payment rules */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutPaymentRuleResponse"][];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
             500: components["responses"]["InternalServerError"];
         };
     };
