@@ -65,6 +65,7 @@ type TariffFormValues = {
   freeFromAmountMinor: string;
   currency: string;
   estimatedDays: string;
+  deliveryMinutes: string;
 };
 
 function getDeliveryMethodLabel(method: DeliveryMethod): string {
@@ -166,6 +167,20 @@ function formatNullableText(value: string | null | undefined): string {
   const normalizedValue = value?.trim() ?? '';
 
   return normalizedValue || '—';
+}
+
+function formatDeliveryEstimate(estimatedDays: number | null | undefined, deliveryMinutes: number | null | undefined): string {
+  const parts = [];
+
+  if (estimatedDays !== null && estimatedDays !== undefined) {
+    parts.push(`${estimatedDays} дн.`);
+  }
+
+  if (deliveryMinutes !== null && deliveryMinutes !== undefined) {
+    parts.push(`${deliveryMinutes} мин.`);
+  }
+
+  return parts.length ? parts.join(' • ') : '—';
 }
 
 function mergeDetectedAddressField(nextValue: string | null | undefined, currentValue: string): string {
@@ -279,6 +294,7 @@ function createEmptyTariffForm(method: DeliveryMethod = DEFAULT_DELIVERY_METHOD)
     freeFromAmountMinor: '',
     currency: DEFAULT_CURRENCY,
     estimatedDays: '',
+    deliveryMinutes: '',
   };
 }
 
@@ -292,6 +308,7 @@ function createTariffFormFromTariff(tariff: DeliveryTariff): TariffFormValues {
     freeFromAmountMinor: tariff.freeFromAmountMinor === null || tariff.freeFromAmountMinor === undefined ? '' : String(tariff.freeFromAmountMinor),
     currency: tariff.currency,
     estimatedDays: tariff.estimatedDays === null || tariff.estimatedDays === undefined ? '' : String(tariff.estimatedDays),
+    deliveryMinutes: tariff.deliveryMinutes === null || tariff.deliveryMinutes === undefined ? '' : String(tariff.deliveryMinutes),
   };
 }
 
@@ -572,6 +589,14 @@ export function DeliveryConditionsPage() {
       return;
     }
 
+    const parsedDeliveryMinutes = parseOptionalInteger(tariffForm.deliveryMinutes, 'Срок доставки в минутах');
+
+    if (parsedDeliveryMinutes.error) {
+      setTariffSaveError(parsedDeliveryMinutes.error);
+      setTariffSaveSuccess('');
+      return;
+    }
+
     const currency = tariffForm.currency.trim().toUpperCase();
 
     if (!currency) {
@@ -593,6 +618,7 @@ export function DeliveryConditionsPage() {
       freeFromAmountMinor: parsedFreeFromAmountMinor.value,
       currency,
       estimatedDays: parsedEstimatedDays.value,
+      deliveryMinutes: parsedDeliveryMinutes.value,
     });
 
     setIsSavingTariff(false);
@@ -1129,6 +1155,7 @@ export function DeliveryConditionsPage() {
                         <th>Зона</th>
                         <th>Цена</th>
                         <th>Бесплатно от</th>
+                        <th>Срок</th>
                         <th>Статус</th>
                         <th />
                       </tr>
@@ -1144,6 +1171,7 @@ export function DeliveryConditionsPage() {
                               ? '—'
                               : formatMoneyMinor(tariff.freeFromAmountMinor, tariff.currency)}
                           </td>
+                          <td>{formatDeliveryEstimate(tariff.estimatedDays, tariff.deliveryMinutes)}</td>
                           <td>{tariff.isAvailable ? 'Доступен' : 'Отключен'}</td>
                           <td className="delivery-table-actions">
                             <div className="delivery-table-link-group">
@@ -1280,6 +1308,20 @@ export function DeliveryConditionsPage() {
                       value={tariffForm.estimatedDays}
                       disabled={isSavingTariff}
                       onChange={(event) => handleTariffFieldChange('estimatedDays', event.target.value)}
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label className="field-label" htmlFor="delivery-tariff-delivery-minutes">
+                      Срок доставки, минут
+                    </label>
+                    <input
+                      id="delivery-tariff-delivery-minutes"
+                      type="number"
+                      className="field-input"
+                      value={tariffForm.deliveryMinutes}
+                      disabled={isSavingTariff}
+                      onChange={(event) => handleTariffFieldChange('deliveryMinutes', event.target.value)}
                     />
                   </div>
                 </div>

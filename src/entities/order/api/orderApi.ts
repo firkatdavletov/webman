@@ -112,6 +112,7 @@ function mapOrder(order: OrderResponse): Order {
       zoneCode: order.delivery.zoneCode ?? null,
       zoneName: order.delivery.zoneName ?? null,
       estimatedDays: order.delivery.estimatedDays ?? null,
+      deliveryMinutes: order.delivery.estimatesMinutes ?? null,
       pickupPointId: order.delivery.pickupPointId ?? null,
       pickupPointExternalId: order.delivery.pickupPointExternalId ?? null,
       pickupPointName: order.delivery.pickupPointName ?? null,

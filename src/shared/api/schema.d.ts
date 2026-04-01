@@ -641,6 +641,8 @@ export interface components {
             currency: string;
             /** Format: int32 */
             estimatedDays?: number | null;
+            /** Format: int32 */
+            deliveryMinutes?: number | null;
         };
         UpsertDeliveryTariffRequest: {
             /** Format: uuid */
@@ -656,6 +658,8 @@ export interface components {
             currency: string;
             /** Format: int32 */
             estimatedDays?: number | null;
+            /** Format: int32 */
+            deliveryMinutes?: number | null;
         };
         AdminPickupPointResponse: {
             /** Format: uuid */
@@ -1083,6 +1087,8 @@ export interface components {
             zoneName?: string | null;
             /** Format: int32 */
             estimatedDays?: number | null;
+            /** Format: int32 */
+            estimatesMinutes?: number | null;
             /** Format: uuid */
             pickupPointId?: string | null;
             pickupPointExternalId?: string | null;

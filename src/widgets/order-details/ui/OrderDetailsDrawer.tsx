@@ -39,6 +39,20 @@ function renderInfoValue(value: string | null | undefined, emptyLabel = 'Не у
   return normalizedValue || emptyLabel;
 }
 
+function formatDeliveryEstimate(order: Order): string {
+  const parts = [];
+
+  if (order.delivery.estimatedDays !== null) {
+    parts.push(`${order.delivery.estimatedDays} дн.`);
+  }
+
+  if (order.delivery.deliveryMinutes !== null) {
+    parts.push(`${order.delivery.deliveryMinutes} мин.`);
+  }
+
+  return parts.length ? parts.join(' • ') : 'Не указан';
+}
+
 export function OrderDetailsDrawer({
   isOpen,
   order,
@@ -211,9 +225,7 @@ export function OrderDetailsDrawer({
                 </div>
                 <div>
                   <p className="orders-cell-meta">Срок</p>
-                  <p className="orders-cell-title">
-                    {order.delivery.estimatedDays === null ? 'Не указан' : `${order.delivery.estimatedDays} дн.`}
-                  </p>
+                  <p className="orders-cell-title">{formatDeliveryEstimate(order)}</p>
                 </div>
                 <div className="order-detail-grid-full">
                   <p className="orders-cell-meta">Адрес / пункт выдачи</p>

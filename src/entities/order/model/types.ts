@@ -35,6 +35,7 @@ export type OrderDelivery = {
   zoneCode: string | null;
   zoneName: string | null;
   estimatedDays: number | null;
+  deliveryMinutes: number | null;
   pickupPointId: string | null;
   pickupPointExternalId: string | null;
   pickupPointName: string | null;
