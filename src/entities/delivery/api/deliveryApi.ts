@@ -172,6 +172,46 @@ export async function getDeliveryZones(options: GetListOptions = {}): Promise<De
 }
 
 export async function saveDeliveryZone(payload: UpsertDeliveryZonePayload): Promise<SaveDeliveryZoneResult> {
+  const zoneId = payload.id?.trim() ?? '';
+
+  if (zoneId) {
+    return updateDeliveryZone(zoneId, payload);
+  }
+
+  return createDeliveryZone(payload);
+}
+
+export async function getDeliveryZoneById(zoneId: string): Promise<SaveDeliveryZoneResult> {
+  try {
+    const result = await apiClient.GET('/api/v1/admin/delivery/zones/{zoneId}', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: {
+          zoneId,
+        },
+      },
+    });
+
+    if (result.error) {
+      return {
+        zone: null,
+        error: getProtectedErrorMessage(result.error, 'Не удалось загрузить зону доставки.'),
+      };
+    }
+
+    return {
+      zone: result.data ?? null,
+      error: result.data ? null : 'Сервис зон доставки вернул некорректный ответ.',
+    };
+  } catch {
+    return {
+      zone: null,
+      error: 'Не удалось связаться с сервисом зон доставки.',
+    };
+  }
+}
+
+export async function createDeliveryZone(payload: UpsertDeliveryZonePayload): Promise<SaveDeliveryZoneResult> {
   try {
     const result = await apiClient.POST('/api/v1/admin/delivery/zones', {
       headers: buildAuthHeaders(),
@@ -193,6 +233,40 @@ export async function saveDeliveryZone(payload: UpsertDeliveryZonePayload): Prom
     return {
       zone: null,
       error: 'Не удалось связаться с сервисом сохранения зоны доставки.',
+    };
+  }
+}
+
+export async function updateDeliveryZone(
+  zoneId: string,
+  payload: UpsertDeliveryZonePayload,
+): Promise<SaveDeliveryZoneResult> {
+  try {
+    const result = await apiClient.PUT('/api/v1/admin/delivery/zones/{zoneId}', {
+      headers: buildAuthHeaders(),
+      body: payload,
+      params: {
+        path: {
+          zoneId,
+        },
+      },
+    });
+
+    if (result.error) {
+      return {
+        zone: null,
+        error: getProtectedErrorMessage(result.error, 'Не удалось обновить зону доставки.'),
+      };
+    }
+
+    return {
+      zone: result.data ?? null,
+      error: result.data ? null : 'Сервис зон доставки вернул некорректный ответ.',
+    };
+  } catch {
+    return {
+      zone: null,
+      error: 'Не удалось связаться с сервисом обновления зоны доставки.',
     };
   }
 }

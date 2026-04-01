@@ -5,6 +5,8 @@ export type {
   DeliveryMethodSetting,
   DeliveryTariff,
   DeliveryZone,
+  DeliveryZoneGeometry,
+  DeliveryZoneType,
   PaymentMethodCode,
   PickupPoint,
   ReplaceCheckoutPaymentRulesPayload,
@@ -17,14 +19,17 @@ export type {
 export {
   getCheckoutPaymentRules,
   getDeliveryMethodSettings,
+  getDeliveryZoneById,
   getDeliveryTariffs,
   getDeliveryZones,
   getPickupPoints,
   replaceCheckoutPaymentRules,
+  createDeliveryZone,
   saveDeliveryMethodSetting,
   saveDeliveryTariff,
   saveDeliveryZone,
   savePickupPoint,
+  updateDeliveryZone,
 } from './api/deliveryApi';
 export type {
   CheckoutPaymentRulesResult,

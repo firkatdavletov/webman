@@ -12,6 +12,10 @@ import { ModifierGroupDetailsPage } from '@/pages/catalog/modifier-group-details
 import { ModifierImportPage } from '@/pages/catalog/modifier-import/ui/ModifierImportPage';
 import { ModifierGroupsPage } from '@/pages/catalog/modifier-groups/ui/ModifierGroupsPage';
 import { DeliveryConditionsPage } from '@/pages/delivery/ui/DeliveryConditionsPage';
+import { DeliveryPickupPointMapPage } from '@/pages/delivery/pickup-point-map/ui/DeliveryPickupPointMapPage';
+import { DeliveryZoneCreatePage } from '@/pages/delivery/zone-create/ui/DeliveryZoneCreatePage';
+import { DeliveryZoneDetailsPage } from '@/pages/delivery/zone-details/ui/DeliveryZoneDetailsPage';
+import { DeliveryZoneMapPage } from '@/pages/delivery/zone-map/ui/DeliveryZoneMapPage';
 import { LoginPage } from '@/pages/login/ui/LoginPage';
 import { OrdersPage } from '@/pages/orders/ui/OrdersPage';
 import { ProtectedRoute } from '@/shared/routing/ProtectedRoute';
@@ -46,6 +50,11 @@ export function AppRouter() {
         <Route path="/modifier-import" element={<ModifierImportPage />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/delivery" element={<DeliveryConditionsPage />} />
+        <Route path="/delivery/pickup-points/map" element={<DeliveryPickupPointMapPage />} />
+        <Route path="/delivery/zones/new" element={<DeliveryZoneCreatePage />} />
+        <Route path="/delivery/zones/new/map" element={<DeliveryZoneMapPage />} />
+        <Route path="/delivery/zones/:zoneId" element={<DeliveryZoneDetailsPage />} />
+        <Route path="/delivery/zones/:zoneId/map" element={<DeliveryZoneMapPage />} />
         <Route path="/admin/orders" element={<OrdersPage />} />
       </Route>
       <Route path="*" element={<Navigate to={fallbackPath} replace />} />

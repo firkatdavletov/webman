@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   type CheckoutPaymentRule,
   type DeliveryMethod,
@@ -15,10 +16,19 @@ import {
   replaceCheckoutPaymentRules,
   saveDeliveryMethodSetting,
   saveDeliveryTariff,
-  saveDeliveryZone,
   savePickupPoint,
 } from '@/entities/delivery';
+import {
+  buildEmptyPickupPointEditorValues,
+  buildPickupPointEditorValues,
+  clearPickupPointMapDraft,
+  consumePickupPointMapDraft,
+  getPickupPointCoordinateSummary,
+  type PickupPointEditorValues,
+  writePickupPointMapDraft,
+} from '@/features/pickup-point-map-editor';
 import { NavBar } from '@/shared/ui/NavBar';
+import { DeliveryZonesSection } from './DeliveryZonesSection';
 
 const DELIVERY_METHOD_LABELS: Record<DeliveryMethod, string> = {
   PICKUP: 'Самовывоз',
@@ -42,15 +52,6 @@ type LoadDeliveryDataOptions = {
   showInitialLoader?: boolean;
 };
 
-type ZoneFormValues = {
-  id: string;
-  code: string;
-  name: string;
-  city: string;
-  postalCode: string;
-  isActive: boolean;
-};
-
 type TariffFormValues = {
   id: string;
   method: DeliveryMethod;
@@ -60,26 +61,6 @@ type TariffFormValues = {
   freeFromAmountMinor: string;
   currency: string;
   estimatedDays: string;
-};
-
-type PickupPointFormValues = {
-  id: string;
-  code: string;
-  name: string;
-  country: string;
-  region: string;
-  city: string;
-  street: string;
-  house: string;
-  apartment: string;
-  postalCode: string;
-  entrance: string;
-  floor: string;
-  intercom: string;
-  comment: string;
-  latitude: string;
-  longitude: string;
-  isActive: boolean;
 };
 
 function getDeliveryMethodLabel(method: DeliveryMethod): string {
@@ -278,28 +259,6 @@ function upsertMethodSetting(items: DeliveryMethodSetting[], nextItem: DeliveryM
   return nextItems;
 }
 
-function createEmptyZoneForm(): ZoneFormValues {
-  return {
-    id: '',
-    code: '',
-    name: '',
-    city: '',
-    postalCode: '',
-    isActive: true,
-  };
-}
-
-function createZoneFormFromZone(zone: DeliveryZone): ZoneFormValues {
-  return {
-    id: zone.id,
-    code: zone.code,
-    name: zone.name,
-    city: zone.city ?? '',
-    postalCode: zone.postalCode ?? '',
-    isActive: zone.isActive,
-  };
-}
-
 function createEmptyTariffForm(method: DeliveryMethod = DEFAULT_DELIVERY_METHOD): TariffFormValues {
   return {
     id: '',
@@ -326,53 +285,8 @@ function createTariffFormFromTariff(tariff: DeliveryTariff): TariffFormValues {
   };
 }
 
-function createEmptyPickupPointForm(): PickupPointFormValues {
-  return {
-    id: '',
-    code: '',
-    name: '',
-    country: '',
-    region: '',
-    city: '',
-    street: '',
-    house: '',
-    apartment: '',
-    postalCode: '',
-    entrance: '',
-    floor: '',
-    intercom: '',
-    comment: '',
-    latitude: '',
-    longitude: '',
-    isActive: true,
-  };
-}
-
-function createPickupPointFormFromPickupPoint(pickupPoint: PickupPoint): PickupPointFormValues {
-  return {
-    id: pickupPoint.id,
-    code: pickupPoint.code,
-    name: pickupPoint.name,
-    country: pickupPoint.address.country ?? '',
-    region: pickupPoint.address.region ?? '',
-    city: pickupPoint.address.city ?? '',
-    street: pickupPoint.address.street ?? '',
-    house: pickupPoint.address.house ?? '',
-    apartment: pickupPoint.address.apartment ?? '',
-    postalCode: pickupPoint.address.postalCode ?? '',
-    entrance: pickupPoint.address.entrance ?? '',
-    floor: pickupPoint.address.floor ?? '',
-    intercom: pickupPoint.address.intercom ?? '',
-    comment: pickupPoint.address.comment ?? '',
-    latitude:
-      pickupPoint.address.latitude === null || pickupPoint.address.latitude === undefined ? '' : String(pickupPoint.address.latitude),
-    longitude:
-      pickupPoint.address.longitude === null || pickupPoint.address.longitude === undefined ? '' : String(pickupPoint.address.longitude),
-    isActive: pickupPoint.isActive,
-  };
-}
-
 export function DeliveryConditionsPage() {
+  const navigate = useNavigate();
   const [methodSettings, setMethodSettings] = useState<DeliveryMethodSetting[]>([]);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [tariffs, setTariffs] = useState<DeliveryTariff[]>([]);
@@ -386,17 +300,12 @@ export function DeliveryConditionsPage() {
   const [methodSaveError, setMethodSaveError] = useState('');
   const [methodSaveSuccess, setMethodSaveSuccess] = useState('');
 
-  const [zoneForm, setZoneForm] = useState<ZoneFormValues>(() => createEmptyZoneForm());
-  const [isSavingZone, setIsSavingZone] = useState(false);
-  const [zoneSaveError, setZoneSaveError] = useState('');
-  const [zoneSaveSuccess, setZoneSaveSuccess] = useState('');
-
   const [tariffForm, setTariffForm] = useState<TariffFormValues>(() => createEmptyTariffForm());
   const [isSavingTariff, setIsSavingTariff] = useState(false);
   const [tariffSaveError, setTariffSaveError] = useState('');
   const [tariffSaveSuccess, setTariffSaveSuccess] = useState('');
 
-  const [pickupPointForm, setPickupPointForm] = useState<PickupPointFormValues>(() => createEmptyPickupPointForm());
+  const [pickupPointForm, setPickupPointForm] = useState<PickupPointEditorValues>(() => buildEmptyPickupPointEditorValues());
   const [isSavingPickupPoint, setIsSavingPickupPoint] = useState(false);
   const [pickupPointSaveError, setPickupPointSaveError] = useState('');
   const [pickupPointSaveSuccess, setPickupPointSaveSuccess] = useState('');
@@ -448,16 +357,6 @@ export function DeliveryConditionsPage() {
     setPickupPoints(nextPickupPoints);
     setPaymentRules(nextPaymentRules);
 
-    setZoneForm((currentForm) => {
-      if (!currentForm.id) {
-        return currentForm;
-      }
-
-      const matchedZone = nextZones.find((zone) => zone.id === currentForm.id);
-
-      return matchedZone ? createZoneFormFromZone(matchedZone) : createEmptyZoneForm();
-    });
-
     setTariffForm((currentForm) => {
       if (!currentForm.id) {
         return currentForm;
@@ -475,8 +374,16 @@ export function DeliveryConditionsPage() {
 
       const matchedPickupPoint = nextPickupPoints.find((pickupPoint) => pickupPoint.id === currentForm.id);
 
-      return matchedPickupPoint ? createPickupPointFormFromPickupPoint(matchedPickupPoint) : createEmptyPickupPointForm();
+      return matchedPickupPoint ? buildPickupPointEditorValues(matchedPickupPoint) : buildEmptyPickupPointEditorValues();
     });
+
+    const pickupPointMapDraft = consumePickupPointMapDraft();
+
+    if (pickupPointMapDraft) {
+      setPickupPointForm(pickupPointMapDraft);
+      setPickupPointSaveError('');
+      setPickupPointSaveSuccess('');
+    }
 
     setErrorMessage(
       [
@@ -547,70 +454,6 @@ export function DeliveryConditionsPage() {
 
     setMethodSettings((currentSettings) => sortDeliveryMethodSettings(upsertMethodSetting(currentSettings, nextSetting)));
     setMethodSaveSuccess(`Настройки «${nextSetting.name}» сохранены.`);
-  };
-
-  const handleZoneFieldChange = (field: Exclude<keyof ZoneFormValues, 'isActive'>, value: string) => {
-    setZoneForm((currentForm) => ({
-      ...currentForm,
-      [field]: value,
-    }));
-    setZoneSaveError('');
-    setZoneSaveSuccess('');
-  };
-
-  const handleZoneSelect = (zone: DeliveryZone) => {
-    setZoneForm(createZoneFormFromZone(zone));
-    setZoneSaveError('');
-    setZoneSaveSuccess('');
-  };
-
-  const handleZoneReset = () => {
-    setZoneForm(createEmptyZoneForm());
-    setZoneSaveError('');
-    setZoneSaveSuccess('');
-  };
-
-  const handleZoneSubmit = async () => {
-    const code = zoneForm.code.trim();
-    const name = zoneForm.name.trim();
-
-    if (!code) {
-      setZoneSaveError('Укажите код зоны.');
-      setZoneSaveSuccess('');
-      return;
-    }
-
-    if (!name) {
-      setZoneSaveError('Укажите название зоны.');
-      setZoneSaveSuccess('');
-      return;
-    }
-
-    setIsSavingZone(true);
-    setZoneSaveError('');
-    setZoneSaveSuccess('');
-
-    const result = await saveDeliveryZone({
-      id: normalizeText(zoneForm.id),
-      code,
-      name,
-      city: normalizeText(zoneForm.city),
-      postalCode: normalizeText(zoneForm.postalCode),
-      isActive: zoneForm.isActive,
-    });
-
-    setIsSavingZone(false);
-
-    if (result.error || !result.zone) {
-      setZoneSaveError(result.error ?? 'Не удалось сохранить зону доставки.');
-      return;
-    }
-
-    const nextZone = result.zone;
-
-    setZones((currentZones) => sortDeliveryZones(upsertItemById<DeliveryZone>(currentZones, nextZone)));
-    setZoneForm(createZoneFormFromZone(nextZone));
-    setZoneSaveSuccess(`Зона «${nextZone.name}» сохранена.`);
   };
 
   const handleTariffFieldChange = (field: Exclude<keyof TariffFormValues, 'isAvailable' | 'method'>, value: string) => {
@@ -696,7 +539,7 @@ export function DeliveryConditionsPage() {
     setTariffSaveSuccess(`Тариф для «${getDeliveryMethodLabel(nextTariff.method)}» сохранен.`);
   };
 
-  const handlePickupPointFieldChange = (field: Exclude<keyof PickupPointFormValues, 'isActive'>, value: string) => {
+  const handlePickupPointFieldChange = (field: Exclude<keyof PickupPointEditorValues, 'isActive'>, value: string) => {
     setPickupPointForm((currentForm) => ({
       ...currentForm,
       [field]: value,
@@ -706,15 +549,21 @@ export function DeliveryConditionsPage() {
   };
 
   const handlePickupPointSelect = (pickupPoint: PickupPoint) => {
-    setPickupPointForm(createPickupPointFormFromPickupPoint(pickupPoint));
+    setPickupPointForm(buildPickupPointEditorValues(pickupPoint));
     setPickupPointSaveError('');
     setPickupPointSaveSuccess('');
   };
 
   const handlePickupPointReset = () => {
-    setPickupPointForm(createEmptyPickupPointForm());
+    clearPickupPointMapDraft();
+    setPickupPointForm(buildEmptyPickupPointEditorValues());
     setPickupPointSaveError('');
     setPickupPointSaveSuccess('');
+  };
+
+  const handlePickupPointOpenMap = () => {
+    writePickupPointMapDraft(pickupPointForm);
+    navigate('/delivery/pickup-points/map');
   };
 
   const handlePickupPointSubmit = async () => {
@@ -785,7 +634,8 @@ export function DeliveryConditionsPage() {
     const nextPickupPoint = result.pickupPoint;
 
     setPickupPoints((currentPickupPoints) => sortPickupPoints(upsertItemById<PickupPoint>(currentPickupPoints, nextPickupPoint)));
-    setPickupPointForm(createPickupPointFormFromPickupPoint(nextPickupPoint));
+    clearPickupPointMapDraft();
+    setPickupPointForm(buildPickupPointEditorValues(nextPickupPoint));
     setPickupPointSaveSuccess(`Пункт «${nextPickupPoint.name}» сохранен.`);
   };
 
@@ -1073,156 +923,7 @@ export function DeliveryConditionsPage() {
             ) : null}
           </section>
 
-          <section className="catalog-card catalog-data-card" aria-label="Зоны доставки">
-            <div className="catalog-section-header">
-              <div className="catalog-card-copy">
-                <p className="placeholder-eyebrow">Зоны</p>
-                <h3 className="catalog-card-title">Зоны доставки</h3>
-                <p className="catalog-card-text">Создавайте зоны по коду, городу и индексу. Эти зоны используются в тарифах.</p>
-              </div>
-
-              <button type="button" className="secondary-button" onClick={handleZoneReset} disabled={isSavingZone}>
-                Новая зона
-              </button>
-            </div>
-
-            <div className="delivery-section-grid">
-              <div className="delivery-table-wrap">
-                {isLoading ? (
-                  <p className="catalog-empty-state">Загрузка зон доставки...</p>
-                ) : zones.length ? (
-                  <table className="delivery-table">
-                    <thead>
-                      <tr>
-                        <th>Код</th>
-                        <th>Название</th>
-                        <th>Город</th>
-                        <th>Статус</th>
-                        <th />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {zones.map((zone) => (
-                        <tr key={zone.id} className={zoneForm.id === zone.id ? 'delivery-table-row-active' : undefined}>
-                          <td>{zone.code}</td>
-                          <td>{zone.name}</td>
-                          <td>{formatNullableText(zone.city)}</td>
-                          <td>{zone.isActive ? 'Активна' : 'Отключена'}</td>
-                          <td className="delivery-table-actions">
-                            <button type="button" className="secondary-button" onClick={() => handleZoneSelect(zone)}>
-                              Изменить
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p className="catalog-empty-state">Список зон доставки пуст.</p>
-                )}
-              </div>
-
-              <div className="delivery-form-panel">
-                <div className="catalog-card-copy">
-                  <h4 className="delivery-subtitle">{zoneForm.id ? 'Редактирование зоны' : 'Новая зона'}</h4>
-                  <p className="catalog-meta">Заполните код и название, затем при необходимости уточните город и индекс.</p>
-                </div>
-
-                <div className="product-edit-grid">
-                  <div className="field">
-                    <label className="field-label" htmlFor="delivery-zone-code">
-                      Код
-                    </label>
-                    <input
-                      id="delivery-zone-code"
-                      className="field-input"
-                      value={zoneForm.code}
-                      disabled={isSavingZone}
-                      onChange={(event) => handleZoneFieldChange('code', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="delivery-zone-name">
-                      Название
-                    </label>
-                    <input
-                      id="delivery-zone-name"
-                      className="field-input"
-                      value={zoneForm.name}
-                      disabled={isSavingZone}
-                      onChange={(event) => handleZoneFieldChange('name', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="delivery-zone-city">
-                      Город
-                    </label>
-                    <input
-                      id="delivery-zone-city"
-                      className="field-input"
-                      value={zoneForm.city}
-                      disabled={isSavingZone}
-                      onChange={(event) => handleZoneFieldChange('city', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="delivery-zone-postal-code">
-                      Индекс
-                    </label>
-                    <input
-                      id="delivery-zone-postal-code"
-                      className="field-input"
-                      value={zoneForm.postalCode}
-                      disabled={isSavingZone}
-                      onChange={(event) => handleZoneFieldChange('postalCode', event.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <label className="field-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={zoneForm.isActive}
-                    disabled={isSavingZone}
-                    onChange={(event) => {
-                      setZoneForm((currentForm) => ({
-                        ...currentForm,
-                        isActive: event.target.checked,
-                      }));
-                      setZoneSaveError('');
-                      setZoneSaveSuccess('');
-                    }}
-                  />
-                  <span className="field-label">Использовать зону в расчете доставки</span>
-                </label>
-
-                {zoneSaveError ? (
-                  <p className="form-error" role="alert">
-                    {zoneSaveError}
-                  </p>
-                ) : null}
-
-                {zoneSaveSuccess ? (
-                  <p className="form-success" role="status">
-                    {zoneSaveSuccess}
-                  </p>
-                ) : null}
-
-                <div className="delivery-form-actions">
-                  <button type="button" className="submit-button" onClick={() => void handleZoneSubmit()} disabled={isSavingZone}>
-                    {isSavingZone ? 'Сохранение...' : zoneForm.id ? 'Сохранить зону' : 'Создать зону'}
-                  </button>
-
-                  <button type="button" className="secondary-button" onClick={handleZoneReset} disabled={isSavingZone}>
-                    Сбросить
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
+          <DeliveryZonesSection zones={zones} isLoading={isLoading} />
 
           <section className="catalog-card catalog-data-card" aria-label="Тарифы доставки">
             <div className="catalog-section-header">
@@ -1691,6 +1392,23 @@ export function DeliveryConditionsPage() {
                     disabled={isSavingPickupPoint}
                     onChange={(event) => handlePickupPointFieldChange('comment', event.target.value)}
                   />
+                </div>
+
+                <div className="delivery-zone-geometry-card">
+                  <div className="delivery-zone-header-row">
+                    <div className="catalog-card-copy">
+                      <h4 className="delivery-subtitle">Точка на карте</h4>
+                      <p className="catalog-meta">{getPickupPointCoordinateSummary(pickupPointForm)}</p>
+                    </div>
+
+                    <button type="button" className="secondary-button" onClick={handlePickupPointOpenMap} disabled={isSavingPickupPoint}>
+                      Выбрать на карте
+                    </button>
+                  </div>
+
+                  <p className="catalog-meta">
+                    Откройте карту, чтобы поставить точку пункта самовывоза кликом или перетащить существующий маркер.
+                  </p>
                 </div>
 
                 <label className="field-checkbox">

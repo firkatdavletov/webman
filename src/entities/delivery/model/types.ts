@@ -7,6 +7,8 @@ export type DeliveryMethodSetting = components['schemas']['DeliveryMethodSetting
 export type UpsertDeliveryMethodSettingPayload = components['schemas']['UpsertDeliveryMethodSettingRequest'];
 
 export type DeliveryZone = components['schemas']['DeliveryZoneResponse'];
+export type DeliveryZoneType = components['schemas']['DeliveryZoneType'];
+export type DeliveryZoneGeometry = components['schemas']['DeliveryZoneGeometry'];
 export type UpsertDeliveryZonePayload = components['schemas']['UpsertDeliveryZoneRequest'];
 
 export type DeliveryTariff = components['schemas']['DeliveryTariffResponse'];

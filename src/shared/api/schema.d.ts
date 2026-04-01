@@ -666,6 +666,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/delivery/zones/{zoneId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get delivery zone by id */
+        get: operations["getAdminDeliveryZone"];
+        /** Update delivery zone */
+        put: operations["updateAdminDeliveryZone"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/delivery/tariffs": {
         parameters: {
             query?: never;
@@ -1402,8 +1420,13 @@ export interface components {
             id: string;
             code: string;
             name: string;
+            type: components["schemas"]["DeliveryZoneType"];
             city?: string | null;
+            normalizedCity?: string | null;
             postalCode?: string | null;
+            geometry?: components["schemas"]["DeliveryZoneGeometry"] | null;
+            /** Format: int32 */
+            priority: number;
             isActive: boolean;
         };
         UpsertDeliveryZoneRequest: {
@@ -1411,9 +1434,18 @@ export interface components {
             id?: string | null;
             code: string;
             name: string;
+            type: components["schemas"]["DeliveryZoneType"];
             city?: string | null;
             postalCode?: string | null;
+            geometry?: components["schemas"]["DeliveryZoneGeometry"] | null;
+            /** Format: int32 */
+            priority?: number;
             isActive: boolean;
+        };
+        DeliveryZoneGeometry: {
+            type: components["schemas"]["GeoJsonGeometryType"];
+            /** @description GeoJSON-like coordinates. Request accepts Polygon or MultiPolygon nesting, response returns MultiPolygon nesting. */
+            coordinates: unknown[];
         };
         DeliveryTariffResponse: {
             /** Format: uuid */
@@ -2063,6 +2095,10 @@ export interface components {
         ProductUnit: "PIECE" | "KILOGRAM" | "GRAM" | "LITER" | "MILLILITER";
         /** @enum {string} */
         DeliveryMethodType: "PICKUP" | "COURIER" | "YANDEX_PICKUP_POINT";
+        /** @enum {string} */
+        DeliveryZoneType: "CITY" | "POSTAL_CODE" | "POLYGON";
+        /** @enum {string} */
+        GeoJsonGeometryType: "Polygon" | "MultiPolygon";
         /** @enum {string} */
         PaymentMethodCode: "CASH" | "CARD_ON_DELIVERY" | "CARD_ONLINE" | "SBP";
         /** @enum {string} */
@@ -3378,6 +3414,63 @@ export interface operations {
             400: components["responses"]["BadRequestError"];
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getAdminDeliveryZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                zoneId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Delivery zone */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryZoneResponse"];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    updateAdminDeliveryZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                zoneId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertDeliveryZoneRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated delivery zone */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryZoneResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
             500: components["responses"]["InternalServerError"];
         };
     };
