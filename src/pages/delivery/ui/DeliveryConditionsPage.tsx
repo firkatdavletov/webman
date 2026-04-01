@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  deleteDeliveryTariff,
+  deleteDeliveryZone,
+  deletePickupPoint,
+  detectPickupPointAddress,
   type CheckoutPaymentRule,
   type DeliveryMethod,
   type DeliveryMethodSetting,
@@ -164,6 +168,12 @@ function formatNullableText(value: string | null | undefined): string {
   return normalizedValue || '—';
 }
 
+function mergeDetectedAddressField(nextValue: string | null | undefined, currentValue: string): string {
+  const normalizedValue = nextValue?.trim() ?? '';
+
+  return normalizedValue || currentValue;
+}
+
 function formatMoneyMinor(value: number, currency: string): string {
   try {
     return new Intl.NumberFormat('ru-RU', {
@@ -300,13 +310,22 @@ export function DeliveryConditionsPage() {
   const [methodSaveError, setMethodSaveError] = useState('');
   const [methodSaveSuccess, setMethodSaveSuccess] = useState('');
 
+  const [deletingZoneId, setDeletingZoneId] = useState<string | null>(null);
+  const [zoneActionError, setZoneActionError] = useState('');
+  const [zoneActionSuccess, setZoneActionSuccess] = useState('');
+
   const [tariffForm, setTariffForm] = useState<TariffFormValues>(() => createEmptyTariffForm());
   const [isSavingTariff, setIsSavingTariff] = useState(false);
+  const [deletingTariffId, setDeletingTariffId] = useState<string | null>(null);
   const [tariffSaveError, setTariffSaveError] = useState('');
   const [tariffSaveSuccess, setTariffSaveSuccess] = useState('');
 
   const [pickupPointForm, setPickupPointForm] = useState<PickupPointEditorValues>(() => buildEmptyPickupPointEditorValues());
   const [isSavingPickupPoint, setIsSavingPickupPoint] = useState(false);
+  const [deletingPickupPointId, setDeletingPickupPointId] = useState<string | null>(null);
+  const [isDetectingPickupPointAddress, setIsDetectingPickupPointAddress] = useState(false);
+  const [pickupPointDetectError, setPickupPointDetectError] = useState('');
+  const [pickupPointDetectSuccess, setPickupPointDetectSuccess] = useState('');
   const [pickupPointSaveError, setPickupPointSaveError] = useState('');
   const [pickupPointSaveSuccess, setPickupPointSaveSuccess] = useState('');
 
@@ -381,6 +400,8 @@ export function DeliveryConditionsPage() {
 
     if (pickupPointMapDraft) {
       setPickupPointForm(pickupPointMapDraft);
+      setPickupPointDetectError('');
+      setPickupPointDetectSuccess('');
       setPickupPointSaveError('');
       setPickupPointSaveSuccess('');
     }
@@ -456,6 +477,32 @@ export function DeliveryConditionsPage() {
     setMethodSaveSuccess(`Настройки «${nextSetting.name}» сохранены.`);
   };
 
+  const handleZoneDelete = async (zone: DeliveryZone) => {
+    if (!window.confirm(`Удалить зону «${zone.name}»?`)) {
+      return;
+    }
+
+    setDeletingZoneId(zone.id);
+    setZoneActionError('');
+    setZoneActionSuccess('');
+
+    const result = await deleteDeliveryZone(zone.id);
+
+    setDeletingZoneId(null);
+
+    if (result.error) {
+      setZoneActionError(result.error);
+      return;
+    }
+
+    setZones((currentZones) => sortDeliveryZones(currentZones.filter((currentZone) => currentZone.id !== zone.id)));
+    setTariffs((currentTariffs) => sortDeliveryTariffs(currentTariffs.filter((tariff) => tariff.zoneId !== zone.id)));
+    setTariffForm((currentForm) =>
+      currentForm.zoneId === zone.id ? createEmptyTariffForm(currentForm.method || DEFAULT_DELIVERY_METHOD) : currentForm,
+    );
+    setZoneActionSuccess(`Зона «${zone.name}» удалена.`);
+  };
+
   const handleTariffFieldChange = (field: Exclude<keyof TariffFormValues, 'isAvailable' | 'method'>, value: string) => {
     setTariffForm((currentForm) => ({
       ...currentForm,
@@ -475,6 +522,29 @@ export function DeliveryConditionsPage() {
     setTariffForm(createEmptyTariffForm(methodSettings[0]?.method ?? DEFAULT_DELIVERY_METHOD));
     setTariffSaveError('');
     setTariffSaveSuccess('');
+  };
+
+  const handleTariffDelete = async (tariff: DeliveryTariff) => {
+    if (!window.confirm(`Удалить тариф для «${getDeliveryMethodLabel(tariff.method)}»?`)) {
+      return;
+    }
+
+    setDeletingTariffId(tariff.id);
+    setTariffSaveError('');
+    setTariffSaveSuccess('');
+
+    const result = await deleteDeliveryTariff(tariff.id);
+
+    setDeletingTariffId(null);
+
+    if (result.error) {
+      setTariffSaveError(result.error);
+      return;
+    }
+
+    setTariffs((currentTariffs) => sortDeliveryTariffs(currentTariffs.filter((currentTariff) => currentTariff.id !== tariff.id)));
+    setTariffForm((currentForm) => (currentForm.id === tariff.id ? createEmptyTariffForm(tariff.method) : currentForm));
+    setTariffSaveSuccess(`Тариф для «${getDeliveryMethodLabel(tariff.method)}» удален.`);
   };
 
   const handleTariffSubmit = async () => {
@@ -544,12 +614,16 @@ export function DeliveryConditionsPage() {
       ...currentForm,
       [field]: value,
     }));
+    setPickupPointDetectError('');
+    setPickupPointDetectSuccess('');
     setPickupPointSaveError('');
     setPickupPointSaveSuccess('');
   };
 
   const handlePickupPointSelect = (pickupPoint: PickupPoint) => {
     setPickupPointForm(buildPickupPointEditorValues(pickupPoint));
+    setPickupPointDetectError('');
+    setPickupPointDetectSuccess('');
     setPickupPointSaveError('');
     setPickupPointSaveSuccess('');
   };
@@ -557,6 +631,8 @@ export function DeliveryConditionsPage() {
   const handlePickupPointReset = () => {
     clearPickupPointMapDraft();
     setPickupPointForm(buildEmptyPickupPointEditorValues());
+    setPickupPointDetectError('');
+    setPickupPointDetectSuccess('');
     setPickupPointSaveError('');
     setPickupPointSaveSuccess('');
   };
@@ -564,6 +640,93 @@ export function DeliveryConditionsPage() {
   const handlePickupPointOpenMap = () => {
     writePickupPointMapDraft(pickupPointForm);
     navigate('/delivery/pickup-points/map');
+  };
+
+  const handlePickupPointDetectAddress = async () => {
+    const parsedLatitude = parseOptionalFloat(pickupPointForm.latitude, 'Широта');
+
+    if (parsedLatitude.error || parsedLatitude.value === null) {
+      setPickupPointDetectError(parsedLatitude.error ?? 'Укажите широту для определения адреса.');
+      setPickupPointDetectSuccess('');
+      return;
+    }
+
+    const parsedLongitude = parseOptionalFloat(pickupPointForm.longitude, 'Долгота');
+
+    if (parsedLongitude.error || parsedLongitude.value === null) {
+      setPickupPointDetectError(parsedLongitude.error ?? 'Укажите долготу для определения адреса.');
+      setPickupPointDetectSuccess('');
+      return;
+    }
+
+    setIsDetectingPickupPointAddress(true);
+    setPickupPointDetectError('');
+    setPickupPointDetectSuccess('');
+
+    const result = await detectPickupPointAddress({
+      latitude: parsedLatitude.value,
+      longitude: parsedLongitude.value,
+    });
+
+    setIsDetectingPickupPointAddress(false);
+
+    if (result.error) {
+      setPickupPointDetectError(result.error);
+      return;
+    }
+
+    if (!result.address) {
+      setPickupPointDetectError('По указанным координатам адрес не найден.');
+      return;
+    }
+
+    setPickupPointForm((currentForm) => ({
+      ...currentForm,
+      country: mergeDetectedAddressField(result.address?.country, currentForm.country),
+      region: mergeDetectedAddressField(result.address?.region, currentForm.region),
+      city: mergeDetectedAddressField(result.address?.city, currentForm.city),
+      street: mergeDetectedAddressField(result.address?.street, currentForm.street),
+      house: mergeDetectedAddressField(result.address?.house, currentForm.house),
+      apartment: mergeDetectedAddressField(result.address?.apartment, currentForm.apartment),
+      postalCode: mergeDetectedAddressField(result.address?.postalCode, currentForm.postalCode),
+      entrance: mergeDetectedAddressField(result.address?.entrance, currentForm.entrance),
+      floor: mergeDetectedAddressField(result.address?.floor, currentForm.floor),
+      intercom: mergeDetectedAddressField(result.address?.intercom, currentForm.intercom),
+      comment: mergeDetectedAddressField(result.address?.comment, currentForm.comment),
+    }));
+    setPickupPointDetectSuccess('Адрес обновлен по координатам.');
+  };
+
+  const handlePickupPointDelete = async (pickupPoint: PickupPoint) => {
+    if (!window.confirm(`Удалить пункт самовывоза «${pickupPoint.name}»?`)) {
+      return;
+    }
+
+    setDeletingPickupPointId(pickupPoint.id);
+    setPickupPointDetectError('');
+    setPickupPointDetectSuccess('');
+    setPickupPointSaveError('');
+    setPickupPointSaveSuccess('');
+
+    const result = await deletePickupPoint(pickupPoint.id);
+
+    setDeletingPickupPointId(null);
+
+    if (result.error) {
+      setPickupPointSaveError(result.error);
+      return;
+    }
+
+    setPickupPoints((currentPickupPoints) =>
+      sortPickupPoints(currentPickupPoints.filter((currentPickupPoint) => currentPickupPoint.id !== pickupPoint.id)),
+    );
+
+    if (pickupPointForm.id === pickupPoint.id) {
+      clearPickupPointMapDraft();
+      setPickupPointForm(buildEmptyPickupPointEditorValues());
+    }
+
+    setPickupPointSaveSuccess(`Пункт «${pickupPoint.name}» удален.`);
   };
 
   const handlePickupPointSubmit = async () => {
@@ -599,6 +762,8 @@ export function DeliveryConditionsPage() {
     }
 
     setIsSavingPickupPoint(true);
+    setPickupPointDetectError('');
+    setPickupPointDetectSuccess('');
     setPickupPointSaveError('');
     setPickupPointSaveSuccess('');
 
@@ -923,7 +1088,14 @@ export function DeliveryConditionsPage() {
             ) : null}
           </section>
 
-          <DeliveryZonesSection zones={zones} isLoading={isLoading} />
+          <DeliveryZonesSection
+            zones={zones}
+            isLoading={isLoading}
+            deletingZoneId={deletingZoneId}
+            actionError={zoneActionError}
+            actionSuccess={zoneActionSuccess}
+            onDeleteZone={(zone) => void handleZoneDelete(zone)}
+          />
 
           <section className="catalog-card catalog-data-card" aria-label="Тарифы доставки">
             <div className="catalog-section-header">
@@ -935,7 +1107,12 @@ export function DeliveryConditionsPage() {
                 </p>
               </div>
 
-              <button type="button" className="secondary-button" onClick={handleTariffReset} disabled={isSavingTariff}>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={handleTariffReset}
+                disabled={isSavingTariff || deletingTariffId !== null}
+              >
                 Новый тариф
               </button>
             </div>
@@ -969,9 +1146,25 @@ export function DeliveryConditionsPage() {
                           </td>
                           <td>{tariff.isAvailable ? 'Доступен' : 'Отключен'}</td>
                           <td className="delivery-table-actions">
-                            <button type="button" className="secondary-button" onClick={() => handleTariffSelect(tariff)}>
-                              Изменить
-                            </button>
+                            <div className="delivery-table-link-group">
+                              <button
+                                type="button"
+                                className="secondary-button"
+                                disabled={isSavingTariff || deletingTariffId === tariff.id}
+                                onClick={() => handleTariffSelect(tariff)}
+                              >
+                                Изменить
+                              </button>
+
+                              <button
+                                type="button"
+                                className="secondary-button secondary-button-danger"
+                                disabled={isSavingTariff || deletingTariffId === tariff.id}
+                                onClick={() => void handleTariffDelete(tariff)}
+                              >
+                                {deletingTariffId === tariff.id ? 'Удаление...' : 'Удалить'}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1121,11 +1314,21 @@ export function DeliveryConditionsPage() {
                 ) : null}
 
                 <div className="delivery-form-actions">
-                  <button type="button" className="submit-button" onClick={() => void handleTariffSubmit()} disabled={isSavingTariff}>
+                  <button
+                    type="button"
+                    className="submit-button"
+                    onClick={() => void handleTariffSubmit()}
+                    disabled={isSavingTariff || deletingTariffId !== null}
+                  >
                     {isSavingTariff ? 'Сохранение...' : tariffForm.id ? 'Сохранить тариф' : 'Создать тариф'}
                   </button>
 
-                  <button type="button" className="secondary-button" onClick={handleTariffReset} disabled={isSavingTariff}>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={handleTariffReset}
+                    disabled={isSavingTariff || deletingTariffId !== null}
+                  >
                     Сбросить
                   </button>
                 </div>
@@ -1143,7 +1346,12 @@ export function DeliveryConditionsPage() {
                 </p>
               </div>
 
-              <button type="button" className="secondary-button" onClick={handlePickupPointReset} disabled={isSavingPickupPoint}>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={handlePickupPointReset}
+                disabled={isSavingPickupPoint || deletingPickupPointId !== null || isDetectingPickupPointAddress}
+              >
                 Новый пункт
               </button>
             </div>
@@ -1174,9 +1382,33 @@ export function DeliveryConditionsPage() {
                           <td>{formatPickupPointAddress(pickupPoint)}</td>
                           <td>{pickupPoint.isActive ? 'Активен' : 'Отключен'}</td>
                           <td className="delivery-table-actions">
-                            <button type="button" className="secondary-button" onClick={() => handlePickupPointSelect(pickupPoint)}>
-                              Изменить
-                            </button>
+                            <div className="delivery-table-link-group">
+                              <button
+                                type="button"
+                                className="secondary-button"
+                                disabled={
+                                  isSavingPickupPoint ||
+                                  isDetectingPickupPointAddress ||
+                                  deletingPickupPointId === pickupPoint.id
+                                }
+                                onClick={() => handlePickupPointSelect(pickupPoint)}
+                              >
+                                Изменить
+                              </button>
+
+                              <button
+                                type="button"
+                                className="secondary-button secondary-button-danger"
+                                disabled={
+                                  isSavingPickupPoint ||
+                                  isDetectingPickupPointAddress ||
+                                  deletingPickupPointId === pickupPoint.id
+                                }
+                                onClick={() => void handlePickupPointDelete(pickupPoint)}
+                              >
+                                {deletingPickupPointId === pickupPoint.id ? 'Удаление...' : 'Удалить'}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1401,26 +1633,56 @@ export function DeliveryConditionsPage() {
                       <p className="catalog-meta">{getPickupPointCoordinateSummary(pickupPointForm)}</p>
                     </div>
 
-                    <button type="button" className="secondary-button" onClick={handlePickupPointOpenMap} disabled={isSavingPickupPoint}>
-                      Выбрать на карте
-                    </button>
+                    <div className="delivery-table-link-group">
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={handlePickupPointOpenMap}
+                        disabled={isSavingPickupPoint || deletingPickupPointId !== null || isDetectingPickupPointAddress}
+                      >
+                        Выбрать на карте
+                      </button>
+
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => void handlePickupPointDetectAddress()}
+                        disabled={isSavingPickupPoint || deletingPickupPointId !== null || isDetectingPickupPointAddress}
+                      >
+                        {isDetectingPickupPointAddress ? 'Определение адреса...' : 'Определить адрес'}
+                      </button>
+                    </div>
                   </div>
 
                   <p className="catalog-meta">
                     Откройте карту, чтобы поставить точку пункта самовывоза кликом или перетащить существующий маркер.
                   </p>
+
+                  {pickupPointDetectError ? (
+                    <p className="form-error" role="alert">
+                      {pickupPointDetectError}
+                    </p>
+                  ) : null}
+
+                  {pickupPointDetectSuccess ? (
+                    <p className="form-success" role="status">
+                      {pickupPointDetectSuccess}
+                    </p>
+                  ) : null}
                 </div>
 
                 <label className="field-checkbox">
                   <input
                     type="checkbox"
                     checked={pickupPointForm.isActive}
-                    disabled={isSavingPickupPoint}
+                    disabled={isSavingPickupPoint || deletingPickupPointId !== null || isDetectingPickupPointAddress}
                     onChange={(event) => {
                       setPickupPointForm((currentForm) => ({
                         ...currentForm,
                         isActive: event.target.checked,
                       }));
+                      setPickupPointDetectError('');
+                      setPickupPointDetectSuccess('');
                       setPickupPointSaveError('');
                       setPickupPointSaveSuccess('');
                     }}
@@ -1445,12 +1707,17 @@ export function DeliveryConditionsPage() {
                     type="button"
                     className="submit-button"
                     onClick={() => void handlePickupPointSubmit()}
-                    disabled={isSavingPickupPoint}
+                    disabled={isSavingPickupPoint || deletingPickupPointId !== null || isDetectingPickupPointAddress}
                   >
                     {isSavingPickupPoint ? 'Сохранение...' : pickupPointForm.id ? 'Сохранить пункт' : 'Создать пункт'}
                   </button>
 
-                  <button type="button" className="secondary-button" onClick={handlePickupPointReset} disabled={isSavingPickupPoint}>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={handlePickupPointReset}
+                    disabled={isSavingPickupPoint || deletingPickupPointId !== null || isDetectingPickupPointAddress}
+                  >
                     Сбросить
                   </button>
                 </div>

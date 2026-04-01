@@ -9,6 +9,10 @@ import {
 type DeliveryZonesSectionProps = {
   zones: DeliveryZone[];
   isLoading: boolean;
+  deletingZoneId?: string | null;
+  actionError?: string;
+  actionSuccess?: string;
+  onDeleteZone?: (zone: DeliveryZone) => void;
 };
 
 function formatNullableValue(value: string | null | undefined): string {
@@ -29,7 +33,14 @@ function getZoneTargetLabel(zone: DeliveryZone): string {
   return getDeliveryZoneGeometrySummary(mapDeliveryZoneGeometryDtoToDraft(zone.geometry));
 }
 
-export function DeliveryZonesSection({ zones, isLoading }: DeliveryZonesSectionProps) {
+export function DeliveryZonesSection({
+  zones,
+  isLoading,
+  deletingZoneId = null,
+  actionError = '',
+  actionSuccess = '',
+  onDeleteZone,
+}: DeliveryZonesSectionProps) {
   return (
     <section className="catalog-card catalog-data-card" aria-label="Зоны доставки">
       <div className="catalog-section-header">
@@ -82,6 +93,17 @@ export function DeliveryZonesSection({ zones, isLoading }: DeliveryZonesSectionP
                           Карта
                         </Link>
                       ) : null}
+
+                      {onDeleteZone ? (
+                        <button
+                          type="button"
+                          className="secondary-button secondary-button-danger"
+                          disabled={deletingZoneId === zone.id}
+                          onClick={() => onDeleteZone(zone)}
+                        >
+                          {deletingZoneId === zone.id ? 'Удаление...' : 'Удалить'}
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -92,6 +114,18 @@ export function DeliveryZonesSection({ zones, isLoading }: DeliveryZonesSectionP
           <p className="catalog-empty-state">Список зон доставки пуст.</p>
         )}
       </div>
+
+      {actionError ? (
+        <p className="form-error" role="alert">
+          {actionError}
+        </p>
+      ) : null}
+
+      {actionSuccess ? (
+        <p className="form-success" role="status">
+          {actionSuccess}
+        </p>
+      ) : null}
     </section>
   );
 }

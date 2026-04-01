@@ -214,47 +214,37 @@ export async function searchAdminOrderByNumber(orderNumber: string): Promise<Ord
 }
 
 export async function getOrderById(orderId: string): Promise<OrderResult> {
-  try {
-    const result = await apiClient.GET('/api/v1/orders/{orderId}', {
-      headers: buildAuthHeaders(),
-      params: {
-        path: {
-          orderId,
-        },
-      },
-    });
+  const normalizedOrderId = orderId.trim();
 
-    if (result.error) {
-      if (result.error.code === 'NOT_FOUND') {
-        return {
-          order: null,
-          error: 'Заказ не найден.',
-        };
-      }
-
-      return {
-        order: null,
-        error: getProtectedErrorMessage(result.error, 'Не удалось загрузить заказ.'),
-      };
-    }
-
-    if (!result.data) {
-      return {
-        order: null,
-        error: 'Сервис заказа вернул некорректный ответ.',
-      };
-    }
-
-    return {
-      order: mapOrder(result.data),
-      error: null,
-    };
-  } catch {
+  if (!normalizedOrderId) {
     return {
       order: null,
-      error: 'Не удалось связаться с сервисом заказа.',
+      error: 'Некорректный идентификатор заказа.',
     };
   }
+
+  const result = await getAdminOrders();
+
+  if (result.error) {
+    return {
+      order: null,
+      error: result.error,
+    };
+  }
+
+  const matchedOrder = result.orders.find((order) => order.id === normalizedOrderId) ?? null;
+
+  if (!matchedOrder) {
+    return {
+      order: null,
+      error: 'Заказ не найден в очереди админки.',
+    };
+  }
+
+  return {
+    order: matchedOrder,
+    error: null,
+  };
 }
 
 export async function updateOrderStatus({ orderId, status }: UpdateOrderStatusRequest): Promise<UpdateOrderStatusResult> {

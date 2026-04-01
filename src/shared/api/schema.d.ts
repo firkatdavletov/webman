@@ -4,257 +4,6 @@
  */
 
 export interface paths {
-    "/api/v1/auth/methods": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List available authentication methods */
-        get: operations["getAvailableAuthMethods"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/phone/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Start phone authentication challenge */
-        post: operations["startPhoneAuth"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/phone/confirm": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Confirm phone auth challenge with code */
-        post: operations["confirmPhoneAuthCode"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/virtual-try-on/sessions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start a virtual try-on session
-         * @description Requires either a bearer token for an authenticated user or `X-Install-Id` for a guest installation.
-         *     The backend resolves the garment image from the active product or variant and submits the request to FASHN.
-         *     The response includes websocket connection details for real-time status updates.
-         */
-        post: operations["createVirtualTryOnSession"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/virtual-try-on/sessions/{sessionId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get a virtual try-on session
-         * @description Requires either a bearer token for an authenticated user or `X-Install-Id` for a guest installation.
-         *     Only the owner of the session can access it.
-         */
-        get: operations["getVirtualTryOnSession"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/virtual-try-on/sessions/{sessionId}/sync": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Force sync of a pending virtual try-on session with FASHN status API
-         * @description Requires either a bearer token for an authenticated user or `X-Install-Id` for a guest installation.
-         *     If the session is still pending, the backend fetches the latest state from FASHN and pushes any update to websocket subscribers.
-         */
-        post: operations["syncVirtualTryOnSession"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/virtual-try-on/webhooks/fashn": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Receive FASHN webhook updates for virtual try-on sessions */
-        post: operations["handleFashnVirtualTryOnWebhook"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/email/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Start email authentication challenge */
-        post: operations["startEmailAuth"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/email/confirm": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Confirm email auth challenge with code */
-        post: operations["confirmEmailAuthCode"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/telegram/complete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Complete Telegram authentication */
-        post: operations["completeTelegramAuth"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/max/complete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Complete MAX authentication */
-        post: operations["completeMaxAuth"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Refresh access and refresh tokens */
-        post: operations["refreshAuthSession"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Revoke one refresh session for current user */
-        post: operations["logoutCurrentSession"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/logout-all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Revoke all sessions for current user */
-        post: operations["logoutAllSessions"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/admin/login": {
         parameters: {
             query?: never;
@@ -300,135 +49,6 @@ export interface paths {
         put?: never;
         /** Revoke one admin refresh session */
         post: operations["logoutAdminSession"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cart": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get or create active cart for current actor */
-        get: operations["getCart"];
-        put?: never;
-        post?: never;
-        /** Remove all items from active cart */
-        delete: operations["clearCart"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cart/delivery": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get current cart delivery draft */
-        get: operations["getCartDeliveryDraft"];
-        /** Create or replace current cart delivery draft */
-        put: operations["putCartDeliveryDraft"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cart/items": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Add product (or product variant) with optional modifiers to active cart */
-        post: operations["addCartItem"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cart/items/{itemId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Remove one configured cart item from active cart */
-        delete: operations["removeCartItem"];
-        options?: never;
-        head?: never;
-        /** Change quantity of a cart item */
-        patch: operations["changeCartItemQuantity"];
-        trace?: never;
-    };
-    "/api/v1/catalog/categories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List catalog categories
-         * @description Returns categories sorted by name ascending.
-         */
-        get: operations["getCategories"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/catalog/products": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List catalog products
-         * @description Returns active products sorted by `createdAt` descending.
-         *     Supports filters by `categoryId` and case-insensitive title `query`.
-         */
-        get: operations["getProducts"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/catalog/products/{productId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get one active product by id */
-        get: operations["getProductById"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -678,7 +298,8 @@ export interface paths {
         /** Update delivery zone */
         put: operations["updateAdminDeliveryZone"];
         post?: never;
-        delete?: never;
+        /** Delete delivery zone */
+        delete: operations["deleteAdminDeliveryZone"];
         options?: never;
         head?: never;
         patch?: never;
@@ -702,6 +323,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/delivery/tariffs/{tariffId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete delivery tariff */
+        delete: operations["deleteAdminDeliveryTariff"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/delivery/pickup-points": {
         parameters: {
             query?: never;
@@ -715,6 +353,40 @@ export interface paths {
         /** Create or update internal pickup point */
         post: operations["upsertAdminPickupPoint"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/delivery/pickup-points/address-detect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Detect pickup point address by coordinates */
+        post: operations["detectAdminPickupPointAddress"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/delivery/pickup-points/{pickupPointId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete internal pickup point */
+        delete: operations["deleteAdminPickupPoint"];
         options?: never;
         head?: never;
         patch?: never;
@@ -752,219 +424,6 @@ export interface paths {
          *     Dynamic methods such as `YANDEX_PICKUP_POINT` are returned in responses but cannot be changed here.
          */
         post: operations["replaceAdminCheckoutPaymentRules"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/checkout/options": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List available delivery methods with payment methods for checkout
-         * @description Returns delivery methods currently available in the system and payment methods allowed for each of them.
-         *     `YANDEX_PICKUP_POINT` is resolved dynamically from Yandex pickup point data and is included only when
-         *     `pickupPointId` is provided and at least one supported Yandex payment method can be mapped to active
-         *     payment methods in the backend.
-         */
-        get: operations["getCheckoutOptions"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/delivery/methods": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get available delivery methods and active internal pickup points */
-        get: operations["getDeliveryMethods"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/delivery/yandex/location-detect": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Detect Yandex geo locations by free-form query */
-        post: operations["detectYandexLocations"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/delivery/yandex/pickup-points": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Get Yandex pickup points for geo id */
-        post: operations["getYandexPickupPoints"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/delivery/quotes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Calculate delivery quote for selected method and order subtotal */
-        post: operations["calculateDeliveryQuote"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/payments/methods": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List available payment methods */
-        get: operations["getAvailablePaymentMethods"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/payments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create payment for order visible to current actor */
-        post: operations["createPayment"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/payments/{paymentId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get payment visible to current actor */
-        get: operations["getPayment"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/orders/checkout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Checkout current actor cart */
-        post: operations["checkout"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/orders/guest/checkout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create guest order from provided items */
-        post: operations["guestCheckout"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/orders/{orderId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get one order visible to current actor */
-        get: operations["getOrderById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/orders/my": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List orders of current actor
-         * @description Returns orders sorted by `createdAt` descending.
-         */
-        get: operations["getMyOrders"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1097,31 +556,6 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        AvailableAuthMethodsResponse: {
-            methods: components["schemas"]["AuthMethod"][];
-        };
-        AuthChallengeResponse: {
-            /** Format: uuid */
-            challengeId: string;
-            method: components["schemas"]["AuthMethod"];
-            /** Format: date-time */
-            expiresAt: string;
-            /** Format: date-time */
-            resendAvailableAt?: string | null;
-            /** @description Current implementation returns `CONFIRM_CODE`. */
-            nextStep: string;
-        };
-        AuthTokensResponse: {
-            accessToken: string;
-            /** Format: date-time */
-            accessTokenExpiresAt: string;
-            refreshToken: string;
-            /** Format: date-time */
-            refreshTokenExpiresAt: string;
-            isNewUser: boolean;
-            /** Format: uuid */
-            userId: string;
-        };
         AdminLoginRequest: {
             login: string;
             password: string;
@@ -1143,262 +577,6 @@ export interface components {
             refreshTokenExpiresAt: string;
             /** Format: uuid */
             adminId: string;
-        };
-        StartPhoneAuthRequest: {
-            phone: string;
-            method: components["schemas"]["AuthMethodStartPhone"];
-        };
-        ConfirmPhoneCodeRequest: {
-            /** Format: uuid */
-            challengeId: string;
-            code: string;
-            deviceId?: string | null;
-        };
-        StartEmailAuthRequest: {
-            /** Format: email */
-            email: string;
-        };
-        ConfirmEmailCodeRequest: {
-            /** Format: uuid */
-            challengeId: string;
-            code: string;
-            deviceId?: string | null;
-        };
-        TelegramCompleteAuthRequest: {
-            authPayload: string;
-            deviceId?: string | null;
-        };
-        MaxCompleteAuthRequest: {
-            authPayload: string;
-            deviceId?: string | null;
-        };
-        RefreshTokenRequest: {
-            refreshToken: string;
-            deviceId?: string | null;
-        };
-        LogoutRequest: {
-            refreshToken?: string | null;
-        };
-        CheckoutOptionsResponse: {
-            options: components["schemas"]["CheckoutDeliveryOptionResponse"][];
-        };
-        CheckoutDeliveryOptionResponse: {
-            code: components["schemas"]["DeliveryMethodType"];
-            name: string;
-            requiresAddress: boolean;
-            requiresPickupPoint: boolean;
-            paymentMethods: components["schemas"]["CheckoutPaymentMethodResponse"][];
-        };
-        CheckoutPaymentMethodResponse: {
-            code: components["schemas"]["PaymentMethodCode"];
-            name: string;
-            description?: string | null;
-            isOnline: boolean;
-            isActive: boolean;
-        };
-        PaymentMethodResponse: {
-            code: components["schemas"]["PaymentMethodCode"];
-            name: string;
-            description?: string | null;
-            isOnline: boolean;
-            isActive: boolean;
-        };
-        CreatePaymentRequest: {
-            /** Format: uuid */
-            orderId: string;
-            paymentMethodCode: components["schemas"]["PaymentMethodCode"];
-            details?: string | null;
-        };
-        PaymentResponse: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            orderId: string;
-            paymentMethodCode: components["schemas"]["PaymentMethodCode"];
-            paymentMethodName: string;
-            status: components["schemas"]["PaymentStatus"];
-            /** Format: int64 */
-            amountMinor: number;
-            currency: string;
-            isOnline: boolean;
-            providerCode?: string | null;
-            externalPaymentId?: string | null;
-            confirmationUrl?: string | null;
-            details?: string | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-            /** Format: date-time */
-            paidAt?: string | null;
-        };
-        AddCartItemRequest: {
-            /** Format: uuid */
-            productId: string;
-            /** Format: uuid */
-            variantId?: string | null;
-            /** Format: int32 */
-            quantity: number;
-            modifiers?: components["schemas"]["AddCartItemModifierRequest"][];
-        };
-        AddCartItemModifierRequest: {
-            /** Format: uuid */
-            modifierGroupId: string;
-            /** Format: uuid */
-            modifierOptionId: string;
-            /**
-             * Format: int32
-             * @default 1
-             */
-            quantity: number;
-        };
-        ChangeCartItemQuantityRequest: {
-            /** Format: int32 */
-            quantity: number;
-        };
-        PutCartDeliveryRequest: {
-            deliveryMethod: components["schemas"]["DeliveryMethodType"];
-            address?: components["schemas"]["DeliveryAddressRequest"] | null;
-            /** Format: uuid */
-            pickupPointId?: string | null;
-            pickupPointExternalId?: string | null;
-        };
-        CartResponse: {
-            /** Format: uuid */
-            id: string;
-            status: components["schemas"]["CartStatus"];
-            items: components["schemas"]["CartItemResponse"][];
-            /** Format: int64 */
-            totalPriceMinor: number;
-            delivery?: components["schemas"]["CartDeliveryDraftResponse"] | null;
-        };
-        CartDeliveryDraftResponse: {
-            deliveryMethod?: components["schemas"]["DeliveryMethodType"];
-            address?: components["schemas"]["DeliveryAddressResponse"] | null;
-            /** Format: uuid */
-            pickupPointId?: string | null;
-            pickupPointExternalId?: string | null;
-            pickupPointName?: string | null;
-            pickupPointAddress?: string | null;
-            quote?: components["schemas"]["DeliveryQuoteResponse"] | null;
-            quoteExpired: boolean;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
-        CartItemResponse: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            productId: string;
-            /** Format: uuid */
-            variantId?: string | null;
-            title: string;
-            unit: components["schemas"]["ProductUnit"];
-            /** Format: int32 */
-            countStep: number;
-            /** Format: int32 */
-            quantity: number;
-            /** Format: int64 */
-            priceMinor: number;
-            /** Format: int64 */
-            unitPriceMinor: number;
-            /** Format: int64 */
-            modifiersTotalMinor: number;
-            /** Format: int64 */
-            lineTotalMinor: number;
-            modifiers: components["schemas"]["CartItemModifierResponse"][];
-        };
-        CartItemModifierResponse: {
-            /** Format: uuid */
-            modifierGroupId: string;
-            /** Format: uuid */
-            modifierOptionId: string;
-            groupCode: string;
-            groupName: string;
-            optionCode: string;
-            optionName: string;
-            applicationScope: components["schemas"]["ModifierApplicationScope"];
-            /** Format: int64 */
-            priceMinor: number;
-            /** Format: int32 */
-            quantity: number;
-        };
-        DeliveryMethodsResponse: {
-            methods: components["schemas"]["DeliveryMethodResponse"][];
-            pickupPoints: components["schemas"]["PickupPointResponse"][];
-        };
-        DeliveryMethodResponse: {
-            code: components["schemas"]["DeliveryMethodType"];
-            name: string;
-            requiresAddress: boolean;
-            requiresPickupPoint: boolean;
-        };
-        PickupPointResponse: {
-            /** Format: uuid */
-            id: string;
-            code: string;
-            name: string;
-            address: components["schemas"]["DeliveryAddressResponse"];
-            isActive: boolean;
-        };
-        YandexLocationDetectRequest: {
-            query: string;
-        };
-        YandexLocationDetectResponse: {
-            variants: components["schemas"]["YandexLocationVariantResponse"][];
-        };
-        YandexLocationVariantResponse: {
-            /** Format: int64 */
-            geoId: number;
-            address: string;
-        };
-        YandexPickupPointsRequest: {
-            /** Format: int64 */
-            geoId: number;
-        };
-        YandexPickupPointsResponse: {
-            points: components["schemas"]["YandexPickupPointResponse"][];
-        };
-        YandexPickupPointResponse: {
-            id: string;
-            name: string;
-            address: string;
-            fullAddress?: string | null;
-            instruction?: string | null;
-            /** Format: double */
-            latitude?: number | null;
-            /** Format: double */
-            longitude?: number | null;
-            paymentMethods: string[];
-            isYandexBranded: boolean;
-        };
-        CalculateDeliveryQuoteRequest: {
-            /** Format: int64 */
-            subtotalMinor: number;
-            /** Format: int32 */
-            itemCount: number;
-            deliveryMethod: components["schemas"]["DeliveryMethodType"];
-            address?: components["schemas"]["DeliveryAddressRequest"] | null;
-            /** Format: uuid */
-            pickupPointId?: string | null;
-            pickupPointExternalId?: string | null;
-        };
-        DeliveryQuoteResponse: {
-            deliveryMethod: components["schemas"]["DeliveryMethodType"];
-            available: boolean;
-            /** Format: int64 */
-            priceMinor?: number | null;
-            currency: string;
-            zoneCode?: string | null;
-            zoneName?: string | null;
-            /** Format: int32 */
-            estimatedDays?: number | null;
-            message?: string | null;
-            /** Format: uuid */
-            pickupPointId?: string | null;
-            pickupPointExternalId?: string | null;
-            pickupPointName?: string | null;
-            pickupPointAddress?: string | null;
         };
         DeliveryMethodSettingResponse: {
             method: components["schemas"]["DeliveryMethodType"];
@@ -1495,6 +673,15 @@ export interface components {
             address: components["schemas"]["DeliveryAddressRequest"];
             isActive: boolean;
         };
+        DetectPickupPointAddressRequest: {
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+        };
+        DetectPickupPointAddressResponse: {
+            address: components["schemas"]["DeliveryAddressResponse"] | null;
+        };
         CheckoutPaymentRuleResponse: {
             deliveryMethod: components["schemas"]["DeliveryMethodType"];
             deliveryMethodName: string;
@@ -1535,30 +722,6 @@ export interface components {
             /** Format: int32 */
             countStep: number;
             isActive: boolean;
-        };
-        ProductDetailsResponse: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            categoryId: string;
-            title: string;
-            slug: string;
-            description?: string | null;
-            /** Format: int64 */
-            priceMinor: number;
-            /** Format: int64 */
-            oldPriceMinor?: number | null;
-            sku?: string | null;
-            imageUrls: string[];
-            unit: components["schemas"]["ProductUnit"];
-            /** Format: int32 */
-            countStep: number;
-            isActive: boolean;
-            optionGroups: components["schemas"]["ProductOptionGroupResponse"][];
-            modifierGroups: components["schemas"]["ProductModifierGroupResponse"][];
-            /** Format: uuid */
-            defaultVariantId?: string | null;
-            variants: components["schemas"]["ProductVariantResponse"][];
         };
         AdminProductDetailsResponse: {
             /** Format: uuid */
@@ -1661,22 +824,6 @@ export interface components {
             title: string;
             /** Format: int32 */
             sortOrder: number;
-        };
-        ProductVariantResponse: {
-            /** Format: uuid */
-            id: string;
-            externalId?: string | null;
-            sku: string;
-            title?: string | null;
-            /** Format: int64 */
-            priceMinor?: number | null;
-            /** Format: int64 */
-            oldPriceMinor?: number | null;
-            imageUrls: string[];
-            /** Format: int32 */
-            sortOrder: number;
-            isActive: boolean;
-            optionValueIds: string[];
         };
         AdminProductVariantResponse: {
             /** Format: uuid */
@@ -1855,34 +1002,6 @@ export interface components {
             importMode: components["schemas"]["CatalogImportMode"];
             fileName: string;
             downloadUrl: string;
-        };
-        CheckoutRequest: {
-            paymentMethodCode: components["schemas"]["PaymentMethodCode"];
-            customerName?: string | null;
-            customerPhone?: string | null;
-            customerEmail?: string | null;
-            comment?: string | null;
-        };
-        GuestCheckoutRequest: {
-            items: components["schemas"]["GuestCheckoutItemRequest"][];
-            customerName: string;
-            customerPhone: string;
-            customerEmail?: string | null;
-            paymentMethodCode: components["schemas"]["PaymentMethodCode"];
-            deliveryMethod: components["schemas"]["DeliveryMethodType"];
-            address?: components["schemas"]["DeliveryAddressRequest"] | null;
-            /** Format: uuid */
-            pickupPointId?: string | null;
-            pickupPointExternalId?: string | null;
-            comment?: string | null;
-        };
-        GuestCheckoutItemRequest: {
-            /** Format: uuid */
-            productId: string;
-            /** Format: uuid */
-            variantId?: string | null;
-            /** Format: int32 */
-            quantity: number;
         };
         UpdateOrderStatusRequest: {
             status: components["schemas"]["OrderStatus"];
@@ -2082,10 +1201,6 @@ export interface components {
             skipReason?: string | null;
         };
         /** @enum {string} */
-        AuthMethod: "PHONE_SMS" | "PHONE_CALL" | "TELEGRAM" | "MAX" | "EMAIL";
-        /** @enum {string} */
-        AuthMethodStartPhone: "PHONE_SMS" | "PHONE_CALL";
-        /** @enum {string} */
         CatalogImportType: "CATEGORY" | "PRODUCT" | "MODIFIER_GROUP" | "MODIFIER_OPTION" | "PRODUCT_MODIFIER_GROUP_LINK";
         /** @enum {string} */
         CatalogImportMode: "VALIDATE_ONLY" | "CREATE_ONLY" | "UPSERT";
@@ -2102,10 +1217,6 @@ export interface components {
         /** @enum {string} */
         PaymentMethodCode: "CASH" | "CARD_ON_DELIVERY" | "CARD_ONLINE" | "SBP";
         /** @enum {string} */
-        PaymentStatus: "AWAITING_PAYMENT" | "PENDING" | "SUCCEEDED" | "FAILED" | "CANCELED";
-        /** @enum {string} */
-        CartStatus: "ACTIVE" | "ORDERED" | "MERGED" | "ABANDONED";
-        /** @enum {string} */
         OrderCustomerType: "USER" | "GUEST";
         /** @enum {string} */
         OrderStatus: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
@@ -2113,79 +1224,6 @@ export interface components {
         MediaTargetType: "PRODUCT" | "CATEGORY" | "VARIANT";
         /** @enum {string} */
         MediaImageStatus: "PENDING" | "READY" | "DELETED";
-        CreateVirtualTryOnSessionRequest: {
-            /** Format: uuid */
-            productId: string;
-            /** Format: uuid */
-            variantId?: string | null;
-            /** @description Public image URL or base64 data URI accepted by FASHN as `model_image`. */
-            modelImage: string;
-            category?: components["schemas"]["VirtualTryOnCategory"];
-            garmentPhotoType?: components["schemas"]["VirtualTryOnGarmentPhotoType"];
-            mode?: components["schemas"]["VirtualTryOnMode"];
-            moderationLevel?: components["schemas"]["VirtualTryOnModerationLevel"];
-            /** @default true */
-            segmentationFree: boolean;
-            /** Format: int64 */
-            seed?: number | null;
-            /** Format: int32 */
-            numSamples?: number | null;
-            outputFormat?: components["schemas"]["VirtualTryOnOutputFormat"];
-        };
-        /**
-         * @description Session snapshot returned by REST endpoints and broadcast to websocket subscribers.
-         *     To receive live updates, connect to `websocketEndpoint` and subscribe to `websocketDestination`.
-         */
-        VirtualTryOnSessionResponse: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            productId: string;
-            /** Format: uuid */
-            variantId?: string | null;
-            garmentImageUrl: string;
-            status: components["schemas"]["VirtualTryOnSessionStatus"];
-            /** @description Raw provider state returned by FASHN, for example `starting`, `processing`, `completed`, `failed`. */
-            providerStatus?: string | null;
-            outputImages: string[];
-            error?: components["schemas"]["VirtualTryOnSessionErrorResponse"];
-            /** @description STOMP/SockJS websocket endpoint path on this backend. */
-            websocketEndpoint: string;
-            /** @description Topic destination to subscribe to for session updates. */
-            websocketDestination: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-            /** Format: date-time */
-            completedAt?: string | null;
-        };
-        VirtualTryOnSessionErrorResponse: {
-            name?: string | null;
-            message?: string | null;
-        } | null;
-        FashnWebhookRequest: {
-            id?: string;
-            status?: string;
-            output?: string[];
-            error?: components["schemas"]["FashnWebhookErrorRequest"];
-        };
-        FashnWebhookErrorRequest: {
-            name?: string | null;
-            message?: string | null;
-        };
-        /** @enum {string} */
-        VirtualTryOnCategory: "auto" | "tops" | "bottoms" | "one-pieces";
-        /** @enum {string} */
-        VirtualTryOnGarmentPhotoType: "auto" | "flat-lay" | "model";
-        /** @enum {string} */
-        VirtualTryOnMode: "performance" | "balanced" | "quality";
-        /** @enum {string} */
-        VirtualTryOnModerationLevel: "conservative" | "permissive" | "none";
-        /** @enum {string} */
-        VirtualTryOnOutputFormat: "png" | "jpeg";
-        /** @enum {string} */
-        VirtualTryOnSessionStatus: "pending" | "completed" | "failed";
     };
     responses: {
         /** @description Request validation failed or business rule violation */
@@ -2224,15 +1262,6 @@ export interface components {
                 "application/json": components["schemas"]["ApiError"];
             };
         };
-        /** @description Request conflicts with current resource state */
-        ConflictError: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ApiError"];
-            };
-        };
         /** @description Internal server error */
         InternalServerError: {
             headers: {
@@ -2245,7 +1274,6 @@ export interface components {
     };
     parameters: {
         ProductIdPathParam: string;
-        CartItemIdPathParam: string;
         OrderIdPathParam: string;
         UploadIdPathParam: string;
     };
@@ -2255,374 +1283,6 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    getAvailableAuthMethods: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Available authentication methods */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AvailableAuthMethodsResponse"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    startPhoneAuth: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StartPhoneAuthRequest"];
-            };
-        };
-        responses: {
-            /** @description Phone auth challenge created */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthChallengeResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    confirmPhoneAuthCode: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConfirmPhoneCodeRequest"];
-            };
-        };
-        responses: {
-            /** @description Session tokens issued */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthTokensResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            403: components["responses"]["ForbiddenError"];
-            404: components["responses"]["NotFoundError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    createVirtualTryOnSession: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Guest installation identifier used when no bearer token is provided. */
-                "X-Install-Id"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateVirtualTryOnSessionRequest"];
-            };
-        };
-        responses: {
-            /** @description Virtual try-on session created */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VirtualTryOnSessionResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            401: components["responses"]["UnauthorizedError"];
-            404: components["responses"]["NotFoundError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    getVirtualTryOnSession: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Guest installation identifier used when no bearer token is provided. */
-                "X-Install-Id"?: string;
-            };
-            path: {
-                sessionId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Virtual try-on session details */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VirtualTryOnSessionResponse"];
-                };
-            };
-            401: components["responses"]["UnauthorizedError"];
-            404: components["responses"]["NotFoundError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    syncVirtualTryOnSession: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Guest installation identifier used when no bearer token is provided. */
-                "X-Install-Id"?: string;
-            };
-            path: {
-                sessionId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Synchronized virtual try-on session */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VirtualTryOnSessionResponse"];
-                };
-            };
-            401: components["responses"]["UnauthorizedError"];
-            404: components["responses"]["NotFoundError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    handleFashnVirtualTryOnWebhook: {
-        parameters: {
-            query?: {
-                /** @description Shared webhook secret appended to the configured FASHN `webhook_url`. */
-                token?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FashnWebhookRequest"];
-            };
-        };
-        responses: {
-            /** @description Webhook accepted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["BadRequestError"];
-            403: components["responses"]["ForbiddenError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    startEmailAuth: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StartEmailAuthRequest"];
-            };
-        };
-        responses: {
-            /** @description Email auth challenge created */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthChallengeResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    confirmEmailAuthCode: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConfirmEmailCodeRequest"];
-            };
-        };
-        responses: {
-            /** @description Session tokens issued */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthTokensResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            403: components["responses"]["ForbiddenError"];
-            404: components["responses"]["NotFoundError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    completeTelegramAuth: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TelegramCompleteAuthRequest"];
-            };
-        };
-        responses: {
-            /** @description Session tokens issued */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthTokensResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    completeMaxAuth: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MaxCompleteAuthRequest"];
-            };
-        };
-        responses: {
-            /** @description Session tokens issued */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthTokensResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    refreshAuthSession: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RefreshTokenRequest"];
-            };
-        };
-        responses: {
-            /** @description New session tokens issued */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthTokensResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            403: components["responses"]["ForbiddenError"];
-            404: components["responses"]["NotFoundError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    logoutCurrentSession: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LogoutRequest"];
-            };
-        };
-        responses: {
-            /** @description Session revoked or no matching session */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["UnauthorizedError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    logoutAllSessions: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description All user sessions revoked */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["UnauthorizedError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
     loginAdmin: {
         parameters: {
             query?: never;
@@ -2701,257 +1361,6 @@ export interface operations {
             };
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    getCart: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Active cart */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CartResponse"];
-                };
-            };
-            401: components["responses"]["UnauthorizedError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    clearCart: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Cleared cart */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CartResponse"];
-                };
-            };
-            401: components["responses"]["UnauthorizedError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    getCartDeliveryDraft: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Current cart delivery draft or `null` when not selected */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CartDeliveryDraftResponse"] | null;
-                };
-            };
-            401: components["responses"]["UnauthorizedError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    putCartDeliveryDraft: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PutCartDeliveryRequest"];
-            };
-        };
-        responses: {
-            /** @description Updated cart delivery draft */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CartDeliveryDraftResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            401: components["responses"]["UnauthorizedError"];
-            404: components["responses"]["NotFoundError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    addCartItem: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AddCartItemRequest"];
-            };
-        };
-        responses: {
-            /** @description Updated cart */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CartResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            401: components["responses"]["UnauthorizedError"];
-            404: components["responses"]["NotFoundError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    removeCartItem: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                itemId: components["parameters"]["CartItemIdPathParam"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Updated cart */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CartResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            401: components["responses"]["UnauthorizedError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    changeCartItemQuantity: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                itemId: components["parameters"]["CartItemIdPathParam"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChangeCartItemQuantityRequest"];
-            };
-        };
-        responses: {
-            /** @description Updated cart */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CartResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            401: components["responses"]["UnauthorizedError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    getCategories: {
-        parameters: {
-            query?: {
-                /** @description When true (default), returns only active categories. */
-                activeOnly?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Category list */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CategoryResponse"][];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    getProducts: {
-        parameters: {
-            query?: {
-                categoryId?: string;
-                query?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Product list */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProductResponse"][];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    getProductById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                productId: components["parameters"]["ProductIdPathParam"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Product */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProductDetailsResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            404: components["responses"]["NotFoundError"];
             500: components["responses"]["InternalServerError"];
         };
     };
@@ -3474,6 +1883,31 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    deleteAdminDeliveryZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                zoneId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Delivery zone deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     getAdminDeliveryTariffs: {
         parameters: {
             query?: never;
@@ -3522,6 +1956,30 @@ export interface operations {
             400: components["responses"]["BadRequestError"];
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    deleteAdminDeliveryTariff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tariffId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Delivery tariff deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
             500: components["responses"]["InternalServerError"];
         };
     };
@@ -3579,6 +2037,58 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    detectAdminPickupPointAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DetectPickupPointAddressRequest"];
+            };
+        };
+        responses: {
+            /** @description Detected pickup point address or `null` when geocoder returned no result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetectPickupPointAddressResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    deleteAdminPickupPoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pickupPointId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pickup point deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     getAdminCheckoutPaymentRules: {
         parameters: {
             query?: never;
@@ -3627,317 +2137,6 @@ export interface operations {
             400: components["responses"]["BadRequestError"];
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    getCheckoutOptions: {
-        parameters: {
-            query?: {
-                /**
-                 * @description Optional Yandex pickup point id used to resolve `YANDEX_PICKUP_POINT` payment methods
-                 *     for the selected pickup point.
-                 */
-                pickupPointId?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Checkout options */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CheckoutOptionsResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    getDeliveryMethods: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Delivery methods and pickup points */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeliveryMethodsResponse"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    detectYandexLocations: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["YandexLocationDetectRequest"];
-            };
-        };
-        responses: {
-            /** @description Matching Yandex locations */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["YandexLocationDetectResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    getYandexPickupPoints: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["YandexPickupPointsRequest"];
-            };
-        };
-        responses: {
-            /** @description Yandex pickup points */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["YandexPickupPointsResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    calculateDeliveryQuote: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CalculateDeliveryQuoteRequest"];
-            };
-        };
-        responses: {
-            /** @description Delivery quote */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeliveryQuoteResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    getAvailablePaymentMethods: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Payment methods */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaymentMethodResponse"][];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    createPayment: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePaymentRequest"];
-            };
-        };
-        responses: {
-            /** @description Payment */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaymentResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            401: components["responses"]["UnauthorizedError"];
-            403: components["responses"]["ForbiddenError"];
-            404: components["responses"]["NotFoundError"];
-            409: components["responses"]["ConflictError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    getPayment: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                paymentId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Payment */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaymentResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            401: components["responses"]["UnauthorizedError"];
-            403: components["responses"]["ForbiddenError"];
-            404: components["responses"]["NotFoundError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    checkout: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CheckoutRequest"];
-            };
-        };
-        responses: {
-            /** @description Created order */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrderResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            401: components["responses"]["UnauthorizedError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    guestCheckout: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Optional guest installation id saved into order (`guestInstallId`). */
-                "X-Install-Id"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["GuestCheckoutRequest"];
-            };
-        };
-        responses: {
-            /** @description Created guest order */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrderResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            404: components["responses"]["NotFoundError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    getOrderById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                orderId: components["parameters"]["OrderIdPathParam"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Order */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrderResponse"];
-                };
-            };
-            400: components["responses"]["BadRequestError"];
-            401: components["responses"]["UnauthorizedError"];
-            403: components["responses"]["ForbiddenError"];
-            404: components["responses"]["NotFoundError"];
-            500: components["responses"]["InternalServerError"];
-        };
-    };
-    getMyOrders: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Actor orders */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrderResponse"][];
-                };
-            };
-            401: components["responses"]["UnauthorizedError"];
             500: components["responses"]["InternalServerError"];
         };
     };

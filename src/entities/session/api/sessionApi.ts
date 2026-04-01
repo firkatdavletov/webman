@@ -102,7 +102,7 @@ export function logout(): void {
   const accessToken = getAccessToken();
   const refreshToken = getRefreshTokenFromStorage();
 
-  void apiClient.POST('/api/v1/auth/logout', {
+  void apiClient.POST('/api/v1/admin/logout', {
     headers: buildAuthHeaders(accessToken),
     body: {
       refreshToken,

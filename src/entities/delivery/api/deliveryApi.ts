@@ -3,9 +3,11 @@ import { type ApiError, apiClient } from '@/shared/api/client';
 import { getApiErrorMessage } from '@/shared/api/error';
 import type {
   CheckoutPaymentRule,
+  DeliveryAddress,
   DeliveryMethodSetting,
   DeliveryTariff,
   DeliveryZone,
+  DetectPickupPointAddressPayload,
   PickupPoint,
   UpsertCheckoutPaymentRulePayload,
   UpsertDeliveryMethodSettingPayload,
@@ -58,6 +60,11 @@ export type SavePickupPointResult = {
   error: string | null;
 };
 
+export type DetectPickupPointAddressResult = {
+  address: DeliveryAddress | null;
+  error: string | null;
+};
+
 export type CheckoutPaymentRulesResult = {
   rules: CheckoutPaymentRule[];
   error: string | null;
@@ -65,6 +72,10 @@ export type CheckoutPaymentRulesResult = {
 
 export type ReplaceCheckoutPaymentRulesResult = {
   rules: CheckoutPaymentRule[];
+  error: string | null;
+};
+
+export type DeleteDeliveryEntityResult = {
   error: string | null;
 };
 
@@ -271,6 +282,33 @@ export async function updateDeliveryZone(
   }
 }
 
+export async function deleteDeliveryZone(zoneId: string): Promise<DeleteDeliveryEntityResult> {
+  try {
+    const result = await apiClient.DELETE('/api/v1/admin/delivery/zones/{zoneId}', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: {
+          zoneId,
+        },
+      },
+    });
+
+    if (result.error) {
+      return {
+        error: getProtectedErrorMessage(result.error, 'Не удалось удалить зону доставки.'),
+      };
+    }
+
+    return {
+      error: null,
+    };
+  } catch {
+    return {
+      error: 'Не удалось связаться с сервисом удаления зоны доставки.',
+    };
+  }
+}
+
 export async function getDeliveryTariffs(): Promise<DeliveryTariffsResult> {
   try {
     const result = await apiClient.GET('/api/v1/admin/delivery/tariffs', {
@@ -318,6 +356,33 @@ export async function saveDeliveryTariff(payload: UpsertDeliveryTariffPayload): 
     return {
       tariff: null,
       error: 'Не удалось связаться с сервисом сохранения тарифа доставки.',
+    };
+  }
+}
+
+export async function deleteDeliveryTariff(tariffId: string): Promise<DeleteDeliveryEntityResult> {
+  try {
+    const result = await apiClient.DELETE('/api/v1/admin/delivery/tariffs/{tariffId}', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: {
+          tariffId,
+        },
+      },
+    });
+
+    if (result.error) {
+      return {
+        error: getProtectedErrorMessage(result.error, 'Не удалось удалить тариф доставки.'),
+      };
+    }
+
+    return {
+      error: null,
+    };
+  } catch {
+    return {
+      error: 'Не удалось связаться с сервисом удаления тарифа доставки.',
     };
   }
 }
@@ -370,6 +435,68 @@ export async function savePickupPoint(payload: UpsertPickupPointPayload): Promis
     return {
       pickupPoint: null,
       error: 'Не удалось связаться с сервисом сохранения пункта самовывоза.',
+    };
+  }
+}
+
+export async function detectPickupPointAddress(
+  payload: DetectPickupPointAddressPayload,
+): Promise<DetectPickupPointAddressResult> {
+  try {
+    const result = await apiClient.POST('/api/v1/admin/delivery/pickup-points/address-detect', {
+      headers: buildAuthHeaders(),
+      body: payload,
+    });
+
+    if (result.error) {
+      return {
+        address: null,
+        error: getProtectedErrorMessage(result.error, 'Не удалось определить адрес пункта самовывоза по координатам.'),
+      };
+    }
+
+    if (!result.data) {
+      return {
+        address: null,
+        error: 'Сервис определения адреса пункта самовывоза вернул некорректный ответ.',
+      };
+    }
+
+    return {
+      address: result.data.address ?? null,
+      error: null,
+    };
+  } catch {
+    return {
+      address: null,
+      error: 'Не удалось связаться с сервисом определения адреса пункта самовывоза.',
+    };
+  }
+}
+
+export async function deletePickupPoint(pickupPointId: string): Promise<DeleteDeliveryEntityResult> {
+  try {
+    const result = await apiClient.DELETE('/api/v1/admin/delivery/pickup-points/{pickupPointId}', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: {
+          pickupPointId,
+        },
+      },
+    });
+
+    if (result.error) {
+      return {
+        error: getProtectedErrorMessage(result.error, 'Не удалось удалить пункт самовывоза.'),
+      };
+    }
+
+    return {
+      error: null,
+    };
+  } catch {
+    return {
+      error: 'Не удалось связаться с сервисом удаления пункта самовывоза.',
     };
   }
 }

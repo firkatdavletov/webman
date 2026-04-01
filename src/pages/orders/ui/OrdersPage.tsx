@@ -170,7 +170,11 @@ export function OrdersPage() {
 
     setSelectedOrder(fallbackOrder);
     setOrderDetailsErrorMessage('');
-    setIsOrderDetailsLoading(true);
+    setIsOrderDetailsLoading(!fallbackOrder);
+
+    if (fallbackOrder) {
+      return;
+    }
 
     let isCancelled = false;
 

@@ -17,6 +17,7 @@ export type UpsertDeliveryTariffPayload = components['schemas']['UpsertDeliveryT
 export type DeliveryAddress = components['schemas']['DeliveryAddressResponse'];
 export type PickupPoint = components['schemas']['AdminPickupPointResponse'];
 export type UpsertPickupPointPayload = components['schemas']['UpsertPickupPointRequest'];
+export type DetectPickupPointAddressPayload = components['schemas']['DetectPickupPointAddressRequest'];
 
 export type CheckoutPaymentRule = components['schemas']['CheckoutPaymentRuleResponse'];
 export type ReplaceCheckoutPaymentRulesPayload = components['schemas']['ReplaceCheckoutPaymentRulesRequest'];

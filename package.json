@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "api:gen": "openapi-typescript /Users/firkatdavletov/IdeaProjects/delivery/openapi.yaml -o src/shared/api/schema.d.ts"
+    "api:gen": "openapi-typescript /Users/firkatdavletov/IdeaProjects/delivery/build/openapi/admin-openapi.yaml -o src/shared/api/schema.d.ts"
   },
   "dependencies": {
     "openapi-fetch": "^0.17.0",

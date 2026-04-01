@@ -7,6 +7,7 @@ export type {
   DeliveryZone,
   DeliveryZoneGeometry,
   DeliveryZoneType,
+  DetectPickupPointAddressPayload,
   PaymentMethodCode,
   PickupPoint,
   ReplaceCheckoutPaymentRulesPayload,
@@ -17,6 +18,10 @@ export type {
   UpsertPickupPointPayload,
 } from './model/types';
 export {
+  deleteDeliveryTariff,
+  deleteDeliveryZone,
+  deletePickupPoint,
+  detectPickupPointAddress,
   getCheckoutPaymentRules,
   getDeliveryMethodSettings,
   getDeliveryZoneById,
@@ -33,6 +38,8 @@ export {
 } from './api/deliveryApi';
 export type {
   CheckoutPaymentRulesResult,
+  DeleteDeliveryEntityResult,
+  DetectPickupPointAddressResult,
   DeliveryMethodSettingsResult,
   DeliveryTariffsResult,
   DeliveryZonesResult,
