@@ -9,11 +9,17 @@ import {
   removeDeliveryZonePolygonPoint,
   updateDeliveryZonePolygonPoint,
 } from '@/features/delivery-zone-editor/model/geometryMappers';
-import { loadYandexMapsReactApi, type YandexMapLocation, type YandexMapsReactApi } from '@/features/delivery-zone-editor/model/yandexMaps';
+import {
+  loadYandexMapsReactApi,
+  type YandexMapCoordinate,
+  type YandexMapLocation,
+  type YandexMapsReactApi,
+} from '@/features/delivery-zone-editor/model/yandexMaps';
 import type {
   DeliveryZoneEditorCoordinate,
   DeliveryZoneEditorGeometry,
 } from '@/features/delivery-zone-editor/model/types';
+import { requestCurrentBrowserLocation } from '@/shared/lib/yandex-maps/geolocation';
 
 type DeliveryZoneMapEditorProps = {
   geometry: DeliveryZoneEditorGeometry | null;
@@ -24,6 +30,7 @@ type DeliveryZoneMapEditorProps = {
 
 const DEFAULT_MAP_CENTER: DeliveryZoneEditorCoordinate = [37.617635, 55.755814];
 const DEFAULT_MAP_ZOOM = 10;
+const CURRENT_LOCATION_ZOOM = 15;
 
 function formatCoordinateValue(value: number): string {
   return value.toFixed(6);
@@ -91,6 +98,9 @@ export function DeliveryZoneMapEditor({
   const [mapError, setMapError] = useState('');
   const [isMapLoading, setIsMapLoading] = useState(true);
   const [mapLocation, setMapLocation] = useState<YandexMapLocation>(() => buildMapLocation(getDeliveryZoneGeometryBounds(geometry)));
+  const [userLocation, setUserLocation] = useState<YandexMapCoordinate | null>(null);
+  const [isUserLocationLoading, setIsUserLocationLoading] = useState(false);
+  const [userLocationError, setUserLocationError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -126,6 +136,40 @@ export function DeliveryZoneMapEditor({
   useEffect(() => {
     setMapLocation(buildMapLocation(getDeliveryZoneGeometryBounds(geometry)));
   }, [serializedGeometry]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    setIsUserLocationLoading(true);
+    setUserLocationError('');
+
+    void requestCurrentBrowserLocation()
+      .then((nextLocation) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setUserLocation(nextLocation);
+        setMapLocation({
+          center: nextLocation,
+          zoom: CURRENT_LOCATION_ZOOM,
+          duration: 300,
+        });
+        setIsUserLocationLoading(false);
+      })
+      .catch((error: unknown) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setUserLocationError(error instanceof Error ? error.message : 'Не удалось получить текущее местоположение.');
+        setIsUserLocationLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const polygons = geometry?.polygons ?? [];
   const safeActivePolygonIndex =
@@ -186,6 +230,26 @@ export function DeliveryZoneMapEditor({
     setMapLocation(buildMapLocation(getDeliveryZoneGeometryBounds(geometry)));
   };
 
+  const handleFocusUserLocation = () => {
+    setIsUserLocationLoading(true);
+    setUserLocationError('');
+
+    void requestCurrentBrowserLocation()
+      .then((nextLocation) => {
+        setUserLocation(nextLocation);
+        setMapLocation({
+          center: nextLocation,
+          zoom: CURRENT_LOCATION_ZOOM,
+          duration: 300,
+        });
+        setIsUserLocationLoading(false);
+      })
+      .catch((error: unknown) => {
+        setUserLocationError(error instanceof Error ? error.message : 'Не удалось получить текущее местоположение.');
+        setIsUserLocationLoading(false);
+      });
+  };
+
   const handleClearGeometry = () => {
     onGeometryChange(clearDeliveryZoneGeometry());
     onActivePolygonIndexChange(0);
@@ -211,6 +275,9 @@ export function DeliveryZoneMapEditor({
           <div className="delivery-zone-map-toolbar-actions">
             <button type="button" className="secondary-button" onClick={handleAddPolygon}>
               Новый контур
+            </button>
+            <button type="button" className="secondary-button" onClick={handleFocusUserLocation} disabled={isUserLocationLoading}>
+              {isUserLocationLoading ? 'Определяем местоположение...' : 'Мое местоположение'}
             </button>
             <button type="button" className="secondary-button" onClick={handleFitToGeometry}>
               Вписать в экран
@@ -256,6 +323,12 @@ export function DeliveryZoneMapEditor({
                     );
                   })}
 
+                  {userLocation ? (
+                    <YMapMarker coordinates={userLocation}>
+                      <div className="delivery-zone-map-marker delivery-point-map-marker delivery-zone-map-marker-current">Вы</div>
+                    </YMapMarker>
+                  ) : null}
+
                   {activePolygon?.outer.map((point, pointIndex) => (
                     <YMapMarker
                       key={`polygon-point-${safeActivePolygonIndex}-${pointIndex}`}
@@ -282,6 +355,17 @@ export function DeliveryZoneMapEditor({
           <p className="catalog-meta">
             Клик по карте добавляет вершину в активный контур. Перетаскивайте маркеры, чтобы править форму, и удаляйте лишние точки
             или контуры в списке справа.
+          </p>
+        </div>
+
+        <div className="delivery-zone-preview-item">
+          <h5 className="delivery-zone-preview-title">Местоположение</h5>
+          <p className="catalog-meta">
+            {isUserLocationLoading
+              ? 'Запрашиваем доступ к местоположению браузера и переводим карту к текущей точке.'
+              : userLocation
+                ? `Карта переведена к вашей точке: широта ${formatCoordinateValue(userLocation[1])}, долгота ${formatCoordinateValue(userLocation[0])}.`
+                : userLocationError || 'Текущее местоположение пока не определено.'}
           </p>
         </div>
 

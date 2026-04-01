@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { loadYandexMapsReactApi, type YandexMapCoordinate, type YandexMapLocation, type YandexMapsReactApi } from '@/shared/lib/yandex-maps/api';
+import { requestCurrentBrowserLocation } from '@/shared/lib/yandex-maps/geolocation';
 
 type PickupPointMapEditorProps = {
   coordinates: YandexMapCoordinate | null;
@@ -10,6 +11,7 @@ type PickupPointMapEditorProps = {
 
 const DEFAULT_MAP_CENTER: YandexMapCoordinate = [37.617635, 55.755814];
 const DEFAULT_MAP_ZOOM = 10;
+const CURRENT_LOCATION_ZOOM = 15;
 
 function formatCoordinateValue(value: number): string {
   return value.toFixed(6);
@@ -51,6 +53,9 @@ export function PickupPointMapEditor({ coordinates, title, addressSummary, onCoo
   const [mapError, setMapError] = useState('');
   const [isMapLoading, setIsMapLoading] = useState(true);
   const [mapLocation, setMapLocation] = useState<YandexMapLocation>(() => buildMapLocation(coordinates));
+  const [userLocation, setUserLocation] = useState<YandexMapCoordinate | null>(null);
+  const [isUserLocationLoading, setIsUserLocationLoading] = useState(false);
+  const [userLocationError, setUserLocationError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -87,6 +92,40 @@ export function PickupPointMapEditor({ coordinates, title, addressSummary, onCoo
     setMapLocation(buildMapLocation(coordinates));
   }, [serializedCoordinates]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    setIsUserLocationLoading(true);
+    setUserLocationError('');
+
+    void requestCurrentBrowserLocation()
+      .then((nextLocation) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setUserLocation(nextLocation);
+        setMapLocation({
+          center: nextLocation,
+          zoom: CURRENT_LOCATION_ZOOM,
+          duration: 300,
+        });
+        setIsUserLocationLoading(false);
+      })
+      .catch((error: unknown) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setUserLocationError(error instanceof Error ? error.message : 'Не удалось получить текущее местоположение.');
+        setIsUserLocationLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleMapClick = (_object: unknown, event: { coordinates?: YandexMapCoordinate } | undefined) => {
     if (!event?.coordinates) {
       return;
@@ -107,6 +146,26 @@ export function PickupPointMapEditor({ coordinates, title, addressSummary, onCoo
 
   const handleFit = () => {
     setMapLocation(buildMapLocation(coordinates));
+  };
+
+  const handleFocusUserLocation = () => {
+    setIsUserLocationLoading(true);
+    setUserLocationError('');
+
+    void requestCurrentBrowserLocation()
+      .then((nextLocation) => {
+        setUserLocation(nextLocation);
+        setMapLocation({
+          center: nextLocation,
+          zoom: CURRENT_LOCATION_ZOOM,
+          duration: 300,
+        });
+        setIsUserLocationLoading(false);
+      })
+      .catch((error: unknown) => {
+        setUserLocationError(error instanceof Error ? error.message : 'Не удалось получить текущее местоположение.');
+        setIsUserLocationLoading(false);
+      });
   };
 
   const handleClear = () => {
@@ -131,6 +190,9 @@ export function PickupPointMapEditor({ coordinates, title, addressSummary, onCoo
         <div className="delivery-zone-map-toolbar">
           <span className="status-chip">{coordinates ? 'Точка выбрана' : 'Точка не выбрана'}</span>
           <div className="delivery-zone-map-toolbar-actions">
+            <button type="button" className="secondary-button" onClick={handleFocusUserLocation} disabled={isUserLocationLoading}>
+              {isUserLocationLoading ? 'Определяем местоположение...' : 'Мое местоположение'}
+            </button>
             <button type="button" className="secondary-button" onClick={handleFit}>
               Показать точку
             </button>
@@ -155,6 +217,12 @@ export function PickupPointMapEditor({ coordinates, title, addressSummary, onCoo
                   <YMapDefaultFeaturesLayer />
                   <YMapListener layer="any" onClick={handleMapClick} />
 
+                  {userLocation ? (
+                    <YMapMarker coordinates={userLocation}>
+                      <div className="delivery-zone-map-marker delivery-point-map-marker delivery-zone-map-marker-current">Вы</div>
+                    </YMapMarker>
+                  ) : null}
+
                   {coordinates ? (
                     <YMapMarker coordinates={coordinates} draggable onDragMove={handleMarkerDrag} onDragEnd={handleMarkerDrag}>
                       <div className="delivery-zone-map-marker delivery-point-map-marker">ПВ</div>
@@ -176,6 +244,17 @@ export function PickupPointMapEditor({ coordinates, title, addressSummary, onCoo
         <div className="delivery-zone-preview-item">
           <h5 className="delivery-zone-preview-title">Как работать с картой</h5>
           <p className="catalog-meta">Кликните по карте, чтобы поставить точку пункта самовывоза. Маркер можно перетащить мышью.</p>
+        </div>
+
+        <div className="delivery-zone-preview-item">
+          <h5 className="delivery-zone-preview-title">Местоположение</h5>
+          <p className="catalog-meta">
+            {isUserLocationLoading
+              ? 'Запрашиваем доступ к местоположению браузера и переводим карту к текущей точке.'
+              : userLocation
+                ? `Карта переведена к вашей точке: широта ${formatCoordinateValue(userLocation[1])}, долгота ${formatCoordinateValue(userLocation[0])}.`
+                : userLocationError || 'Текущее местоположение пока не определено.'}
+          </p>
         </div>
 
         <div className="delivery-zone-preview-item">

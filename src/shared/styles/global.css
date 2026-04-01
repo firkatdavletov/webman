@@ -1737,6 +1737,10 @@ button:disabled {
   background: var(--danger);
 }
 
+.delivery-zone-map-marker-current {
+  background: #1d4ed8;
+}
+
 .delivery-point-map-marker {
   min-width: 40px;
   padding-inline: 8px;
