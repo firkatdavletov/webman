@@ -430,6 +430,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/order-statuses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List configurable order statuses */
+        get: operations["getOrderStatuses"];
+        put?: never;
+        /** Create order status definition */
+        post: operations["createOrderStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/order-statuses/{statusId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one order status definition */
+        get: operations["getOrderStatus"];
+        /** Update order status definition */
+        put: operations["updateOrderStatusDefinition"];
+        post?: never;
+        /** Deactivate order status definition */
+        delete: operations["deactivateOrderStatus"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/order-status-transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List order status transitions */
+        get: operations["getOrderStatusTransitions"];
+        put?: never;
+        /** Create order status transition */
+        post: operations["createOrderStatusTransition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/order-status-transitions/{transitionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete order status transition */
+        delete: operations["deleteOrderStatusTransition"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/orders": {
         parameters: {
             query?: never;
@@ -439,7 +511,7 @@ export interface paths {
         };
         /**
          * List admin queue orders
-         * @description Returns orders with statuses `PENDING` and `CONFIRMED`, sorted by `createdAt` descending.
+         * @description Returns orders in active non-final workflow states, sorted by `createdAt` descending.
          */
         get: operations["getAdminOrders"];
         put?: never;
@@ -470,6 +542,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/orders/{orderId}/available-status-transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List available transitions for order */
+        get: operations["getAvailableOrderStatusTransitions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/orders/{orderId}/status-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List order status history */
+        get: operations["getOrderStatusHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/orders/{orderId}/status": {
         parameters: {
             query?: never;
@@ -479,7 +585,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
+        /** Change order status */
+        post: operations["changeOrderStatus"];
         delete?: never;
         options?: never;
         head?: never;
@@ -603,7 +710,10 @@ export interface components {
             normalizedCity?: string | null;
             postalCode?: string | null;
             geometry?: components["schemas"]["DeliveryZoneGeometry"] | null;
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description Higher value means higher priority when polygon delivery zones overlap.
+             */
             priority: number;
             isActive: boolean;
         };
@@ -616,7 +726,10 @@ export interface components {
             city?: string | null;
             postalCode?: string | null;
             geometry?: components["schemas"]["DeliveryZoneGeometry"] | null;
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description Higher value means higher priority when polygon delivery zones overlap.
+             */
             priority?: number;
             isActive: boolean;
         };
@@ -726,6 +839,7 @@ export interface components {
             /** Format: int32 */
             countStep: number;
             isActive: boolean;
+            isConfigured: boolean;
         };
         AdminProductDetailsResponse: {
             /** Format: uuid */
@@ -746,6 +860,7 @@ export interface components {
             /** Format: int32 */
             countStep: number;
             isActive: boolean;
+            isConfigured: boolean;
             optionGroups: components["schemas"]["ProductOptionGroupResponse"][];
             modifierGroups: components["schemas"]["ProductModifierGroupResponse"][];
             /** Format: uuid */
@@ -1008,7 +1123,103 @@ export interface components {
             downloadUrl: string;
         };
         UpdateOrderStatusRequest: {
-            status: components["schemas"]["OrderStatus"];
+            /** Format: uuid */
+            statusId?: string | null;
+            statusCode?: string | null;
+            /** @description Legacy alias for `statusCode`. */
+            status?: string | null;
+            comment?: string | null;
+        };
+        OrderStatusSummaryResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            stateType: components["schemas"]["OrderStateType"];
+            color?: string | null;
+            icon?: string | null;
+            isFinal: boolean;
+            isCancellable: boolean;
+            visibleToCustomer: boolean;
+        };
+        OrderStatusResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            description?: string | null;
+            stateType: components["schemas"]["OrderStateType"];
+            color?: string | null;
+            icon?: string | null;
+            isInitial: boolean;
+            isFinal: boolean;
+            isCancellable: boolean;
+            isActive: boolean;
+            visibleToCustomer: boolean;
+            notifyCustomer: boolean;
+            notifyStaff: boolean;
+            /** Format: int32 */
+            sortOrder: number;
+        };
+        UpsertOrderStatusRequest: {
+            /** Format: uuid */
+            id?: string | null;
+            code: string;
+            name: string;
+            description?: string | null;
+            stateType: components["schemas"]["OrderStateType"];
+            color?: string | null;
+            icon?: string | null;
+            /** @default false */
+            isInitial: boolean;
+            /** @default false */
+            isFinal: boolean;
+            /** @default false */
+            isCancellable: boolean;
+            /** @default true */
+            isActive: boolean;
+            /** @default true */
+            visibleToCustomer: boolean;
+            /** @default false */
+            notifyCustomer: boolean;
+            /** @default true */
+            notifyStaff: boolean;
+            /** Format: int32 */
+            sortOrder?: number;
+        };
+        OrderStatusTransitionResponse: {
+            /** Format: uuid */
+            id: string;
+            fromStatus: components["schemas"]["OrderStatusSummaryResponse"];
+            toStatus: components["schemas"]["OrderStatusSummaryResponse"];
+            requiredRole?: components["schemas"]["UserRole"];
+            isAutomatic: boolean;
+            guardCode?: string | null;
+            isActive: boolean;
+        };
+        CreateOrderStatusTransitionRequest: {
+            /** Format: uuid */
+            fromStatusId: string;
+            /** Format: uuid */
+            toStatusId: string;
+            requiredRole?: components["schemas"]["UserRole"];
+            /** @default false */
+            isAutomatic: boolean;
+            guardCode?: string | null;
+            /** @default true */
+            isActive: boolean;
+        };
+        OrderStatusHistoryResponse: {
+            /** Format: uuid */
+            id: string;
+            previousStatus?: components["schemas"]["OrderStatusSummaryResponse"] | null;
+            currentStatus: components["schemas"]["OrderStatusSummaryResponse"];
+            changeSourceType: components["schemas"]["OrderStatusChangeSourceType"];
+            /** Format: uuid */
+            changedByUserId?: string | null;
+            comment?: string | null;
+            /** Format: date-time */
+            changedAt: string;
         };
         OrderResponse: {
             /** Format: uuid */
@@ -1021,7 +1232,10 @@ export interface components {
             customerName?: string | null;
             customerPhone?: string | null;
             customerEmail?: string | null;
-            status: components["schemas"]["OrderStatus"];
+            status: string;
+            statusName: string;
+            stateType: components["schemas"]["OrderStateType"];
+            currentStatus: components["schemas"]["OrderStatusSummaryResponse"];
             payment?: components["schemas"]["OrderPaymentResponse"] | null;
             deliveryMethod: components["schemas"]["DeliveryMethodType"];
             delivery: components["schemas"]["OrderDeliveryResponse"];
@@ -1033,6 +1247,8 @@ export interface components {
             deliveryFeeMinor: number;
             /** Format: int64 */
             totalMinor: number;
+            /** Format: date-time */
+            statusChangedAt: string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -1225,7 +1441,11 @@ export interface components {
         /** @enum {string} */
         OrderCustomerType: "USER" | "GUEST";
         /** @enum {string} */
-        OrderStatus: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
+        UserRole: "CUSTOMER" | "WHOLESALE" | "MANAGER" | "ADMIN";
+        /** @enum {string} */
+        OrderStateType: "CREATED" | "AWAITING_CONFIRMATION" | "CONFIRMED" | "PREPARING" | "READY_FOR_PICKUP" | "OUT_FOR_DELIVERY" | "COMPLETED" | "CANCELED" | "ON_HOLD";
+        /** @enum {string} */
+        OrderStatusChangeSourceType: "SYSTEM" | "ADMIN" | "CUSTOMER";
         /** @enum {string} */
         MediaTargetType: "PRODUCT" | "CATEGORY" | "VARIANT";
         /** @enum {string} */
@@ -1261,6 +1481,15 @@ export interface components {
         };
         /** @description Resource not found */
         NotFoundError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ApiError"];
+            };
+        };
+        /** @description Request conflicts with current resource state */
+        ConflictError: {
             headers: {
                 [name: string]: unknown;
             };
@@ -2146,6 +2375,224 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    getOrderStatuses: {
+        parameters: {
+            query?: {
+                includeInactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Order status definitions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderStatusResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    createOrderStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertOrderStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Created order status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderStatusResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            409: components["responses"]["ConflictError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getOrderStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                statusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Order status definition */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderStatusResponse"];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    updateOrderStatusDefinition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                statusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertOrderStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated order status definition */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderStatusResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            409: components["responses"]["ConflictError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    deactivateOrderStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                statusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deactivated order status definition */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderStatusResponse"];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            409: components["responses"]["ConflictError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getOrderStatusTransitions: {
+        parameters: {
+            query?: {
+                statusId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Order status transitions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderStatusTransitionResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    createOrderStatusTransition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOrderStatusTransitionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created order status transition */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderStatusTransitionResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            409: components["responses"]["ConflictError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    deleteOrderStatusTransition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transitionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Transition deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     getAdminOrders: {
         parameters: {
             query?: never;
@@ -2197,6 +2644,90 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    getAvailableOrderStatusTransitions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["OrderIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Available transitions for order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderStatusTransitionResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getOrderStatusHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["OrderIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Order status history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderStatusHistoryResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    changeOrderStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["OrderIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateOrderStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            409: components["responses"]["ConflictError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     updateOrderStatus: {
         parameters: {
             query?: never;
@@ -2225,6 +2756,7 @@ export interface operations {
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
             404: components["responses"]["NotFoundError"];
+            409: components["responses"]["ConflictError"];
             500: components["responses"]["InternalServerError"];
         };
     };

@@ -5,12 +5,15 @@ import {
   formatOrderDateTime,
   formatOrderItemQuantity,
   getDeliveryTypeLabel,
+  getOrderStateTypeLabel,
+  getOrderStatusChangeSourceTypeLabel,
   getOrderStatusLabel,
   getOrderStatusTone,
   getPaymentMethodLabel,
   getPaymentStatusPlaceholderLabel,
   type Order,
-  type OrderStatus,
+  type OrderStatusHistoryEntry,
+  type OrderStatusTransition,
 } from '@/entities/order';
 import { ChangeOrderStatus } from '@/features/change-order-status';
 
@@ -24,13 +27,18 @@ type OrderDetailsDrawerProps = {
   order: Order | null;
   isLoading: boolean;
   errorMessage: string;
+  isStatusMetaLoading: boolean;
   isStatusUpdating: boolean;
+  statusTransitions: OrderStatusTransition[];
+  statusTransitionsErrorMessage: string;
+  statusHistory: OrderStatusHistoryEntry[];
+  statusHistoryErrorMessage: string;
   statusErrorMessage: string;
   statusSuccessMessage: string;
   productMetaById: Map<string, OrderItemProductMeta>;
   productMetaErrorMessage: string;
   onClose: () => void;
-  onStatusSubmit: (status: OrderStatus) => void;
+  onStatusSubmit: (payload: { statusId: string; comment: string | null }) => void;
 };
 
 function renderInfoValue(value: string | null | undefined, emptyLabel = 'Не указано'): string {
@@ -53,12 +61,28 @@ function formatDeliveryEstimate(order: Order): string {
   return parts.length ? parts.join(' • ') : 'Не указан';
 }
 
+function getStatusHistorySummary(entry: OrderStatusHistoryEntry): string {
+  const previousStatusLabel = entry.previousStatus ? getOrderStatusLabel(entry.previousStatus) : null;
+  const currentStatusLabel = getOrderStatusLabel(entry.currentStatus);
+
+  if (!previousStatusLabel) {
+    return `Начальный статус: ${currentStatusLabel}`;
+  }
+
+  return `${previousStatusLabel} → ${currentStatusLabel}`;
+}
+
 export function OrderDetailsDrawer({
   isOpen,
   order,
   isLoading,
   errorMessage,
+  isStatusMetaLoading,
   isStatusUpdating,
+  statusTransitions,
+  statusTransitionsErrorMessage,
+  statusHistory,
+  statusHistoryErrorMessage,
   statusErrorMessage,
   statusSuccessMessage,
   productMetaById,
@@ -128,6 +152,18 @@ export function OrderDetailsDrawer({
                 <div>
                   <p className="orders-cell-meta">Дата и время</p>
                   <p className="orders-cell-title">{formatOrderDateTime(order.createdAt)}</p>
+                </div>
+                <div>
+                  <p className="orders-cell-meta">Код статуса</p>
+                  <p className="orders-cell-title">{order.status.code}</p>
+                </div>
+                <div>
+                  <p className="orders-cell-meta">Состояние</p>
+                  <p className="orders-cell-title">{getOrderStateTypeLabel(order.stateType)}</p>
+                </div>
+                <div>
+                  <p className="orders-cell-meta">Статус обновлен</p>
+                  <p className="orders-cell-title">{formatOrderDateTime(order.statusChangedAt)}</p>
                 </div>
               </div>
               <span className={`order-pill order-pill-${statusTone}`}>{getOrderStatusLabel(order.status)}</span>
@@ -255,13 +291,58 @@ export function OrderDetailsDrawer({
               </section>
             ) : null}
 
+            {statusTransitionsErrorMessage ? (
+              <p className="form-error" role="alert">
+                {statusTransitionsErrorMessage}
+              </p>
+            ) : null}
+
             <ChangeOrderStatus
               currentStatus={order.status}
+              transitions={statusTransitions}
               isSubmitting={isStatusUpdating}
+              isLoadingTransitions={isStatusMetaLoading}
               errorMessage={statusErrorMessage}
               successMessage={statusSuccessMessage}
               onSubmit={onStatusSubmit}
             />
+
+            <section className="order-detail-section" aria-label="История статусов">
+              <h4 className="order-detail-title">История статусов</h4>
+
+              {statusHistoryErrorMessage ? (
+                <p className="form-error" role="alert">
+                  {statusHistoryErrorMessage}
+                </p>
+              ) : null}
+
+              {isStatusMetaLoading && !statusHistory.length ? (
+                <p className="catalog-empty-state">Загрузка истории статусов...</p>
+              ) : statusHistory.length ? (
+                <ul className="order-status-history-list">
+                  {statusHistory.map((entry) => (
+                    <li key={entry.id} className="order-status-history-item">
+                      <div className="order-status-history-head">
+                        <span className={`order-pill order-pill-${getOrderStatusTone(entry.currentStatus)}`}>
+                          {getOrderStatusLabel(entry.currentStatus)}
+                        </span>
+                        <p className="orders-cell-meta">{formatOrderDateTime(entry.changedAt)}</p>
+                      </div>
+
+                      <p className="orders-cell-meta">{getStatusHistorySummary(entry)}</p>
+                      <p className="orders-cell-meta">
+                        {getOrderStatusChangeSourceTypeLabel(entry.changeSourceType)}
+                        {entry.changedByUserId ? ` • ${entry.changedByUserId}` : ''}
+                      </p>
+
+                      {entry.comment?.trim() ? <p className="orders-cell-title">{entry.comment.trim()}</p> : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="catalog-empty-state">История изменения статусов пока пуста.</p>
+              )}
+            </section>
           </div>
         ) : null}
       </aside>

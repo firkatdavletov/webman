@@ -1,16 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
+  changeOrderStatus,
   getAdminOrders,
+  getAvailableOrderStatusTransitions,
   getOrderById,
+  getOrderStatusHistory,
   searchAdminOrderByNumber,
   type Order,
   type OrderStatus,
-  updateOrderStatus,
+  type OrderStatusCode,
+  type OrderStatusHistoryEntry,
+  type OrderStatusTransition,
 } from '@/entities/order';
 import { getAllProducts } from '@/entities/product';
-import { getPrimaryMediaImageUrl } from '@/shared/lib/media/images';
+import { OrderFilters } from '@/features/order-filters';
 import { OrderSearch } from '@/features/order-search';
-import { paginateItems } from '@/pages/orders/model/orderPageView';
+import { filterOrders, ORDER_PAGE_SIZE_OPTIONS, paginateItems, type OrderFilters as OrdersPageFilterState } from '@/pages/orders/model/orderPageView';
+import { getPrimaryMediaImageUrl } from '@/shared/lib/media/images';
 import { NavBar } from '@/shared/ui/NavBar';
 import { OrderDetailsDrawer } from '@/widgets/order-details';
 import { OrdersTable } from '@/widgets/orders-table';
@@ -20,8 +27,37 @@ type OrderProductMeta = {
   sku: string | null;
 };
 
-const ADMIN_QUEUE_STATUSES = new Set<OrderStatus>(['PENDING', 'CONFIRMED']);
-const ORDERS_PAGE_SIZE = 10;
+const DEFAULT_ORDER_FILTERS: OrdersPageFilterState = {
+  statusFilter: 'all',
+  deliveryFilter: 'all',
+  paymentFilter: 'unsupported',
+  dateRangeFilter: 'all',
+};
+
+function upsertOrderById(orders: Order[], nextOrder: Order): Order[] {
+  const nextOrders = [...orders];
+  const existingOrderIndex = nextOrders.findIndex((order) => order.id === nextOrder.id);
+
+  if (existingOrderIndex === -1) {
+    nextOrders.unshift(nextOrder);
+    return nextOrders;
+  }
+
+  nextOrders[existingOrderIndex] = nextOrder;
+  return nextOrders;
+}
+
+function buildAvailableStatuses(orders: Order[]): OrderStatus[] {
+  const statusesByCode = new Map<OrderStatusCode, OrderStatus>();
+
+  orders.forEach((order) => {
+    if (!statusesByCode.has(order.status.code)) {
+      statusesByCode.set(order.status.code, order.status);
+    }
+  });
+
+  return [...statusesByCode.values()].sort((left, right) => left.name.localeCompare(right.name, 'ru'));
+}
 
 export function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -35,12 +71,19 @@ export function OrdersPage() {
   const [searchErrorMessage, setSearchErrorMessage] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
+  const [filters, setFilters] = useState<OrdersPageFilterState>(DEFAULT_ORDER_FILTERS);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(ORDER_PAGE_SIZE_OPTIONS[0]);
 
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isOrderDetailsLoading, setIsOrderDetailsLoading] = useState(false);
   const [orderDetailsErrorMessage, setOrderDetailsErrorMessage] = useState('');
+  const [isStatusMetaLoading, setIsStatusMetaLoading] = useState(false);
+  const [availableStatusTransitions, setAvailableStatusTransitions] = useState<OrderStatusTransition[]>([]);
+  const [statusTransitionsErrorMessage, setStatusTransitionsErrorMessage] = useState('');
+  const [statusHistory, setStatusHistory] = useState<OrderStatusHistoryEntry[]>([]);
+  const [statusHistoryErrorMessage, setStatusHistoryErrorMessage] = useState('');
 
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
   const [statusUpdateErrorMessage, setStatusUpdateErrorMessage] = useState('');
@@ -48,6 +91,7 @@ export function OrdersPage() {
 
   const [productMetaById, setProductMetaById] = useState<Map<string, OrderProductMeta>>(() => new Map());
   const [productMetaErrorMessage, setProductMetaErrorMessage] = useState('');
+  const statusMetaRequestIdRef = useRef(0);
 
   const loadOrdersData = async (showInitialLoader = false) => {
     if (showInitialLoader) {
@@ -86,6 +130,30 @@ export function OrdersPage() {
 
     setProductMetaById(nextProductMetaById);
     setProductMetaErrorMessage('');
+  };
+
+  const loadSelectedOrderStatusData = async (orderId: string) => {
+    const requestId = statusMetaRequestIdRef.current + 1;
+    statusMetaRequestIdRef.current = requestId;
+
+    setIsStatusMetaLoading(true);
+    setStatusTransitionsErrorMessage('');
+    setStatusHistoryErrorMessage('');
+
+    const [transitionsResult, historyResult] = await Promise.all([
+      getAvailableOrderStatusTransitions(orderId),
+      getOrderStatusHistory(orderId),
+    ]);
+
+    if (requestId !== statusMetaRequestIdRef.current) {
+      return;
+    }
+
+    setAvailableStatusTransitions(transitionsResult.transitions);
+    setStatusTransitionsErrorMessage(transitionsResult.error ?? '');
+    setStatusHistory(historyResult.history);
+    setStatusHistoryErrorMessage(historyResult.error ?? '');
+    setIsStatusMetaLoading(false);
   };
 
   useEffect(() => {
@@ -129,14 +197,14 @@ export function OrdersPage() {
   }, [isSearchActive, orders, searchedOrder]);
 
   const visibleOrders = useMemo(
-    () => sourceOrders.slice().sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt)),
-    [sourceOrders],
+    () => filterOrders(sourceOrders, filters),
+    [filters, sourceOrders],
   );
-  const pagination = useMemo(() => paginateItems(visibleOrders, page, ORDERS_PAGE_SIZE), [page, visibleOrders]);
+  const pagination = useMemo(() => paginateItems(visibleOrders, page, pageSize), [page, pageSize, visibleOrders]);
 
   useEffect(() => {
     setPage(1);
-  }, [sourceOrders]);
+  }, [filters, pageSize, sourceOrders]);
 
   const knownOrders = useMemo(() => {
     const nextOrders = [...orders];
@@ -157,6 +225,23 @@ export function OrdersPage() {
 
     return nextLookup;
   }, [knownOrders]);
+
+  const availableStatuses = useMemo(() => buildAvailableStatuses(knownOrders), [knownOrders]);
+
+  useEffect(() => {
+    if (filters.statusFilter === 'all') {
+      return;
+    }
+
+    const statusExists = availableStatuses.some((status) => status.code === filters.statusFilter);
+
+    if (!statusExists) {
+      setFilters((currentFilters) => ({
+        ...currentFilters,
+        statusFilter: 'all',
+      }));
+    }
+  }, [availableStatuses, filters.statusFilter]);
 
   useEffect(() => {
     if (!selectedOrderId) {
@@ -200,11 +285,29 @@ export function OrdersPage() {
     };
   }, [knownOrderLookup, selectedOrderId]);
 
+  useEffect(() => {
+    if (!selectedOrderId) {
+      statusMetaRequestIdRef.current += 1;
+      setIsStatusMetaLoading(false);
+      setAvailableStatusTransitions([]);
+      setStatusTransitionsErrorMessage('');
+      setStatusHistory([]);
+      setStatusHistoryErrorMessage('');
+      return;
+    }
+
+    void loadSelectedOrderStatusData(selectedOrderId);
+  }, [selectedOrderId]);
+
   const handleRefresh = async () => {
     await loadOrdersData();
 
     if (isSearchActive) {
       await runSearch(activeSearchQuery);
+    }
+
+    if (selectedOrderId) {
+      await loadSelectedOrderStatusData(selectedOrderId);
     }
   };
 
@@ -234,7 +337,7 @@ export function OrdersPage() {
     setIsStatusUpdating(false);
   };
 
-  const handleStatusSubmit = async (status: OrderStatus) => {
+  const handleStatusSubmit = async ({ statusId, comment }: { statusId: string; comment: string | null }) => {
     if (!selectedOrder) {
       return;
     }
@@ -243,9 +346,10 @@ export function OrdersPage() {
     setStatusUpdateErrorMessage('');
     setStatusUpdateSuccessMessage('');
 
-    const result = await updateOrderStatus({
+    const result = await changeOrderStatus({
       orderId: selectedOrder.id,
-      status,
+      statusId,
+      comment,
     });
 
     if (!result.order) {
@@ -257,17 +361,9 @@ export function OrdersPage() {
     const updatedOrder = result.order;
 
     setSelectedOrder(updatedOrder);
-    setStatusUpdateSuccessMessage('Статус заказа обновлен.');
+    setStatusUpdateSuccessMessage(`Статус заказа изменен на «${updatedOrder.status.name}».`);
 
-    setOrders((currentOrders) => {
-      const nextOrders = currentOrders.filter((order) => order.id !== updatedOrder.id);
-
-      if (ADMIN_QUEUE_STATUSES.has(updatedOrder.status)) {
-        nextOrders.unshift(updatedOrder);
-      }
-
-      return nextOrders;
-    });
+    setOrders((currentOrders) => upsertOrderById(currentOrders, updatedOrder));
 
     setSearchedOrder((currentOrder) => {
       if (!currentOrder || currentOrder.id !== updatedOrder.id) {
@@ -279,6 +375,7 @@ export function OrdersPage() {
 
     setIsStatusUpdating(false);
 
+    await loadSelectedOrderStatusData(updatedOrder.id);
     void loadOrdersData();
   };
 
@@ -310,6 +407,9 @@ export function OrdersPage() {
             >
               {isRefreshing ? 'Обновление...' : 'Обновить данные'}
             </button>
+            <Link className="secondary-link" to="/order-statuses">
+              Справочник статусов
+            </Link>
           </div>
         </header>
 
@@ -328,6 +428,42 @@ export function OrdersPage() {
               onSearchQueryChange={setSearchQuery}
               onSearch={handleSearch}
               onResetSearch={handleResetSearch}
+            />
+
+            <OrderFilters
+              availableStatuses={availableStatuses}
+              statusFilter={filters.statusFilter}
+              paymentFilter={filters.paymentFilter}
+              deliveryFilter={filters.deliveryFilter}
+              dateRangeFilter={filters.dateRangeFilter}
+              pageSize={pageSize}
+              pageSizeOptions={ORDER_PAGE_SIZE_OPTIONS}
+              disabled={isLoading || isSearching}
+              onStatusFilterChange={(value) =>
+                setFilters((currentFilters) => ({
+                  ...currentFilters,
+                  statusFilter: value,
+                }))
+              }
+              onPaymentFilterChange={(value) =>
+                setFilters((currentFilters) => ({
+                  ...currentFilters,
+                  paymentFilter: value,
+                }))
+              }
+              onDeliveryFilterChange={(value) =>
+                setFilters((currentFilters) => ({
+                  ...currentFilters,
+                  deliveryFilter: value,
+                }))
+              }
+              onDateRangeFilterChange={(value) =>
+                setFilters((currentFilters) => ({
+                  ...currentFilters,
+                  dateRangeFilter: value,
+                }))
+              }
+              onPageSizeChange={setPageSize}
             />
 
             <p className="catalog-results-meta">
@@ -398,7 +534,12 @@ export function OrdersPage() {
         order={selectedOrder}
         isLoading={isOrderDetailsLoading}
         errorMessage={orderDetailsErrorMessage}
+        isStatusMetaLoading={isStatusMetaLoading}
         isStatusUpdating={isStatusUpdating}
+        statusTransitions={availableStatusTransitions}
+        statusTransitionsErrorMessage={statusTransitionsErrorMessage}
+        statusHistory={statusHistory}
+        statusHistoryErrorMessage={statusHistoryErrorMessage}
         statusErrorMessage={statusUpdateErrorMessage}
         statusSuccessMessage={statusUpdateSuccessMessage}
         productMetaById={productMetaById}

@@ -1,32 +1,48 @@
-import { useEffect, useState } from 'react';
-import { getOrderStatusLabel, type OrderStatus } from '@/entities/order';
+import { useEffect, useMemo, useState } from 'react';
+import { getOrderStatusLabel, type OrderStatus, type OrderStatusTransition } from '@/entities/order';
 
 type ChangeOrderStatusProps = {
   currentStatus: OrderStatus;
+  transitions: OrderStatusTransition[];
   isSubmitting: boolean;
+  isLoadingTransitions?: boolean;
   disabled?: boolean;
   errorMessage?: string;
   successMessage?: string;
-  onSubmit: (status: OrderStatus) => void;
+  onSubmit: (payload: { statusId: string; comment: string | null }) => void;
 };
-
-const ORDER_STATUS_OPTIONS: OrderStatus[] = ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'];
 
 export function ChangeOrderStatus({
   currentStatus,
+  transitions,
   isSubmitting,
+  isLoadingTransitions = false,
   disabled = false,
   errorMessage,
   successMessage,
   onSubmit,
 }: ChangeOrderStatusProps) {
-  const [nextStatus, setNextStatus] = useState<OrderStatus>(currentStatus);
+  const transitionOptions = useMemo(() => {
+    const uniqueTransitionsByStatusId = new Map<string, OrderStatusTransition>();
+
+    transitions.forEach((transition) => {
+      if (!uniqueTransitionsByStatusId.has(transition.toStatus.id)) {
+        uniqueTransitionsByStatusId.set(transition.toStatus.id, transition);
+      }
+    });
+
+    return [...uniqueTransitionsByStatusId.values()];
+  }, [transitions]);
+
+  const [nextStatusId, setNextStatusId] = useState('');
+  const [comment, setComment] = useState('');
 
   useEffect(() => {
-    setNextStatus(currentStatus);
-  }, [currentStatus]);
+    setNextStatusId(transitionOptions[0]?.toStatus.id ?? '');
+    setComment('');
+  }, [currentStatus.id, transitionOptions]);
 
-  const canSubmit = !disabled && !isSubmitting && nextStatus !== currentStatus;
+  const canSubmit = !disabled && !isSubmitting && !isLoadingTransitions && Boolean(nextStatusId);
 
   return (
     <section className="order-detail-section" aria-label="Изменение статуса заказа">
@@ -41,7 +57,10 @@ export function ChangeOrderStatus({
             return;
           }
 
-          onSubmit(nextStatus);
+          onSubmit({
+            statusId: nextStatusId,
+            comment: comment.trim() || null,
+          });
         }}
       >
         <label className="field-label" htmlFor="change-order-status-select">
@@ -52,13 +71,16 @@ export function ChangeOrderStatus({
           <select
             id="change-order-status-select"
             className="field-input"
-            value={nextStatus}
-            onChange={(event) => setNextStatus(event.target.value as OrderStatus)}
-            disabled={disabled || isSubmitting}
+            value={nextStatusId}
+            onChange={(event) => setNextStatusId(event.target.value)}
+            disabled={disabled || isSubmitting || isLoadingTransitions || !transitionOptions.length}
           >
-            {ORDER_STATUS_OPTIONS.map((status) => (
-              <option key={status} value={status}>
-                {getOrderStatusLabel(status)}
+            <option value="" disabled>
+              {transitionOptions.length ? 'Выберите статус' : 'Нет доступных переходов'}
+            </option>
+            {transitionOptions.map((transition) => (
+              <option key={transition.id} value={transition.toStatus.id}>
+                {getOrderStatusLabel(transition.toStatus)}
               </option>
             ))}
           </select>
@@ -67,7 +89,26 @@ export function ChangeOrderStatus({
             {isSubmitting ? 'Сохранение...' : 'Сохранить статус'}
           </button>
         </div>
+
+        <label className="field-label" htmlFor="change-order-status-comment">
+          Комментарий к изменению
+        </label>
+
+        <textarea
+          id="change-order-status-comment"
+          className="field-input field-textarea"
+          value={comment}
+          onChange={(event) => setComment(event.target.value)}
+          placeholder="Необязательно. Комментарий попадет в историю статусов."
+          disabled={disabled || isSubmitting || isLoadingTransitions}
+        />
       </form>
+
+      {isLoadingTransitions ? <p className="helper-text">Загрузка доступных переходов...</p> : null}
+
+      {!isLoadingTransitions && !transitionOptions.length ? (
+        <p className="helper-text">Для текущего статуса доступных переходов нет.</p>
+      ) : null}
 
       {errorMessage ? (
         <p className="form-error" role="alert">

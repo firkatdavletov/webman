@@ -1,6 +1,13 @@
 import type { components } from '@/shared/api/schema';
 
-export type OrderStatus = components['schemas']['OrderStatus'];
+export type OrderStateType = components['schemas']['OrderStateType'];
+export type OrderStatusChangeSourceType = components['schemas']['OrderStatusChangeSourceType'];
+export type UserRole = components['schemas']['UserRole'];
+export type OrderStatus = components['schemas']['OrderStatusSummaryResponse'];
+export type OrderStatusCode = OrderStatus['code'];
+export type OrderStatusDefinition = components['schemas']['OrderStatusResponse'];
+export type OrderStatusTransition = components['schemas']['OrderStatusTransitionResponse'];
+export type OrderStatusHistoryEntry = components['schemas']['OrderStatusHistoryResponse'];
 export type OrderDeliveryMethod = components['schemas']['DeliveryMethodType'];
 export type OrderCustomerType = components['schemas']['OrderCustomerType'];
 export type OrderItemUnit = components['schemas']['ProductUnit'];
@@ -64,6 +71,9 @@ export type Order = {
   customerName: string | null;
   customerPhone: string | null;
   customerEmail: string | null;
+  statusCode: OrderStatusCode;
+  statusName: string;
+  stateType: OrderStateType;
   status: OrderStatus;
   payment: OrderPayment | null;
   deliveryMethod: OrderDeliveryMethod;
@@ -73,6 +83,7 @@ export type Order = {
   subtotalMinor: number;
   deliveryFeeMinor: number;
   totalMinor: number;
+  statusChangedAt: string;
   createdAt: string;
   updatedAt: string;
 };

@@ -1,15 +1,24 @@
 import { getAccessToken } from '@/entities/session';
-import type { Order, OrderDeliveryAddress, OrderStatus } from '@/entities/order/model/types';
+import type {
+  Order,
+  OrderDeliveryAddress,
+  OrderStatusHistoryEntry,
+  OrderStatusTransition,
+} from '@/entities/order/model/types';
 import { type ApiError, apiClient } from '@/shared/api/client';
 import { getApiErrorMessage } from '@/shared/api/error';
-import type { components } from '@/shared/api/schema';
+import type { components, operations } from '@/shared/api/schema';
 
 type OrderResponse = components['schemas']['OrderResponse'];
 
-type UpdateOrderStatusRequest = {
+type ChangeOrderStatusRequest = {
   orderId: string;
-  status: OrderStatus;
+  statusId?: string | null;
+  statusCode?: string | null;
+  comment?: string | null;
 };
+
+type UpdateOrderStatusRequestBody = operations['changeOrderStatus']['requestBody']['content']['application/json'];
 
 export type OrderListResult = {
   orders: Order[];
@@ -23,6 +32,16 @@ export type OrderResult = {
 
 export type UpdateOrderStatusResult = {
   order: Order | null;
+  error: string | null;
+};
+
+export type OrderStatusTransitionsResult = {
+  transitions: OrderStatusTransition[];
+  error: string | null;
+};
+
+export type OrderStatusHistoryResult = {
+  history: OrderStatusHistoryEntry[];
   error: string | null;
 };
 
@@ -96,7 +115,10 @@ function mapOrder(order: OrderResponse): Order {
     customerName: order.customerName ?? null,
     customerPhone: order.customerPhone ?? null,
     customerEmail: order.customerEmail ?? null,
-    status: order.status,
+    statusCode: order.status,
+    statusName: order.statusName,
+    stateType: order.stateType,
+    status: order.currentStatus,
     payment: order.payment
       ? {
           code: order.payment.code,
@@ -124,6 +146,7 @@ function mapOrder(order: OrderResponse): Order {
     subtotalMinor: order.subtotalMinor,
     deliveryFeeMinor: order.deliveryFeeMinor,
     totalMinor: order.totalMinor,
+    statusChangedAt: order.statusChangedAt,
     createdAt: order.createdAt,
     updatedAt: order.updatedAt,
   };
@@ -248,18 +271,105 @@ export async function getOrderById(orderId: string): Promise<OrderResult> {
   };
 }
 
-export async function updateOrderStatus({ orderId, status }: UpdateOrderStatusRequest): Promise<UpdateOrderStatusResult> {
+export async function getAvailableOrderStatusTransitions(orderId: string): Promise<OrderStatusTransitionsResult> {
   try {
-    const result = await apiClient.PATCH('/api/v1/admin/orders/{orderId}/status', {
+    const result = await apiClient.GET('/api/v1/admin/orders/{orderId}/available-status-transitions', {
       headers: buildAuthHeaders(),
       params: {
         path: {
           orderId,
         },
       },
-      body: {
-        status,
+    });
+
+    if (result.error) {
+      return {
+        transitions: [],
+        error: getProtectedErrorMessage(result.error, 'Не удалось загрузить доступные переходы статусов заказа.'),
+      };
+    }
+
+    return {
+      transitions: result.data ?? [],
+      error: result.data ? null : 'Сервис переходов статусов заказа вернул некорректный ответ.',
+    };
+  } catch {
+    return {
+      transitions: [],
+      error: 'Не удалось связаться с сервисом переходов статусов заказа.',
+    };
+  }
+}
+
+export async function getOrderStatusHistory(orderId: string): Promise<OrderStatusHistoryResult> {
+  try {
+    const result = await apiClient.GET('/api/v1/admin/orders/{orderId}/status-history', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: {
+          orderId,
+        },
       },
+    });
+
+    if (result.error) {
+      return {
+        history: [],
+        error: getProtectedErrorMessage(result.error, 'Не удалось загрузить историю статусов заказа.'),
+      };
+    }
+
+    return {
+      history: result.data ?? [],
+      error: result.data ? null : 'Сервис истории статусов заказа вернул некорректный ответ.',
+    };
+  } catch {
+    return {
+      history: [],
+      error: 'Не удалось связаться с сервисом истории статусов заказа.',
+    };
+  }
+}
+
+export async function changeOrderStatus({
+  orderId,
+  statusId,
+  statusCode,
+  comment,
+}: ChangeOrderStatusRequest): Promise<UpdateOrderStatusResult> {
+  const nextStatusId = statusId?.trim() ?? '';
+  const nextStatusCode = statusCode?.trim() ?? '';
+
+  if (!nextStatusId && !nextStatusCode) {
+    return {
+      order: null,
+      error: 'Не указан целевой статус заказа.',
+    };
+  }
+
+  const body: UpdateOrderStatusRequestBody = {};
+
+  if (nextStatusId) {
+    body.statusId = nextStatusId;
+  } else if (nextStatusCode) {
+    body.statusCode = nextStatusCode;
+  }
+
+  const normalizedComment = comment?.trim() ?? '';
+
+  if (normalizedComment) {
+    body.comment = normalizedComment;
+  }
+
+  try {
+    const result = await apiClient.POST('/api/v1/admin/orders/{orderId}/status', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: {
+          orderId,
+        },
+      },
+      body,
     });
 
     if (result.error) {
@@ -287,3 +397,5 @@ export async function updateOrderStatus({ orderId, status }: UpdateOrderStatusRe
     };
   }
 }
+
+export const updateOrderStatus = changeOrderStatus;

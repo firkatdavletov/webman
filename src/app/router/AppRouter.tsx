@@ -17,6 +17,7 @@ import { DeliveryZoneCreatePage } from '@/pages/delivery/zone-create/ui/Delivery
 import { DeliveryZoneDetailsPage } from '@/pages/delivery/zone-details/ui/DeliveryZoneDetailsPage';
 import { DeliveryZoneMapPage } from '@/pages/delivery/zone-map/ui/DeliveryZoneMapPage';
 import { LoginPage } from '@/pages/login/ui/LoginPage';
+import { OrderStatusesPage } from '@/pages/order-statuses/ui/OrderStatusesPage';
 import { OrdersPage } from '@/pages/orders/ui/OrdersPage';
 import { ProtectedRoute } from '@/shared/routing/ProtectedRoute';
 
@@ -49,6 +50,7 @@ export function AppRouter() {
         <Route path="/catalog-import" element={<CatalogImportPage />} />
         <Route path="/modifier-import" element={<ModifierImportPage />} />
         <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/order-statuses" element={<OrderStatusesPage />} />
         <Route path="/delivery" element={<DeliveryConditionsPage />} />
         <Route path="/delivery/pickup-points/map" element={<DeliveryPickupPointMapPage />} />
         <Route path="/delivery/zones/new" element={<DeliveryZoneCreatePage />} />
@@ -56,6 +58,7 @@ export function AppRouter() {
         <Route path="/delivery/zones/:zoneId" element={<DeliveryZoneDetailsPage />} />
         <Route path="/delivery/zones/:zoneId/map" element={<DeliveryZoneMapPage />} />
         <Route path="/admin/orders" element={<OrdersPage />} />
+        <Route path="/admin/order-statuses" element={<OrderStatusesPage />} />
       </Route>
       <Route path="*" element={<Navigate to={fallbackPath} replace />} />
     </Routes>

@@ -4,28 +4,30 @@ import {
   getPaymentStatusPlaceholderLabel,
   type OrderDeliveryMethod,
   type OrderStatus,
+  type OrderStatusCode,
 } from '@/entities/order';
 import type { OrderDateRangeFilter } from '@/pages/orders/model/orderPageView';
 
 type OrderFiltersProps = {
-  statusFilter: 'all' | OrderStatus;
+  availableStatuses: OrderStatus[];
+  statusFilter: 'all' | OrderStatusCode;
   paymentFilter: 'unsupported';
   deliveryFilter: 'all' | OrderDeliveryMethod;
   dateRangeFilter: OrderDateRangeFilter;
   pageSize: number;
   pageSizeOptions: readonly number[];
   disabled?: boolean;
-  onStatusFilterChange: (value: 'all' | OrderStatus) => void;
+  onStatusFilterChange: (value: 'all' | OrderStatusCode) => void;
   onPaymentFilterChange: (value: 'unsupported') => void;
   onDeliveryFilterChange: (value: 'all' | OrderDeliveryMethod) => void;
   onDateRangeFilterChange: (value: OrderDateRangeFilter) => void;
   onPageSizeChange: (value: number) => void;
 };
 
-const ORDER_STATUSES: OrderStatus[] = ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'];
 const DELIVERY_TYPES: OrderDeliveryMethod[] = ['PICKUP', 'COURIER', 'YANDEX_PICKUP_POINT'];
 
 export function OrderFilters({
+  availableStatuses,
   statusFilter,
   paymentFilter,
   deliveryFilter,
@@ -49,12 +51,12 @@ export function OrderFilters({
           id="orders-status-filter"
           className="field-input"
           value={statusFilter}
-          onChange={(event) => onStatusFilterChange(event.target.value as 'all' | OrderStatus)}
+          onChange={(event) => onStatusFilterChange(event.target.value as 'all' | OrderStatusCode)}
           disabled={disabled}
         >
           <option value="all">Все статусы</option>
-          {ORDER_STATUSES.map((status) => (
-            <option key={status} value={status}>
+          {availableStatuses.map((status) => (
+            <option key={status.id} value={status.code}>
               {getOrderStatusLabel(status)}
             </option>
           ))}

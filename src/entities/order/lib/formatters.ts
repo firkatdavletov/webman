@@ -5,14 +5,35 @@ import type {
   OrderItem,
   OrderItemUnit,
   OrderPayment,
+  OrderStateType,
   OrderStatus,
+  OrderStatusChangeSourceType,
+  UserRole,
 } from '@/entities/order/model/types';
 
-const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  PENDING: 'Новый',
+const ORDER_STATE_TYPE_LABELS: Record<OrderStateType, string> = {
+  CREATED: 'Создан',
+  AWAITING_CONFIRMATION: 'Ожидает подтверждения',
   CONFIRMED: 'Подтвержден',
-  CANCELLED: 'Отменен',
-  COMPLETED: 'Выполнен',
+  PREPARING: 'Готовится',
+  READY_FOR_PICKUP: 'Готов к выдаче',
+  OUT_FOR_DELIVERY: 'Передан в доставку',
+  COMPLETED: 'Завершен',
+  CANCELED: 'Отменен',
+  ON_HOLD: 'На паузе',
+};
+
+const ORDER_STATUS_CHANGE_SOURCE_LABELS: Record<OrderStatusChangeSourceType, string> = {
+  SYSTEM: 'Система',
+  ADMIN: 'Администратор',
+  CUSTOMER: 'Клиент',
+};
+
+const USER_ROLE_LABELS: Record<UserRole, string> = {
+  CUSTOMER: 'Клиент',
+  WHOLESALE: 'Опт',
+  MANAGER: 'Менеджер',
+  ADMIN: 'Администратор',
 };
 
 const DELIVERY_TYPE_LABELS: Record<OrderDeliveryMethod, string> = {
@@ -44,24 +65,56 @@ const MONEY_FORMATTER = new Intl.NumberFormat('ru-RU', {
   maximumFractionDigits: 2,
 });
 
-export function getOrderStatusLabel(status: OrderStatus): string {
-  return ORDER_STATUS_LABELS[status] ?? status;
+export function getOrderStatusLabel(status: Pick<OrderStatus, 'name' | 'code'> | string | null | undefined): string {
+  if (typeof status === 'string') {
+    return status;
+  }
+
+  return compactText(status?.name) ?? compactText(status?.code) ?? 'Не указан';
 }
 
-export function getOrderStatusTone(status: OrderStatus): 'pending' | 'success' | 'danger' | 'neutral' {
-  if (status === 'PENDING') {
-    return 'pending';
+export function getOrderStateTypeLabel(stateType: OrderStateType): string {
+  return ORDER_STATE_TYPE_LABELS[stateType] ?? stateType;
+}
+
+export function getOrderStatusTone(
+  status: Pick<OrderStatus, 'stateType' | 'isFinal'> | null | undefined,
+): 'pending' | 'success' | 'danger' | 'neutral' {
+  if (!status) {
+    return 'neutral';
   }
 
-  if (status === 'CONFIRMED') {
-    return 'success';
-  }
-
-  if (status === 'CANCELLED') {
+  if (status.stateType === 'CANCELED') {
     return 'danger';
   }
 
-  return 'neutral';
+  if (
+    status.stateType === 'CONFIRMED' ||
+    status.stateType === 'PREPARING' ||
+    status.stateType === 'READY_FOR_PICKUP' ||
+    status.stateType === 'OUT_FOR_DELIVERY' ||
+    status.stateType === 'COMPLETED'
+  ) {
+    return 'success';
+  }
+
+  if (
+    status.stateType === 'CREATED' ||
+    status.stateType === 'AWAITING_CONFIRMATION' ||
+    status.stateType === 'ON_HOLD'
+  ) {
+    return 'pending';
+  }
+
+  return status.isFinal ? 'neutral' : 'pending';
+}
+
+export function getOrderStatusChangeSourceTypeLabel(sourceType: OrderStatusChangeSourceType): string {
+  return ORDER_STATUS_CHANGE_SOURCE_LABELS[sourceType] ?? sourceType;
+}
+
+export function getUserRoleLabel(role: UserRole): string {
+  return USER_ROLE_LABELS[role] ?? role;
 }
 
 function compactText(value: string | null | undefined): string | null {
