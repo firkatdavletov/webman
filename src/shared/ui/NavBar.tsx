@@ -39,8 +39,9 @@ const navItems = [
     badge: 'Активно',
   },
   {
-    label: 'Контент',
-    badge: 'Скоро',
+    label: 'Баннеры',
+    to: '/hero-banners',
+    badge: 'Активно',
   },
 ] as const;
 

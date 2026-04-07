@@ -56,10 +56,17 @@ export type OrderItem = {
   variantId: string | null;
   sku: string | null;
   title: string;
+  imageUrl: string | null;
   unit: OrderItemUnit;
   quantity: number;
   priceMinor: number;
   totalMinor: number;
+};
+
+export type OrderInlineStatusHistoryEntry = {
+  code: string;
+  name: string;
+  timestamp: string;
 };
 
 export type Order = {
@@ -80,6 +87,7 @@ export type Order = {
   delivery: OrderDelivery;
   comment: string | null;
   items: OrderItem[];
+  statusHistory: OrderInlineStatusHistoryEntry[];
   subtotalMinor: number;
   deliveryFeeMinor: number;
   totalMinor: number;

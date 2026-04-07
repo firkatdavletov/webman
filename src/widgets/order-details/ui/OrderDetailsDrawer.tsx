@@ -194,7 +194,7 @@ export function OrderDetailsDrawer({
                 <ul className="order-item-list">
                   {order.items.map((item) => {
                     const itemMeta = productMetaById.get(item.productId);
-                    const imageUrl = itemMeta?.imageUrl?.trim() ?? '';
+                    const imageUrl = item.imageUrl?.trim() || itemMeta?.imageUrl?.trim() || '';
                     const itemSku = renderInfoValue(item.sku, renderInfoValue(itemMeta?.sku, 'Не указан'));
 
                     return (
@@ -316,7 +316,18 @@ export function OrderDetailsDrawer({
                 </p>
               ) : null}
 
-              {isStatusMetaLoading && !statusHistory.length ? (
+              {isStatusMetaLoading && !statusHistory.length && order.statusHistory.length ? (
+                <ul className="order-status-history-list">
+                  {order.statusHistory.map((entry) => (
+                    <li key={`${entry.code}-${entry.timestamp}`} className="order-status-history-item">
+                      <div className="order-status-history-head">
+                        <span className="order-pill">{entry.name}</span>
+                        <p className="orders-cell-meta">{formatOrderDateTime(entry.timestamp)}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : isStatusMetaLoading && !statusHistory.length ? (
                 <p className="catalog-empty-state">Загрузка истории статусов...</p>
               ) : statusHistory.length ? (
                 <ul className="order-status-history-list">

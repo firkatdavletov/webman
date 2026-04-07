@@ -145,6 +145,8 @@ function mapUploadedMediaImage(data: MediaImageResponse): MediaImage {
   return {
     id: data.id,
     url: data.publicUrl ?? data.objectKey,
+    thumbUrl: data.thumbUrl ?? null,
+    cardUrl: data.cardUrl ?? null,
   };
 }
 

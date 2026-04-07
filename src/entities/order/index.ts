@@ -4,6 +4,7 @@ export type {
   OrderDelivery,
   OrderDeliveryAddress,
   OrderDeliveryMethod,
+  OrderInlineStatusHistoryEntry,
   OrderItem,
   OrderItemUnit,
   OrderPayment,

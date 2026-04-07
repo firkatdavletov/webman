@@ -649,6 +649,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/hero-banners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List hero banners with filters and pagination */
+        get: operations["listHeroBanners"];
+        put?: never;
+        /** Create a new hero banner */
+        post: operations["createHeroBanner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/hero-banners/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get hero banner details */
+        get: operations["getHeroBanner"];
+        /** Update hero banner */
+        put: operations["updateHeroBanner"];
+        post?: never;
+        /** Soft-delete hero banner */
+        delete: operations["deleteHeroBanner"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/hero-banners/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change hero banner status */
+        patch: operations["changeHeroBannerStatus"];
+        trace?: never;
+    };
+    "/api/v1/admin/hero-banners/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Bulk update hero banner sort order */
+        patch: operations["reorderHeroBanners"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1241,6 +1312,7 @@ export interface components {
             delivery: components["schemas"]["OrderDeliveryResponse"];
             comment?: string | null;
             items: components["schemas"]["OrderItemResponse"][];
+            statusHistory: components["schemas"]["OrderStatusHistoryEntryResponse"][];
             /** Format: int64 */
             subtotalMinor: number;
             /** Format: int64 */
@@ -1254,6 +1326,12 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        OrderStatusHistoryEntryResponse: {
+            code: string;
+            name: string;
+            /** Format: date-time */
+            timestamp: string;
+        };
         OrderItemResponse: {
             /** Format: uuid */
             id: string;
@@ -1263,6 +1341,8 @@ export interface components {
             variantId?: string | null;
             sku?: string | null;
             title: string;
+            /** @description Thumbnail URL of the product image. */
+            imageUrl?: string | null;
             unit: components["schemas"]["ProductUnit"];
             /** Format: int32 */
             quantity: number;
@@ -1403,6 +1483,12 @@ export interface components {
             fileSize: number;
             status: components["schemas"]["MediaImageStatus"];
             publicUrl?: string | null;
+            /** @description Public URL for the thumbnail variant (webp). Null while processing. */
+            thumbUrl?: string | null;
+            /** @description Public URL for the card variant (webp). Null while processing. */
+            cardUrl?: string | null;
+            /** @description Error message if image processing failed. */
+            processingError?: string | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -1449,7 +1535,119 @@ export interface components {
         /** @enum {string} */
         MediaTargetType: "PRODUCT" | "CATEGORY" | "VARIANT";
         /** @enum {string} */
-        MediaImageStatus: "PENDING" | "READY" | "DELETED";
+        MediaImageStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED" | "DELETED";
+        /** @enum {string} */
+        BannerPlacement: "HOME_HERO";
+        /** @enum {string} */
+        BannerStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+        /** @enum {string} */
+        BannerThemeVariant: "LIGHT" | "DARK" | "ACCENT";
+        /** @enum {string} */
+        BannerTextAlignment: "LEFT" | "CENTER" | "RIGHT";
+        HeroBannerTranslationResponse: {
+            /** Format: uuid */
+            id: string;
+            locale: string;
+            title: string;
+            subtitle?: string | null;
+            description?: string | null;
+            desktopImageAlt: string;
+            mobileImageAlt?: string | null;
+            primaryActionLabel?: string | null;
+            secondaryActionLabel?: string | null;
+        };
+        HeroBannerAdminResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            storefrontCode: string;
+            placement: components["schemas"]["BannerPlacement"];
+            status: components["schemas"]["BannerStatus"];
+            sortOrder: number;
+            desktopImageUrl: string;
+            mobileImageUrl?: string | null;
+            primaryActionUrl?: string | null;
+            secondaryActionUrl?: string | null;
+            themeVariant: components["schemas"]["BannerThemeVariant"];
+            textAlignment: components["schemas"]["BannerTextAlignment"];
+            /** Format: date-time */
+            startsAt?: string | null;
+            /** Format: date-time */
+            endsAt?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            translations: components["schemas"]["HeroBannerTranslationResponse"][];
+        };
+        HeroBannerAdminPageResponse: {
+            content: components["schemas"]["HeroBannerAdminResponse"][];
+            page: number;
+            size: number;
+            /** Format: int64 */
+            totalElements: number;
+            totalPages: number;
+        };
+        HeroBannerTranslationRequest: {
+            locale: string;
+            title: string;
+            subtitle?: string | null;
+            description?: string | null;
+            desktopImageAlt: string;
+            mobileImageAlt?: string | null;
+            primaryActionLabel?: string | null;
+            secondaryActionLabel?: string | null;
+        };
+        CreateHeroBannerRequest: {
+            code: string;
+            storefrontCode: string;
+            placement: components["schemas"]["BannerPlacement"];
+            status: components["schemas"]["BannerStatus"];
+            sortOrder: number;
+            desktopImageUrl: string;
+            mobileImageUrl?: string | null;
+            primaryActionUrl?: string | null;
+            secondaryActionUrl?: string | null;
+            themeVariant: components["schemas"]["BannerThemeVariant"];
+            textAlignment: components["schemas"]["BannerTextAlignment"];
+            /** Format: date-time */
+            startsAt?: string | null;
+            /** Format: date-time */
+            endsAt?: string | null;
+            translations?: components["schemas"]["HeroBannerTranslationRequest"][];
+        };
+        UpdateHeroBannerRequest: {
+            code: string;
+            storefrontCode: string;
+            placement: components["schemas"]["BannerPlacement"];
+            status: components["schemas"]["BannerStatus"];
+            sortOrder: number;
+            desktopImageUrl: string;
+            mobileImageUrl?: string | null;
+            primaryActionUrl?: string | null;
+            secondaryActionUrl?: string | null;
+            themeVariant: components["schemas"]["BannerThemeVariant"];
+            textAlignment: components["schemas"]["BannerTextAlignment"];
+            /** Format: date-time */
+            startsAt?: string | null;
+            /** Format: date-time */
+            endsAt?: string | null;
+            translations?: components["schemas"]["HeroBannerTranslationRequest"][];
+        };
+        ChangeHeroBannerStatusRequest: {
+            status: components["schemas"]["BannerStatus"];
+        };
+        ReorderHeroBannersRequest: {
+            items: {
+                /** Format: uuid */
+                id: string;
+                sortOrder: number;
+            }[];
+        };
     };
     responses: {
         /** @description Request validation failed or business rule violation */
@@ -1511,6 +1709,7 @@ export interface components {
         ProductIdPathParam: string;
         OrderIdPathParam: string;
         UploadIdPathParam: string;
+        HeroBannerIdPathParam: string;
     };
     requestBodies: never;
     headers: never;
@@ -2841,6 +3040,202 @@ export interface operations {
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
             404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    listHeroBanners: {
+        parameters: {
+            query?: {
+                storefrontCode?: string;
+                placement?: components["schemas"]["BannerPlacement"];
+                status?: components["schemas"]["BannerStatus"];
+                search?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated hero banner list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeroBannerAdminPageResponse"];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    createHeroBanner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateHeroBannerRequest"];
+            };
+        };
+        responses: {
+            /** @description Hero banner created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeroBannerAdminResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getHeroBanner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["HeroBannerIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Hero banner details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeroBannerAdminResponse"];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    updateHeroBanner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["HeroBannerIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateHeroBannerRequest"];
+            };
+        };
+        responses: {
+            /** @description Hero banner updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeroBannerAdminResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    deleteHeroBanner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["HeroBannerIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Hero banner deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    changeHeroBannerStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["HeroBannerIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeHeroBannerStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Status changed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeroBannerAdminResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    reorderHeroBanners: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderHeroBannersRequest"];
+            };
+        };
+        responses: {
+            /** @description Banners reordered */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
             500: components["responses"]["InternalServerError"];
         };
     };
