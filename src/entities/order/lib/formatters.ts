@@ -39,6 +39,7 @@ const USER_ROLE_LABELS: Record<UserRole, string> = {
 const DELIVERY_TYPE_LABELS: Record<OrderDeliveryMethod, string> = {
   PICKUP: 'Самовывоз',
   COURIER: 'Курьер',
+  CUSTOM_DELIVERY_ADDRESS: 'Доставка по адресу',
   YANDEX_PICKUP_POINT: 'Пункт выдачи Яндекс',
 };
 

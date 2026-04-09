@@ -758,16 +758,19 @@ export interface components {
         };
         DeliveryMethodSettingResponse: {
             method: components["schemas"]["DeliveryMethodType"];
-            name: string;
+            title: string;
+            description?: string | null;
             requiresAddress: boolean;
             requiresPickupPoint: boolean;
-            isEnabled: boolean;
+            isActive: boolean;
             /** Format: int32 */
             sortOrder: number;
         };
         UpsertDeliveryMethodSettingRequest: {
             method: components["schemas"]["DeliveryMethodType"];
-            isEnabled: boolean;
+            title: string;
+            description?: string | null;
+            isActive: boolean;
             /** Format: int32 */
             sortOrder: number;
         };
@@ -1517,7 +1520,7 @@ export interface components {
         /** @enum {string} */
         ProductUnit: "PIECE" | "KILOGRAM" | "GRAM" | "LITER" | "MILLILITER";
         /** @enum {string} */
-        DeliveryMethodType: "PICKUP" | "COURIER" | "YANDEX_PICKUP_POINT";
+        DeliveryMethodType: "PICKUP" | "COURIER" | "YANDEX_PICKUP_POINT" | "CUSTOM_DELIVERY_ADDRESS";
         /** @enum {string} */
         DeliveryZoneType: "CITY" | "POSTAL_CODE" | "POLYGON";
         /** @enum {string} */

@@ -115,24 +115,17 @@ export function NavBar() {
             </div>
 
             <nav className="nav-list" aria-label="Основная навигация">
-              {navItems.map((item) =>
-                'to' in item ? (
-                  <NavLink
-                    key={item.label}
-                    to={item.to}
-                    className={({ isActive }) => `nav-item nav-link${isActive ? ' nav-link-active' : ''}`}
-                    onClick={handleClose}
-                  >
-                    {item.label}
-                    <span className={`nav-badge${item.badge === 'Активно' ? ' nav-badge-live' : ''}`}>{item.badge}</span>
-                  </NavLink>
-                ) : (
-                  <button key={item.label} type="button" className="nav-item nav-link-disabled" disabled>
-                    {item.label}
-                    <span className="nav-badge">{item.badge}</span>
-                  </button>
-                ),
-              )}
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.label}
+                  to={item.to}
+                  className={({ isActive }) => `nav-item nav-link${isActive ? ' nav-link-active' : ''}`}
+                  onClick={handleClose}
+                >
+                  {item.label}
+                  <span className={`nav-badge${item.badge === 'Активно' ? ' nav-badge-live' : ''}`}>{item.badge}</span>
+                </NavLink>
+              ))}
             </nav>
 
             <button type="button" className="logout-button" onClick={handleLogout}>

@@ -24,7 +24,7 @@ type OrderFiltersProps = {
   onPageSizeChange: (value: number) => void;
 };
 
-const DELIVERY_TYPES: OrderDeliveryMethod[] = ['PICKUP', 'COURIER', 'YANDEX_PICKUP_POINT'];
+const DELIVERY_TYPES: OrderDeliveryMethod[] = ['PICKUP', 'COURIER', 'CUSTOM_DELIVERY_ADDRESS', 'YANDEX_PICKUP_POINT'];
 
 export function OrderFilters({
   availableStatuses,

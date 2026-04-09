@@ -37,6 +37,7 @@ import { DeliveryZonesSection } from './DeliveryZonesSection';
 const DELIVERY_METHOD_LABELS: Record<DeliveryMethod, string> = {
   PICKUP: 'Самовывоз',
   COURIER: 'Курьер',
+  CUSTOM_DELIVERY_ADDRESS: 'Доставка по адресу',
   YANDEX_PICKUP_POINT: 'Пункт выдачи Яндекс',
 };
 
@@ -47,7 +48,7 @@ const PAYMENT_METHOD_LABELS: Record<PaymentMethodCode, string> = {
   SBP: 'СБП',
 };
 
-const DELIVERY_METHOD_ORDER: DeliveryMethod[] = ['PICKUP', 'COURIER', 'YANDEX_PICKUP_POINT'];
+const DELIVERY_METHOD_ORDER: DeliveryMethod[] = ['PICKUP', 'COURIER', 'CUSTOM_DELIVERY_ADDRESS', 'YANDEX_PICKUP_POINT'];
 const PAYMENT_METHOD_ORDER: PaymentMethodCode[] = ['CASH', 'CARD_ON_DELIVERY', 'CARD_ONLINE', 'SBP'];
 const DEFAULT_DELIVERY_METHOD: DeliveryMethod = 'COURIER';
 const DEFAULT_CURRENCY = 'RUB';
@@ -219,7 +220,7 @@ function sortDeliveryMethodSettings(settings: DeliveryMethodSetting[]): Delivery
     (left, right) =>
       left.sortOrder - right.sortOrder ||
       getDeliveryMethodOrder(left.method) - getDeliveryMethodOrder(right.method) ||
-      left.name.localeCompare(right.name, 'ru'),
+      left.title.localeCompare(right.title, 'ru'),
   );
 }
 
@@ -354,7 +355,7 @@ export function DeliveryConditionsPage() {
 
   const activeZonesCount = useMemo(() => zones.filter((zone) => zone.isActive).length, [zones]);
   const activePickupPointsCount = useMemo(() => pickupPoints.filter((pickupPoint) => pickupPoint.isActive).length, [pickupPoints]);
-  const enabledMethodsCount = useMemo(() => methodSettings.filter((setting) => setting.isEnabled).length, [methodSettings]);
+  const activeMethodsCount = useMemo(() => methodSettings.filter((setting) => setting.isActive).length, [methodSettings]);
   const availableTariffsCount = useMemo(() => tariffs.filter((tariff) => tariff.isAvailable).length, [tariffs]);
 
   const loadDeliveryData = async ({ showInitialLoader = false }: LoadDeliveryDataOptions = {}) => {
@@ -445,9 +446,25 @@ export function DeliveryConditionsPage() {
     });
   }, []);
 
-  const handleMethodEnabledChange = (method: DeliveryMethod, isEnabled: boolean) => {
+  const handleMethodActiveChange = (method: DeliveryMethod, isActive: boolean) => {
     setMethodSettings((currentSettings) =>
-      currentSettings.map((setting) => (setting.method === method ? { ...setting, isEnabled } : setting)),
+      currentSettings.map((setting) => (setting.method === method ? { ...setting, isActive } : setting)),
+    );
+    setMethodSaveError('');
+    setMethodSaveSuccess('');
+  };
+
+  const handleMethodTitleChange = (method: DeliveryMethod, title: string) => {
+    setMethodSettings((currentSettings) =>
+      currentSettings.map((setting) => (setting.method === method ? { ...setting, title } : setting)),
+    );
+    setMethodSaveError('');
+    setMethodSaveSuccess('');
+  };
+
+  const handleMethodDescriptionChange = (method: DeliveryMethod, description: string) => {
+    setMethodSettings((currentSettings) =>
+      currentSettings.map((setting) => (setting.method === method ? { ...setting, description } : setting)),
     );
     setMethodSaveError('');
     setMethodSaveSuccess('');
@@ -471,13 +488,23 @@ export function DeliveryConditionsPage() {
       return;
     }
 
+    const title = methodSetting.title.trim();
+
+    if (!title) {
+      setMethodSaveError('Укажите название способа доставки.');
+      setMethodSaveSuccess('');
+      return;
+    }
+
     setSavingMethod(method);
     setMethodSaveError('');
     setMethodSaveSuccess('');
 
     const result = await saveDeliveryMethodSetting({
       method: methodSetting.method,
-      isEnabled: methodSetting.isEnabled,
+      title,
+      description: normalizeText(methodSetting.description ?? ''),
+      isActive: methodSetting.isActive,
       sortOrder: methodSetting.sortOrder,
     });
 
@@ -491,7 +518,7 @@ export function DeliveryConditionsPage() {
     const nextSetting = result.setting;
 
     setMethodSettings((currentSettings) => sortDeliveryMethodSettings(upsertMethodSetting(currentSettings, nextSetting)));
-    setMethodSaveSuccess(`Настройки «${nextSetting.name}» сохранены.`);
+    setMethodSaveSuccess(`Настройки «${nextSetting.title}» сохранены.`);
   };
 
   const handleZoneDelete = async (zone: DeliveryZone) => {
@@ -895,7 +922,7 @@ export function DeliveryConditionsPage() {
             <span className="status-chip">
               {isLoading
                 ? 'Загрузка условий доставки...'
-                : `${enabledMethodsCount} методов • ${activeZonesCount} активных зон • ${availableTariffsCount} активных тарифов`}
+                : `${activeMethodsCount} методов • ${activeZonesCount} активных зон • ${availableTariffsCount} активных тарифов`}
             </span>
 
             <button
@@ -913,7 +940,7 @@ export function DeliveryConditionsPage() {
           <article className="catalog-card delivery-stat-card">
             <p className="placeholder-eyebrow">Методы</p>
             <h3 className="delivery-stat-value">{methodSettings.length}</h3>
-            <p className="catalog-meta">Включено: {enabledMethodsCount}</p>
+            <p className="catalog-meta">Активно: {activeMethodsCount}</p>
           </article>
 
           <article className="catalog-card delivery-stat-card">
@@ -948,7 +975,7 @@ export function DeliveryConditionsPage() {
                 <p className="placeholder-eyebrow">Способы</p>
                 <h3 className="catalog-card-title">Настройки способов доставки</h3>
                 <p className="catalog-card-text">
-                  Управляйте порядком, доступностью и базовыми требованиями для способов доставки на checkout.
+                  Управляйте названием, описанием, порядком и доступностью способов доставки на checkout.
                 </p>
               </div>
             </div>
@@ -964,12 +991,13 @@ export function DeliveryConditionsPage() {
                     <article key={setting.method} className="delivery-method-card">
                       <div className="delivery-method-card-header">
                         <div className="catalog-card-copy">
-                          <h4 className="delivery-subtitle">{setting.name}</h4>
+                          <h4 className="delivery-subtitle">{setting.title}</h4>
                           <p className="catalog-meta">{getDeliveryMethodLabel(setting.method)}</p>
+                          <p className="catalog-card-text">{setting.description?.trim() || 'Описание не задано.'}</p>
                         </div>
 
-                        <span className={`delivery-status-pill${setting.isEnabled ? ' delivery-status-pill-live' : ''}`}>
-                          {setting.isEnabled ? 'Включен' : 'Выключен'}
+                        <span className={`delivery-status-pill${setting.isActive ? ' delivery-status-pill-live' : ''}`}>
+                          {setting.isActive ? 'Активен' : 'Неактивен'}
                         </span>
                       </div>
 
@@ -984,12 +1012,40 @@ export function DeliveryConditionsPage() {
                         <label className="field-checkbox">
                           <input
                             type="checkbox"
-                            checked={setting.isEnabled}
+                            checked={setting.isActive}
                             disabled={isSavingCurrentMethod}
-                            onChange={(event) => handleMethodEnabledChange(setting.method, event.target.checked)}
+                            onChange={(event) => handleMethodActiveChange(setting.method, event.target.checked)}
                           />
-                          <span className="field-label">Показывать метод в checkout</span>
+                          <span className="field-label">Метод активен</span>
                         </label>
+
+                        <div className="field">
+                          <label className="field-label" htmlFor={`delivery-method-title-${setting.method}`}>
+                            Название
+                          </label>
+                          <input
+                            id={`delivery-method-title-${setting.method}`}
+                            type="text"
+                            className="field-input"
+                            value={setting.title}
+                            disabled={isSavingCurrentMethod}
+                            onChange={(event) => handleMethodTitleChange(setting.method, event.target.value)}
+                          />
+                        </div>
+
+                        <div className="field">
+                          <label className="field-label" htmlFor={`delivery-method-description-${setting.method}`}>
+                            Описание
+                          </label>
+                          <textarea
+                            id={`delivery-method-description-${setting.method}`}
+                            className="field-input field-textarea"
+                            rows={3}
+                            value={setting.description ?? ''}
+                            disabled={isSavingCurrentMethod}
+                            onChange={(event) => handleMethodDescriptionChange(setting.method, event.target.value)}
+                          />
+                        </div>
 
                         <div className="field">
                           <label className="field-label" htmlFor={`delivery-method-sort-order-${setting.method}`}>

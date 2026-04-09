@@ -3,7 +3,6 @@ import type {
   HeroBannerEditorValues,
   HeroBannerTranslationValues,
 } from '@/features/hero-banner-editor/model/heroBannerEditor';
-import { EMPTY_TRANSLATION_VALUES } from '@/features/hero-banner-editor/model/heroBannerEditor';
 
 type HeroBannerEditorProps = {
   idPrefix: string;
