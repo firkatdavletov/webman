@@ -4,6 +4,7 @@ import { type Category, buildCategoryLookup, getCategories } from '@/entities/ca
 import { type ModifierGroup, getAllModifierGroups } from '@/entities/modifier-group';
 import {
   completeProductImageUpload,
+  deleteProductImage,
   formatPrice,
   formatUnitLabel,
   getProductById,
@@ -41,6 +42,7 @@ export function ProductDetailsPage() {
   const [saveSuccess, setSaveSuccess] = useState('');
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [imageUploadError, setImageUploadError] = useState('');
+  const [pendingImageRemovalKey, setPendingImageRemovalKey] = useState<string | null>(null);
   const imageUploadInputRef = useRef<HTMLInputElement | null>(null);
 
   const normalizedProductId = useMemo(() => (productId ?? '').trim(), [productId]);
@@ -51,6 +53,7 @@ export function ProductDetailsPage() {
         setProduct(null);
         setCategories([]);
         setErrorMessage('Некорректный идентификатор товара.');
+        setPendingImageRemovalKey(null);
         setIsLoading(false);
         return;
       }
@@ -73,6 +76,7 @@ export function ProductDetailsPage() {
       setSaveError('');
       setSaveSuccess('');
       setImageUploadError('');
+      setPendingImageRemovalKey(null);
       setIsImageUploading(false);
       setIsLoading(false);
     };
@@ -186,6 +190,60 @@ export function ProductDetailsPage() {
     } finally {
       setIsImageUploading(false);
     }
+  };
+
+  const getImageKey = (imageId: string | null, imageUrl: string, imageIndex: number) =>
+    imageId?.trim() || `${imageUrl}-${imageIndex}`;
+
+  const handleImageRemove = async (imageIndex: number) => {
+    if (!product) {
+      return;
+    }
+
+    const image = product.images[imageIndex];
+
+    if (!image) {
+      return;
+    }
+
+    const imageKey = getImageKey(image.id, image.url, imageIndex);
+    const normalizedImageId = image.id?.trim() ?? '';
+
+    setImageUploadError('');
+    setSaveError('');
+    setSaveSuccess('');
+
+    if (!normalizedImageId) {
+      setProduct((currentProduct) =>
+        currentProduct
+          ? {
+              ...currentProduct,
+              images: currentProduct.images.filter((_, currentImageIndex) => currentImageIndex !== imageIndex),
+            }
+          : currentProduct,
+      );
+      return;
+    }
+
+    setPendingImageRemovalKey(imageKey);
+
+    const result = await deleteProductImage(product.id, normalizedImageId);
+
+    if (result.error) {
+      setImageUploadError(result.error);
+      setPendingImageRemovalKey(null);
+      return;
+    }
+
+    setProduct((currentProduct) =>
+      currentProduct
+        ? {
+            ...currentProduct,
+            images: currentProduct.images.filter((_, currentImageIndex) => currentImageIndex !== imageIndex),
+          }
+        : currentProduct,
+    );
+    setPendingImageRemovalKey(null);
   };
 
   const handleSave = async () => {
@@ -329,12 +387,27 @@ export function ProductDetailsPage() {
                 {product.images.length ? (
                   <div className="product-detail-image-list">
                     {product.images.map((image, imageIndex) => (
-                      <img
-                        key={`${image.url}-${imageIndex}`}
-                        className="product-detail-image"
-                        src={image.url}
-                        alt={`${formValues?.title || product.title} • фото ${imageIndex + 1}`}
-                      />
+                      <div key={getImageKey(image.id, image.url, imageIndex)} className="media-image-card">
+                        <img
+                          className="product-detail-image"
+                          src={image.url}
+                          alt={`${formValues?.title || product.title} • фото ${imageIndex + 1}`}
+                        />
+                        <button
+                          type="button"
+                          className="media-image-remove-button"
+                          onClick={() => void handleImageRemove(imageIndex)}
+                          disabled={
+                            isSaving ||
+                            isImageUploading ||
+                            pendingImageRemovalKey !== null
+                          }
+                          aria-label={`Удалить фото ${imageIndex + 1}`}
+                          title="Удалить фото"
+                        >
+                          <span aria-hidden="true">×</span>
+                        </button>
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -346,7 +419,7 @@ export function ProductDetailsPage() {
                     type="button"
                     className="secondary-button image-upload-button"
                     onClick={handleImageUploadClick}
-                    disabled={isSaving || isImageUploading || !formValues}
+                    disabled={isSaving || isImageUploading || pendingImageRemovalKey !== null || !formValues}
                   >
                     {isImageUploading ? 'Загрузка...' : 'Загрузить фото'}
                   </button>
@@ -357,7 +430,7 @@ export function ProductDetailsPage() {
                     multiple
                     className="file-picker-input"
                     onChange={(event) => void handleImageUpload(event)}
-                    disabled={isSaving || isImageUploading || !formValues}
+                    disabled={isSaving || isImageUploading || pendingImageRemovalKey !== null || !formValues}
                     tabIndex={-1}
                   />
                   {imageUploadError ? (
@@ -427,7 +500,7 @@ export function ProductDetailsPage() {
                 categoryOptions={categoryOptions}
                 availableModifierGroups={modifierGroups}
                 formValues={formValues}
-                isSaving={isSaving || isImageUploading}
+                isSaving={isSaving || isImageUploading || pendingImageRemovalKey !== null}
                 optionGroupEditorMode="drawer"
                 variantEditorMode="drawer"
                 saveError={saveError}

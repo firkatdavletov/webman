@@ -3,10 +3,14 @@ import { getAccessToken } from '@/entities/session';
 import { type ApiError, apiClient } from '@/shared/api/client';
 import { getApiErrorMessage } from '@/shared/api/error';
 import type { components } from '@/shared/api/schema';
-import { buildMediaImagesFromUrls, getMediaImageIdsForSave } from '@/shared/lib/media/images';
+import {
+  buildMediaImagesFromUrls,
+  getMediaImageIdsForSave,
+  hasMediaImagesWithMissingIds,
+} from '@/shared/lib/media/images';
 import type { MediaImage } from '@/shared/model/media';
 
-type CategoryResponse = components['schemas']['CategoryResponse'];
+type CategoryResponse = components['schemas']['AdminCategoryResponse'];
 type UpsertCategoryRequest = components['schemas']['UpsertCategoryRequest'];
 type CreateUploadSessionResponse = components['schemas']['CreateUploadSessionResponse'];
 type MediaImageResponse = components['schemas']['MediaImageResponse'];
@@ -66,6 +70,10 @@ export type SaveCategoryResult = {
   error: string | null;
 };
 
+export type DeleteCategoryImageResult = {
+  error: string | null;
+};
+
 export type CategoryImageUploadInitData = {
   uploadId: string;
   objectKey: string;
@@ -108,15 +116,13 @@ function getProtectedErrorMessage(error: ApiError | undefined, fallbackMessage: 
 }
 
 function mapCategory(category: CategoryResponse): Category {
-  const categoryWithActiveFlag = category as CategoryResponse & { isActive?: boolean };
-
   return {
     id: category.id,
     parentCategory: null,
     title: category.name,
     slug: category.slug,
-    isActive: categoryWithActiveFlag.isActive ?? true,
-    images: buildMediaImagesFromUrls(category.imageUrls),
+    isActive: category.isActive ?? true,
+    images: buildMediaImagesFromUrls(category.imageUrls, category.imageIds),
     products: [],
     children: [],
   };
@@ -230,6 +236,14 @@ export async function getCategoryById(id: string): Promise<CategoryResult> {
 }
 
 export async function saveCategory(category: Category): Promise<SaveCategoryResult> {
+  if (hasMediaImagesWithMissingIds(category.images)) {
+    return {
+      category: null,
+      error:
+        'Нельзя сохранить категорию: для части фотографий категории не хватает imageIds. Это может удалить фото категории при сохранении.',
+    };
+  }
+
   try {
     const result = await apiClient.POST('/api/v1/admin/catalog/categories', {
       headers: buildAuthHeaders(),
@@ -258,6 +272,34 @@ export async function saveCategory(category: Category): Promise<SaveCategoryResu
     return {
       category: null,
       error: 'Не удалось связаться с сервисом сохранения категории.',
+    };
+  }
+}
+
+export async function deleteCategoryImage(categoryId: string, imageId: string): Promise<DeleteCategoryImageResult> {
+  try {
+    const result = await apiClient.DELETE('/api/v1/admin/catalog/categories/{categoryId}/images/{imageId}', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: {
+          categoryId,
+          imageId,
+        },
+      },
+    });
+
+    if (result.error) {
+      return {
+        error: getProtectedErrorMessage(result.error, 'Не удалось удалить изображение категории.'),
+      };
+    }
+
+    return {
+      error: null,
+    };
+  } catch {
+    return {
+      error: 'Не удалось связаться с сервисом удаления изображения категории.',
     };
   }
 }

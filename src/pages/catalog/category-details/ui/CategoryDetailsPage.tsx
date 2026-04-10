@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import {
   buildCategoryLookup,
   completeCategoryImageUpload,
+  deleteCategoryImage,
   getCategories,
   getCategoryById,
   initCategoryImageUpload,
@@ -10,9 +11,7 @@ import {
   type Category,
   uploadCategoryImageToStorage,
 } from '@/entities/category';
-import {
-  readFileAsDataUrl,
-} from '@/entities/product';
+import { readFileAsDataUrl } from '@/entities/product';
 import {
   buildCategoryEditorValues,
   CategoryEditor,
@@ -35,6 +34,7 @@ export function CategoryDetailsPage() {
   const [saveSuccess, setSaveSuccess] = useState('');
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [imageUploadError, setImageUploadError] = useState('');
+  const [pendingImageRemovalKey, setPendingImageRemovalKey] = useState<string | null>(null);
   const imageUploadInputRef = useRef<HTMLInputElement | null>(null);
 
   const normalizedCategoryId = useMemo(() => (categoryId ?? '').trim(), [categoryId]);
@@ -46,6 +46,7 @@ export function CategoryDetailsPage() {
         setFormValues(null);
         setCategories([]);
         setErrorMessage('Некорректный идентификатор категории.');
+        setPendingImageRemovalKey(null);
         setIsLoading(false);
         return;
       }
@@ -63,6 +64,7 @@ export function CategoryDetailsPage() {
       setSaveError('');
       setSaveSuccess('');
       setImageUploadError('');
+      setPendingImageRemovalKey(null);
       setIsImageUploading(false);
       setIsLoading(false);
     };
@@ -195,6 +197,60 @@ export function CategoryDetailsPage() {
     }
   };
 
+  const getImageKey = (imageId: string | null, imageUrl: string, imageIndex: number) =>
+    imageId?.trim() || `${imageUrl}-${imageIndex}`;
+
+  const handleImageRemove = async (imageIndex: number) => {
+    if (!category) {
+      return;
+    }
+
+    const image = category.images[imageIndex];
+
+    if (!image) {
+      return;
+    }
+
+    const imageKey = getImageKey(image.id, image.url, imageIndex);
+    const normalizedImageId = image.id?.trim() ?? '';
+
+    setImageUploadError('');
+    setSaveError('');
+    setSaveSuccess('');
+
+    if (!normalizedImageId) {
+      setCategory((currentCategory) =>
+        currentCategory
+          ? {
+              ...currentCategory,
+              images: currentCategory.images.filter((_, currentImageIndex) => currentImageIndex !== imageIndex),
+            }
+          : currentCategory,
+      );
+      return;
+    }
+
+    setPendingImageRemovalKey(imageKey);
+
+    const result = await deleteCategoryImage(category.id, normalizedImageId);
+
+    if (result.error) {
+      setImageUploadError(result.error);
+      setPendingImageRemovalKey(null);
+      return;
+    }
+
+    setCategory((currentCategory) =>
+      currentCategory
+        ? {
+            ...currentCategory,
+            images: currentCategory.images.filter((_, currentImageIndex) => currentImageIndex !== imageIndex),
+          }
+        : currentCategory,
+    );
+    setPendingImageRemovalKey(null);
+  };
+
   const handleSave = async () => {
     if (!category || !formValues) {
       return;
@@ -281,12 +337,27 @@ export function CategoryDetailsPage() {
                 {category.images.length ? (
                   <div className="product-detail-image-list">
                     {category.images.map((image, imageIndex) => (
-                      <img
-                        key={`${image.url}-${imageIndex}`}
-                        className="product-detail-image"
-                        src={image.url}
-                        alt={`${formValues?.title || category.title} • фото ${imageIndex + 1}`}
-                      />
+                      <div key={getImageKey(image.id, image.url, imageIndex)} className="media-image-card">
+                        <img
+                          className="product-detail-image"
+                          src={image.url}
+                          alt={`${formValues?.title || category.title} • фото ${imageIndex + 1}`}
+                        />
+                        <button
+                          type="button"
+                          className="media-image-remove-button"
+                          onClick={() => void handleImageRemove(imageIndex)}
+                          disabled={
+                            isSaving ||
+                            isImageUploading ||
+                            pendingImageRemovalKey !== null
+                          }
+                          aria-label={`Удалить фото ${imageIndex + 1}`}
+                          title="Удалить фото"
+                        >
+                          <span aria-hidden="true">×</span>
+                        </button>
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -298,7 +369,7 @@ export function CategoryDetailsPage() {
                     type="button"
                     className="secondary-button image-upload-button"
                     onClick={handleImageUploadClick}
-                    disabled={isSaving || isImageUploading || !formValues}
+                    disabled={isSaving || isImageUploading || pendingImageRemovalKey !== null || !formValues}
                   >
                     {isImageUploading ? 'Загрузка...' : 'Загрузить фото'}
                   </button>
@@ -309,7 +380,7 @@ export function CategoryDetailsPage() {
                     multiple
                     className="file-picker-input"
                     onChange={(event) => void handleImageUpload(event)}
-                    disabled={isSaving || isImageUploading || !formValues}
+                    disabled={isSaving || isImageUploading || pendingImageRemovalKey !== null || !formValues}
                     tabIndex={-1}
                   />
                   {imageUploadError ? (
@@ -347,7 +418,7 @@ export function CategoryDetailsPage() {
                 title="Изменить категорию"
                 description="Через текущий endpoint можно менять название и активность. Изображение обновляется через загрузку файла."
                 formValues={formValues}
-                isSaving={isSaving || isImageUploading}
+                isSaving={isSaving || isImageUploading || pendingImageRemovalKey !== null}
                 saveError={saveError}
                 saveSuccess={saveSuccess}
                 submitLabel="Сохранить изменения"

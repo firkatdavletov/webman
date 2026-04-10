@@ -73,6 +73,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/catalog/categories/{categoryId}/images/{imageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete category image */
+        delete: operations["deleteCategoryImage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/catalog/products": {
         parameters: {
             query?: never;
@@ -86,6 +103,23 @@ export interface paths {
         /** Create or update product */
         post: operations["upsertProduct"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/catalog/products/{productId}/images/{imageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete product image */
+        delete: operations["deleteProductImage"];
         options?: never;
         head?: never;
         patch?: never;
@@ -886,11 +920,12 @@ export interface components {
             deliveryMethod: components["schemas"]["DeliveryMethodType"];
             paymentMethods?: components["schemas"]["PaymentMethodCode"][];
         };
-        CategoryResponse: {
+        AdminCategoryResponse: {
             /** Format: uuid */
             id: string;
             name: string;
             slug: string;
+            imageIds: string[];
             imageUrls: string[];
             isActive: boolean;
         };
@@ -1709,7 +1744,9 @@ export interface components {
         };
     };
     parameters: {
+        CategoryIdPathParam: string;
         ProductIdPathParam: string;
+        ImageIdPathParam: string;
         OrderIdPathParam: string;
         UploadIdPathParam: string;
         HeroBannerIdPathParam: string;
@@ -1819,7 +1856,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CategoryResponse"][];
+                    "application/json": components["schemas"]["AdminCategoryResponse"][];
                 };
             };
             400: components["responses"]["BadRequestError"];
@@ -1847,12 +1884,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CategoryResponse"];
+                    "application/json": components["schemas"]["AdminCategoryResponse"];
                 };
             };
             400: components["responses"]["BadRequestError"];
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    deleteCategoryImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                categoryId: components["parameters"]["CategoryIdPathParam"];
+                imageId: components["parameters"]["ImageIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Category image deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
             500: components["responses"]["InternalServerError"];
         };
     };
@@ -1904,6 +1967,32 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProductResponse"];
                 };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    deleteProductImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: components["parameters"]["ProductIdPathParam"];
+                imageId: components["parameters"]["ImageIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Product image deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             400: components["responses"]["BadRequestError"];
             401: components["responses"]["UnauthorizedError"];

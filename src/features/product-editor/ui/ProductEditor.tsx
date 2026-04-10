@@ -581,6 +581,27 @@ export function ProductEditor({
     });
   };
 
+  const handleRemoveVariantDraftImage = (imageIndex: number) => {
+    if (isVariantEditorBusy) {
+      return;
+    }
+
+    setVariantImageUploadError('');
+    setVariantEditorState((currentState) => {
+      if (!currentState) {
+        return currentState;
+      }
+
+      return {
+        ...currentState,
+        draft: {
+          ...currentState.draft,
+          images: currentState.draft.images.filter((_, currentImageIndex) => currentImageIndex !== imageIndex),
+        },
+      };
+    });
+  };
+
   const handleConfirmVariantEditor = () => {
     if (!variantEditorState) {
       return;
@@ -955,12 +976,23 @@ export function ProductEditor({
         {variantEditorState.draft.images.length ? (
           <div className="product-variant-image-list">
             {variantEditorState.draft.images.map((image, imageIndex) => (
-              <img
-                key={`${image.url}-${imageIndex}`}
-                className="product-variant-image-preview"
-                src={image.url}
-                alt={`${variantImageAltBase} • фото ${imageIndex + 1}`}
-              />
+              <div key={`${image.id ?? image.url}-${imageIndex}`} className="media-image-card">
+                <img
+                  className="product-variant-image-preview"
+                  src={image.url}
+                  alt={`${variantImageAltBase} • фото ${imageIndex + 1}`}
+                />
+                <button
+                  type="button"
+                  className="media-image-remove-button"
+                  onClick={() => handleRemoveVariantDraftImage(imageIndex)}
+                  disabled={isVariantEditorBusy}
+                  aria-label={`Удалить фото варианта ${imageIndex + 1}`}
+                  title="Удалить фото"
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
             ))}
           </div>
         ) : (

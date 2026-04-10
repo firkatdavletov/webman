@@ -96,6 +96,10 @@ export type SaveProductResult = {
   error: string | null;
 };
 
+export type DeleteProductImageResult = {
+  error: string | null;
+};
+
 export type ProductImageUploadInitData = {
   uploadId: string;
   objectKey: string;
@@ -500,6 +504,34 @@ export async function saveProduct(product: Product): Promise<SaveProductResult> 
     return {
       product: null,
       error: 'Не удалось связаться с сервисом сохранения товара.',
+    };
+  }
+}
+
+export async function deleteProductImage(productId: string, imageId: string): Promise<DeleteProductImageResult> {
+  try {
+    const result = await apiClient.DELETE('/api/v1/admin/catalog/products/{productId}/images/{imageId}', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: {
+          productId,
+          imageId,
+        },
+      },
+    });
+
+    if (result.error) {
+      return {
+        error: getProtectedErrorMessage(result.error, 'Не удалось удалить изображение товара.'),
+      };
+    }
+
+    return {
+      error: null,
+    };
+  } catch {
+    return {
+      error: 'Не удалось связаться с сервисом удаления изображения товара.',
     };
   }
 }

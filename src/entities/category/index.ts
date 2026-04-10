@@ -1,6 +1,7 @@
 export type { Category } from './model/types';
 export {
   completeCategoryImageUpload,
+  deleteCategoryImage,
   getCategories,
   getCategoryById,
   initCategoryImageUpload,
@@ -8,6 +9,7 @@ export {
   uploadCategoryImageToStorage,
 } from './api/categoryApi';
 export type {
+  DeleteCategoryImageResult,
   CategoryImageUploadInitData,
   CategoryImageUploadInitResult,
   CategoryImageUploadStepResult,

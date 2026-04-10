@@ -1,6 +1,7 @@
 export type { Product, ProductOptionGroup, ProductOptionValue, ProductUnit, ProductVariant, ProductVariantOption } from './model/types';
 export {
   completeProductImageUpload,
+  deleteProductImage,
   getAllProducts,
   getProductById,
   initProductImageUpload,
@@ -8,6 +9,7 @@ export {
   uploadProductImageToStorage,
 } from './api/productApi';
 export type {
+  DeleteProductImageResult,
   ProductImageUploadInitData,
   ProductImageUploadInitResult,
   ProductImageUploadStepResult,
