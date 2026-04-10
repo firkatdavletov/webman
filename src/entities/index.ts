@@ -1,5 +1,6 @@
 export * from './category';
 export * from './delivery';
+export * from './legal-document';
 export * from './modifier-group';
 export * from './order';
 export * from './product';

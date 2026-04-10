@@ -698,6 +698,82 @@ button:disabled {
   margin-top: 24px;
 }
 
+.legal-documents-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.45fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.legal-documents-list {
+  display: grid;
+  gap: 12px;
+}
+
+.legal-document-list-button {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid rgba(212, 226, 223, 0.9);
+  border-radius: 20px;
+  background-color: rgba(248, 252, 251, 0.9);
+  color: var(--text);
+  text-align: left;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
+}
+
+.legal-document-list-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(17, 117, 108, 0.34);
+}
+
+.legal-document-list-button:focus-visible {
+  outline: 2px solid rgba(17, 117, 108, 0.4);
+  outline-offset: 1px;
+}
+
+.legal-document-list-button-active {
+  border-color: rgba(17, 117, 108, 0.34);
+  background-color: rgba(17, 117, 108, 0.08);
+  box-shadow: 0 16px 28px rgba(17, 117, 108, 0.08);
+}
+
+.legal-document-list-title,
+.legal-document-list-name,
+.legal-document-list-meta {
+  display: block;
+}
+
+.legal-document-list-title {
+  font-weight: 800;
+}
+
+.legal-document-list-name,
+.legal-document-list-meta {
+  color: var(--text-muted);
+}
+
+.legal-document-list-meta {
+  font-size: 0.92rem;
+}
+
+.legal-document-textarea {
+  min-height: 420px;
+}
+
+.legal-document-editor-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .catalog-data-card {
   display: grid;
   gap: 18px;
@@ -2212,7 +2288,8 @@ button:disabled {
   .delivery-method-grid,
   .delivery-payment-rules-grid,
   .delivery-section-grid,
-  .delivery-zone-map-shell {
+  .delivery-zone-map-shell,
+  .legal-documents-layout {
     grid-template-columns: 1fr;
   }
 
@@ -2295,7 +2372,8 @@ button:disabled {
 
   .catalog-import-actions,
   .catalog-import-example-item,
-  .catalog-import-examples-header {
+  .catalog-import-examples-header,
+  .legal-document-editor-actions {
     flex-direction: column;
     align-items: stretch;
   }

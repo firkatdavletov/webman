@@ -19,6 +19,7 @@ import { DeliveryZoneMapPage } from '@/pages/delivery/zone-map/ui/DeliveryZoneMa
 import { HeroBannerCreatePage } from '@/pages/content/hero-banner-create/ui/HeroBannerCreatePage';
 import { HeroBannerDetailsPage } from '@/pages/content/hero-banner-details/ui/HeroBannerDetailsPage';
 import { HeroBannersPage } from '@/pages/content/hero-banners/ui/HeroBannersPage';
+import { LegalDocumentsPage } from '@/pages/content/legal-documents/ui/LegalDocumentsPage';
 import { LoginPage } from '@/pages/login/ui/LoginPage';
 import { OrderStatusesPage } from '@/pages/order-statuses/ui/OrderStatusesPage';
 import { OrdersPage } from '@/pages/orders/ui/OrdersPage';
@@ -55,6 +56,7 @@ export function AppRouter() {
         <Route path="/hero-banners" element={<HeroBannersPage />} />
         <Route path="/hero-banners/new" element={<HeroBannerCreatePage />} />
         <Route path="/hero-banners/:bannerId" element={<HeroBannerDetailsPage />} />
+        <Route path="/legal-documents" element={<LegalDocumentsPage />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/order-statuses" element={<OrderStatusesPage />} />
         <Route path="/delivery" element={<DeliveryConditionsPage />} />

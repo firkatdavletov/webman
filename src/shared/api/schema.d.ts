@@ -683,6 +683,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/legal-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all legal documents available for editing */
+        get: operations["listLegalDocuments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/legal-documents/{type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get legal document details for admin editing */
+        get: operations["getLegalDocument"];
+        /** Save legal document content */
+        put: operations["updateLegalDocument"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/hero-banners": {
         parameters: {
             query?: never;
@@ -1532,6 +1567,19 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        LegalDocumentResponse: {
+            type: components["schemas"]["LegalDocumentType"];
+            title: string;
+            subtitle?: string | null;
+            text: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        UpsertLegalDocumentRequest: {
+            title: string;
+            subtitle?: string | null;
+            text: string;
+        };
         SendTelegramTestMessageRequest: {
             message: string;
             chatIds?: string[] | null;
@@ -1574,6 +1622,8 @@ export interface components {
         MediaTargetType: "PRODUCT" | "CATEGORY" | "VARIANT";
         /** @enum {string} */
         MediaImageStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED" | "DELETED";
+        /** @enum {string} */
+        LegalDocumentType: "public-offer" | "personal-data-consent" | "personal-data-policy";
         /** @enum {string} */
         BannerPlacement: "HOME_HERO";
         /** @enum {string} */
@@ -1750,6 +1800,7 @@ export interface components {
         OrderIdPathParam: string;
         UploadIdPathParam: string;
         HeroBannerIdPathParam: string;
+        LegalDocumentTypePathParam: components["schemas"]["LegalDocumentType"];
     };
     requestBodies: never;
     headers: never;
@@ -3132,6 +3183,85 @@ export interface operations {
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
             404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    listLegalDocuments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Legal documents list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getLegalDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: components["parameters"]["LegalDocumentTypePathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Legal document details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    updateLegalDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: components["parameters"]["LegalDocumentTypePathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertLegalDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Legal document updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
             500: components["responses"]["InternalServerError"];
         };
     };

@@ -43,6 +43,11 @@ const navItems = [
     to: '/hero-banners',
     badge: 'Активно',
   },
+  {
+    label: 'Документы',
+    to: '/legal-documents',
+    badge: 'Активно',
+  },
 ] as const;
 
 export function NavBar() {
