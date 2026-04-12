@@ -1,6 +1,9 @@
+import { useMemo } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { Link } from 'react-router-dom';
 import type { Product } from '@/entities/product';
 import { formatPrice } from '@/entities/product';
+import { DataTable } from '@/shared/ui/data-table';
 
 type ProductTableProps = {
   products: Product[];
@@ -8,32 +11,52 @@ type ProductTableProps = {
 };
 
 export function ProductTable({ products, categoryLookup }: ProductTableProps) {
+  const columns = useMemo<ColumnDef<Product>[]>(
+    () => [
+      {
+        id: 'sku',
+        header: 'SKU',
+        cell: ({ row }) => row.original.sku?.trim() || 'Не указан',
+        meta: {
+          cellClassName: 'products-cell-muted',
+        },
+      },
+      {
+        id: 'title',
+        header: 'Наименование',
+        cell: ({ row }) => (
+          <Link className="product-table-title-link" to={`/products/${row.original.id}`}>
+            {row.original.title.trim() || 'Без названия'}
+          </Link>
+        ),
+      },
+      {
+        id: 'category',
+        header: 'Наименование категории',
+        cell: ({ row }) => categoryLookup.get(row.original.categoryId) ?? `#${row.original.categoryId}`,
+        meta: {
+          cellClassName: 'products-cell-muted',
+        },
+      },
+      {
+        id: 'price',
+        header: 'Цена',
+        cell: ({ row }) => formatPrice(row.original.price),
+        meta: {
+          cellClassName: 'products-cell-price',
+        },
+      },
+    ],
+    [categoryLookup],
+  );
+
   return (
-    <div className="products-table-wrap">
-      <table className="products-table">
-        <thead>
-          <tr>
-            <th scope="col">SKU</th>
-            <th scope="col">Наименование</th>
-            <th scope="col">Наименование категории</th>
-            <th scope="col">Цена</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map((product) => (
-            <tr key={product.id}>
-              <td className="products-cell-muted">{product.sku?.trim() || 'Не указан'}</td>
-              <td>
-                <Link className="product-table-title-link" to={`/products/${product.id}`}>
-                  {product.title.trim() || 'Без названия'}
-                </Link>
-              </td>
-              <td className="products-cell-muted">{categoryLookup.get(product.categoryId) ?? `#${product.categoryId}`}</td>
-              <td className="products-cell-price">{formatPrice(product.price)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      columns={columns}
+      data={products}
+      getRowId={(product) => product.id}
+      wrapperClassName="products-table-wrap"
+      tableClassName="products-table"
+    />
   );
 }

@@ -1,3 +1,4 @@
+import type { ColumnDef } from '@tanstack/react-table';
 import { Link } from 'react-router-dom';
 import type { DeliveryZone } from '@/entities/delivery';
 import {
@@ -5,6 +6,7 @@ import {
   getDeliveryZoneTypeLabel,
   mapDeliveryZoneGeometryDtoToDraft,
 } from '@/features/delivery-zone-editor';
+import { DataTable } from '@/shared/ui/data-table';
 
 type DeliveryZonesSectionProps = {
   zones: DeliveryZone[];
@@ -41,6 +43,70 @@ export function DeliveryZonesSection({
   actionSuccess = '',
   onDeleteZone,
 }: DeliveryZonesSectionProps) {
+  const columns: ColumnDef<DeliveryZone>[] = [
+    {
+      id: 'code',
+      header: 'Код',
+      cell: ({ row }) => row.original.code,
+    },
+    {
+      id: 'name',
+      header: 'Название',
+      cell: ({ row }) => row.original.name,
+    },
+    {
+      id: 'type',
+      header: 'Тип',
+      cell: ({ row }) => getDeliveryZoneTypeLabel(row.original.type),
+    },
+    {
+      id: 'target',
+      header: 'Матчинг',
+      cell: ({ row }) => getZoneTargetLabel(row.original),
+    },
+    {
+      id: 'priority',
+      header: 'Приоритет',
+      cell: ({ row }) => row.original.priority,
+    },
+    {
+      id: 'status',
+      header: 'Статус',
+      cell: ({ row }) => (row.original.isActive ? 'Активна' : 'Отключена'),
+    },
+    {
+      id: 'actions',
+      header: '',
+      meta: {
+        cellClassName: 'delivery-table-actions',
+      },
+      cell: ({ row }) => (
+        <div className="delivery-table-link-group">
+          <Link className="secondary-link" to={`/delivery/zones/${row.original.id}`}>
+            Изменить
+          </Link>
+
+          {row.original.type === 'POLYGON' ? (
+            <Link className="secondary-link" to={`/delivery/zones/${row.original.id}/map`}>
+              Карта
+            </Link>
+          ) : null}
+
+          {onDeleteZone ? (
+            <button
+              type="button"
+              className="secondary-button secondary-button-danger"
+              disabled={deletingZoneId === row.original.id}
+              onClick={() => onDeleteZone(row.original)}
+            >
+              {deletingZoneId === row.original.id ? 'Удаление...' : 'Удалить'}
+            </button>
+          ) : null}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <section className="catalog-card catalog-data-card" aria-label="Зоны доставки">
       <div className="catalog-section-header">
@@ -61,55 +127,13 @@ export function DeliveryZonesSection({
         {isLoading ? (
           <p className="catalog-empty-state">Загрузка зон доставки...</p>
         ) : zones.length ? (
-          <table className="delivery-table">
-            <thead>
-              <tr>
-                <th>Код</th>
-                <th>Название</th>
-                <th>Тип</th>
-                <th>Матчинг</th>
-                <th>Приоритет</th>
-                <th>Статус</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {zones.map((zone) => (
-                <tr key={zone.id}>
-                  <td>{zone.code}</td>
-                  <td>{zone.name}</td>
-                  <td>{getDeliveryZoneTypeLabel(zone.type)}</td>
-                  <td>{getZoneTargetLabel(zone)}</td>
-                  <td>{zone.priority}</td>
-                  <td>{zone.isActive ? 'Активна' : 'Отключена'}</td>
-                  <td className="delivery-table-actions">
-                    <div className="delivery-table-link-group">
-                      <Link className="secondary-link" to={`/delivery/zones/${zone.id}`}>
-                        Изменить
-                      </Link>
-
-                      {zone.type === 'POLYGON' ? (
-                        <Link className="secondary-link" to={`/delivery/zones/${zone.id}/map`}>
-                          Карта
-                        </Link>
-                      ) : null}
-
-                      {onDeleteZone ? (
-                        <button
-                          type="button"
-                          className="secondary-button secondary-button-danger"
-                          disabled={deletingZoneId === zone.id}
-                          onClick={() => onDeleteZone(zone)}
-                        >
-                          {deletingZoneId === zone.id ? 'Удаление...' : 'Удалить'}
-                        </button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            columns={columns}
+            data={zones}
+            getRowId={(zone) => zone.id}
+            wrapperClassName="delivery-table-wrap"
+            tableClassName="delivery-table"
+          />
         ) : (
           <p className="catalog-empty-state">Список зон доставки пуст.</p>
         )}

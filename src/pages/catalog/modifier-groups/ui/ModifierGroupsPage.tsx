@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { Link } from 'react-router-dom';
 import {
   formatModifierConstraints,
   type ModifierGroup,
   getAllModifierGroups,
 } from '@/entities/modifier-group';
+import { DataTable } from '@/shared/ui/data-table';
 
 function filterModifierGroups(modifierGroups: ModifierGroup[], searchQuery: string): ModifierGroup[] {
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
@@ -55,6 +57,52 @@ export function ModifierGroupsPage() {
   const filteredModifierGroups = useMemo(
     () => filterModifierGroups(modifierGroups, searchQuery),
     [modifierGroups, searchQuery],
+  );
+  const columns = useMemo<ColumnDef<ModifierGroup>[]>(
+    () => [
+      {
+        id: 'code',
+        header: 'Code',
+        cell: ({ row }) => row.original.code,
+        meta: {
+          cellClassName: 'products-cell-muted',
+        },
+      },
+      {
+        id: 'name',
+        header: 'Название',
+        cell: ({ row }) => (
+          <Link className="product-table-title-link" to={`/modifier-groups/${row.original.id}`}>
+            {row.original.name}
+          </Link>
+        ),
+      },
+      {
+        id: 'optionsCount',
+        header: 'Опций',
+        cell: ({ row }) => row.original.options.length,
+        meta: {
+          cellClassName: 'products-cell-muted',
+        },
+      },
+      {
+        id: 'constraints',
+        header: 'Правила выбора',
+        cell: ({ row }) => formatModifierConstraints(row.original),
+        meta: {
+          cellClassName: 'products-cell-muted',
+        },
+      },
+      {
+        id: 'status',
+        header: 'Статус',
+        cell: ({ row }) => (row.original.isActive ? 'Активна' : 'Выключена'),
+        meta: {
+          cellClassName: 'products-cell-muted',
+        },
+      },
+    ],
+    [],
   );
 
   const handleActivityFilterChange = (nextValue: boolean) => {
@@ -152,34 +200,13 @@ export function ModifierGroupsPage() {
           {isLoading ? (
             <p className="catalog-empty-state">Загрузка справочника модификаторов...</p>
           ) : filteredModifierGroups.length ? (
-            <div className="products-table-wrap">
-              <table className="products-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Code</th>
-                    <th scope="col">Название</th>
-                    <th scope="col">Опций</th>
-                    <th scope="col">Правила выбора</th>
-                    <th scope="col">Статус</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredModifierGroups.map((modifierGroup) => (
-                    <tr key={modifierGroup.id}>
-                      <td className="products-cell-muted">{modifierGroup.code}</td>
-                      <td>
-                        <Link className="product-table-title-link" to={`/modifier-groups/${modifierGroup.id}`}>
-                          {modifierGroup.name}
-                        </Link>
-                      </td>
-                      <td className="products-cell-muted">{modifierGroup.options.length}</td>
-                      <td className="products-cell-muted">{formatModifierConstraints(modifierGroup)}</td>
-                      <td className="products-cell-muted">{modifierGroup.isActive ? 'Активна' : 'Выключена'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              columns={columns}
+              data={filteredModifierGroups}
+              getRowId={(modifierGroup) => modifierGroup.id}
+              wrapperClassName="products-table-wrap"
+              tableClassName="products-table"
+            />
           ) : (
             <p className="catalog-empty-state">В выбранном статусе групп модификаторов пока нет.</p>
           )}

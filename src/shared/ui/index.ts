@@ -22,6 +22,8 @@ export {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/ui/dialog';
+export { DataTable } from '@/shared/ui/data-table';
+export type { DataTableColumnMeta } from '@/shared/ui/data-table';
 export { Input } from '@/shared/ui/input';
 export {
   Sheet,

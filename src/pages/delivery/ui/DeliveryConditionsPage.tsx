@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useNavigate } from 'react-router-dom';
 import {
   deleteDeliveryTariff,
@@ -31,6 +32,7 @@ import {
   type PickupPointEditorValues,
   writePickupPointMapDraft,
 } from '@/features/pickup-point-map-editor';
+import { DataTable } from '@/shared/ui/data-table';
 import { DeliveryZonesSection } from './DeliveryZonesSection';
 
 const DELIVERY_METHOD_LABELS: Record<DeliveryMethod, string> = {
@@ -50,7 +52,7 @@ const PAYMENT_METHOD_LABELS: Record<PaymentMethodCode, string> = {
 const DELIVERY_METHOD_ORDER: DeliveryMethod[] = ['PICKUP', 'COURIER', 'CUSTOM_DELIVERY_ADDRESS', 'YANDEX_PICKUP_POINT'];
 const PAYMENT_METHOD_ORDER: PaymentMethodCode[] = ['CASH', 'CARD_ON_DELIVERY', 'CARD_ONLINE', 'SBP'];
 const DEFAULT_DELIVERY_METHOD: DeliveryMethod = 'COURIER';
-const DEFAULT_CURRENCY = 'RUB';
+  const DEFAULT_CURRENCY = 'RUB';
 
 type LoadDeliveryDataOptions = {
   showInitialLoader?: boolean;
@@ -438,6 +440,125 @@ export function DeliveryConditionsPage() {
     setIsLoading(false);
     setIsRefreshing(false);
   };
+
+  const tariffColumns: ColumnDef<DeliveryTariff>[] = [
+    {
+      id: 'method',
+      header: 'Способ',
+      cell: ({ row }) => getDeliveryMethodLabel(row.original.method),
+    },
+    {
+      id: 'zone',
+      header: 'Зона',
+      cell: ({ row }) => formatNullableText(row.original.zoneName ?? row.original.zoneCode),
+    },
+    {
+      id: 'price',
+      header: 'Цена',
+      cell: ({ row }) => formatMoneyMinor(row.original.fixedPriceMinor, row.original.currency),
+    },
+    {
+      id: 'freeFromAmount',
+      header: 'Бесплатно от',
+      cell: ({ row }) =>
+        row.original.freeFromAmountMinor === null || row.original.freeFromAmountMinor === undefined
+          ? '—'
+          : formatMoneyMinor(row.original.freeFromAmountMinor, row.original.currency),
+    },
+    {
+      id: 'estimate',
+      header: 'Срок',
+      cell: ({ row }) => formatDeliveryEstimate(row.original.estimatedDays, row.original.deliveryMinutes),
+    },
+    {
+      id: 'status',
+      header: 'Статус',
+      cell: ({ row }) => (row.original.isAvailable ? 'Доступен' : 'Отключен'),
+    },
+    {
+      id: 'actions',
+      header: '',
+      meta: {
+        cellClassName: 'delivery-table-actions',
+      },
+      cell: ({ row }) => (
+        <div className="delivery-table-link-group">
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={isSavingTariff || deletingTariffId === row.original.id}
+            onClick={() => handleTariffSelect(row.original)}
+          >
+            Изменить
+          </button>
+
+          <button
+            type="button"
+            className="secondary-button secondary-button-danger"
+            disabled={isSavingTariff || deletingTariffId === row.original.id}
+            onClick={() => void handleTariffDelete(row.original)}
+          >
+            {deletingTariffId === row.original.id ? 'Удаление...' : 'Удалить'}
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const pickupPointColumns: ColumnDef<PickupPoint>[] = [
+    {
+      id: 'code',
+      header: 'Код',
+      cell: ({ row }) => row.original.code,
+    },
+    {
+      id: 'name',
+      header: 'Название',
+      cell: ({ row }) => row.original.name,
+    },
+    {
+      id: 'address',
+      header: 'Адрес',
+      cell: ({ row }) => formatPickupPointAddress(row.original),
+    },
+    {
+      id: 'status',
+      header: 'Статус',
+      cell: ({ row }) => (row.original.isActive ? 'Активен' : 'Отключен'),
+    },
+    {
+      id: 'actions',
+      header: '',
+      meta: {
+        cellClassName: 'delivery-table-actions',
+      },
+      cell: ({ row }) => (
+        <div className="delivery-table-link-group">
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={
+              isSavingPickupPoint || isDetectingPickupPointAddress || deletingPickupPointId === row.original.id
+            }
+            onClick={() => handlePickupPointSelect(row.original)}
+          >
+            Изменить
+          </button>
+
+          <button
+            type="button"
+            className="secondary-button secondary-button-danger"
+            disabled={
+              isSavingPickupPoint || isDetectingPickupPointAddress || deletingPickupPointId === row.original.id
+            }
+            onClick={() => void handlePickupPointDelete(row.original)}
+          >
+            {deletingPickupPointId === row.original.id ? 'Удаление...' : 'Удалить'}
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   useEffect(() => {
     void loadDeliveryData({
@@ -1196,63 +1317,21 @@ export function DeliveryConditionsPage() {
             </div>
 
             <div className="delivery-section-grid">
-              <div className="delivery-table-wrap">
-                {isLoading ? (
-                  <p className="catalog-empty-state">Загрузка тарифов доставки...</p>
-                ) : tariffs.length ? (
-                  <table className="delivery-table">
-                    <thead>
-                      <tr>
-                        <th>Способ</th>
-                        <th>Зона</th>
-                        <th>Цена</th>
-                        <th>Бесплатно от</th>
-                        <th>Срок</th>
-                        <th>Статус</th>
-                        <th />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tariffs.map((tariff) => (
-                        <tr key={tariff.id} className={tariffForm.id === tariff.id ? 'delivery-table-row-active' : undefined}>
-                          <td>{getDeliveryMethodLabel(tariff.method)}</td>
-                          <td>{formatNullableText(tariff.zoneName ?? tariff.zoneCode)}</td>
-                          <td>{formatMoneyMinor(tariff.fixedPriceMinor, tariff.currency)}</td>
-                          <td>
-                            {tariff.freeFromAmountMinor === null || tariff.freeFromAmountMinor === undefined
-                              ? '—'
-                              : formatMoneyMinor(tariff.freeFromAmountMinor, tariff.currency)}
-                          </td>
-                          <td>{formatDeliveryEstimate(tariff.estimatedDays, tariff.deliveryMinutes)}</td>
-                          <td>{tariff.isAvailable ? 'Доступен' : 'Отключен'}</td>
-                          <td className="delivery-table-actions">
-                            <div className="delivery-table-link-group">
-                              <button
-                                type="button"
-                                className="secondary-button"
-                                disabled={isSavingTariff || deletingTariffId === tariff.id}
-                                onClick={() => handleTariffSelect(tariff)}
-                              >
-                                Изменить
-                              </button>
-
-                              <button
-                                type="button"
-                                className="secondary-button secondary-button-danger"
-                                disabled={isSavingTariff || deletingTariffId === tariff.id}
-                                onClick={() => void handleTariffDelete(tariff)}
-                              >
-                                {deletingTariffId === tariff.id ? 'Удаление...' : 'Удалить'}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p className="catalog-empty-state">Список тарифов доставки пуст.</p>
-                )}
+	              <div className="delivery-table-wrap">
+	                {isLoading ? (
+	                  <p className="catalog-empty-state">Загрузка тарифов доставки...</p>
+	                ) : tariffs.length ? (
+	                  <DataTable
+	                    columns={tariffColumns}
+	                    data={tariffs}
+	                    getRowId={(tariff) => tariff.id}
+	                    getRowClassName={(row) => (tariffForm.id === row.original.id ? 'delivery-table-row-active' : undefined)}
+	                    wrapperClassName="delivery-table-wrap"
+	                    tableClassName="delivery-table"
+	                  />
+	                ) : (
+	                  <p className="catalog-empty-state">Список тарифов доставки пуст.</p>
+	                )}
               </div>
 
               <div className="delivery-form-panel">
@@ -1451,66 +1530,23 @@ export function DeliveryConditionsPage() {
             </div>
 
             <div className="delivery-section-grid">
-              <div className="delivery-table-wrap">
-                {isLoading ? (
-                  <p className="catalog-empty-state">Загрузка пунктов самовывоза...</p>
-                ) : pickupPoints.length ? (
-                  <table className="delivery-table">
-                    <thead>
-                      <tr>
-                        <th>Код</th>
-                        <th>Название</th>
-                        <th>Адрес</th>
-                        <th>Статус</th>
-                        <th />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pickupPoints.map((pickupPoint) => (
-                        <tr
-                          key={pickupPoint.id}
-                          className={pickupPointForm.id === pickupPoint.id ? 'delivery-table-row-active' : undefined}
-                        >
-                          <td>{pickupPoint.code}</td>
-                          <td>{pickupPoint.name}</td>
-                          <td>{formatPickupPointAddress(pickupPoint)}</td>
-                          <td>{pickupPoint.isActive ? 'Активен' : 'Отключен'}</td>
-                          <td className="delivery-table-actions">
-                            <div className="delivery-table-link-group">
-                              <button
-                                type="button"
-                                className="secondary-button"
-                                disabled={
-                                  isSavingPickupPoint ||
-                                  isDetectingPickupPointAddress ||
-                                  deletingPickupPointId === pickupPoint.id
-                                }
-                                onClick={() => handlePickupPointSelect(pickupPoint)}
-                              >
-                                Изменить
-                              </button>
-
-                              <button
-                                type="button"
-                                className="secondary-button secondary-button-danger"
-                                disabled={
-                                  isSavingPickupPoint ||
-                                  isDetectingPickupPointAddress ||
-                                  deletingPickupPointId === pickupPoint.id
-                                }
-                                onClick={() => void handlePickupPointDelete(pickupPoint)}
-                              >
-                                {deletingPickupPointId === pickupPoint.id ? 'Удаление...' : 'Удалить'}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p className="catalog-empty-state">Список пунктов самовывоза пуст.</p>
-                )}
+	              <div className="delivery-table-wrap">
+	                {isLoading ? (
+	                  <p className="catalog-empty-state">Загрузка пунктов самовывоза...</p>
+	                ) : pickupPoints.length ? (
+	                  <DataTable
+	                    columns={pickupPointColumns}
+	                    data={pickupPoints}
+	                    getRowId={(pickupPoint) => pickupPoint.id}
+	                    getRowClassName={(row) =>
+	                      pickupPointForm.id === row.original.id ? 'delivery-table-row-active' : undefined
+	                    }
+	                    wrapperClassName="delivery-table-wrap"
+	                    tableClassName="delivery-table"
+	                  />
+	                ) : (
+	                  <p className="catalog-empty-state">Список пунктов самовывоза пуст.</p>
+	                )}
               </div>
 
               <div className="delivery-form-panel">

@@ -1,4 +1,5 @@
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import {
   formatModifierConstraints,
   type ModifierGroup,
@@ -19,6 +20,7 @@ import {
   type ProductEditorOptionGroupValues,
   type ProductEditorValues,
 } from '@/features/product-editor/model/productEditor';
+import { DataTable } from '@/shared/ui/data-table';
 
 type EditableProductField = Exclude<
   keyof ProductEditorValues,
@@ -202,6 +204,91 @@ export function ProductEditor({
       }) ?? null
     );
   }, [colorOptionGroup, formValues.optionGroups]);
+  const optionGroupColumns = useMemo<ColumnDef<ProductEditorOptionGroupValues>[]>(
+    () => [
+      {
+        id: 'code',
+        header: 'Code',
+        cell: ({ row }) => (
+          <button
+            type="button"
+            className="product-option-row-button"
+            onClick={() => handleOpenOptionGroupEdit(row.index)}
+            disabled={isSaving}
+          >
+            {row.original.code.trim() || `Группа #${row.index + 1}`}
+          </button>
+        ),
+      },
+      {
+        id: 'title',
+        header: 'Название',
+        cell: ({ row }) => row.original.title.trim() || '—',
+      },
+      {
+        id: 'valuesCount',
+        header: 'Значений',
+        cell: ({ row }) => row.original.values.length,
+        meta: {
+          cellClassName: 'product-options-cell-numeric',
+        },
+      },
+      {
+        id: 'sortOrder',
+        header: 'Sort order',
+        cell: ({ row }) => row.original.sortOrder.trim() || '0',
+        meta: {
+          cellClassName: 'product-options-cell-numeric',
+        },
+      },
+    ],
+    [isSaving],
+  );
+  const variantColumns = useMemo<ColumnDef<ProductEditorVariantValues>[]>(
+    () => [
+      {
+        id: 'sku',
+        header: 'SKU',
+        cell: ({ row }) => (
+          <button
+            type="button"
+            className="product-variant-row-button"
+            onClick={() => handleOpenVariantEdit(row.index)}
+            disabled={isSaving || isVariantImageUploading}
+          >
+            {row.original.sku.trim() || `Вариант #${row.index + 1}`}
+          </button>
+        ),
+      },
+      {
+        id: 'color',
+        header: 'Цвет',
+        cell: ({ row }) => getVariantOptionLabel(row.original, colorOptionGroup),
+      },
+      {
+        id: 'size',
+        header: 'Размер',
+        cell: ({ row }) => getVariantOptionLabel(row.original, sizeOptionGroup),
+        meta: {
+          cellClassName: 'product-variants-cell-numeric',
+        },
+      },
+      {
+        id: 'price',
+        header: 'Цена',
+        cell: ({ row }) => getVariantPriceLabel(row.original.price),
+        meta: {
+          cellClassName: 'product-variants-cell-numeric',
+        },
+      },
+      {
+        id: 'isActive',
+        header: 'Активен',
+        cell: ({ row }) => (row.original.isActive ? 'Да' : 'Нет'),
+      },
+    ],
+    [colorOptionGroup, isSaving, isVariantImageUploading, sizeOptionGroup],
+  );
 
   useEffect(() => {
     if (!formValues.hasVariants) {
@@ -1358,48 +1445,22 @@ export function ProductEditor({
               </button>
             </div>
 
-            {formValues.optionGroups.length ? (
-              <div className="product-options-table-wrap">
-                <table className="product-options-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Code</th>
-                      <th scope="col">Название</th>
-                      <th scope="col">Значений</th>
-                      <th scope="col">Sort order</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {formValues.optionGroups.map((group, groupIndex) => (
-                      <tr
-                        key={`option-group-${groupIndex}`}
-                        className={
-                          optionGroupEditorState?.mode === 'edit' && optionGroupEditorState.optionGroupIndex === groupIndex
-                            ? 'product-options-row-selected'
-                            : undefined
-                        }
-                      >
-                        <td>
-                          <button
-                            type="button"
-                            className="product-option-row-button"
-                            onClick={() => handleOpenOptionGroupEdit(groupIndex)}
-                            disabled={isSaving}
-                          >
-                            {group.code.trim() || `Группа #${groupIndex + 1}`}
-                          </button>
-                        </td>
-                        <td>{group.title.trim() || '—'}</td>
-                        <td className="product-options-cell-numeric">{group.values.length}</td>
-                        <td className="product-options-cell-numeric">{group.sortOrder.trim() || '0'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="catalog-meta">Группы опций пока не добавлены.</p>
-            )}
+	            {formValues.optionGroups.length ? (
+	              <DataTable
+	                columns={optionGroupColumns}
+	                data={formValues.optionGroups}
+	                getRowId={(_, index) => `option-group-${index}`}
+	                getRowClassName={(row) =>
+	                  optionGroupEditorState?.mode === 'edit' && optionGroupEditorState.optionGroupIndex === row.index
+	                    ? 'product-options-row-selected'
+	                    : undefined
+	                }
+	                wrapperClassName="product-options-table-wrap"
+	                tableClassName="product-options-table"
+	              />
+	            ) : (
+	              <p className="catalog-meta">Группы опций пока не добавлены.</p>
+	            )}
 
             {optionGroupEditorMode === 'inline' ? optionGroupEditorContent : null}
           </section>
@@ -1412,50 +1473,22 @@ export function ProductEditor({
               </button>
             </div>
 
-            {formValues.variants.length ? (
-              <div className="product-variants-table-wrap">
-                <table className="product-variants-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">SKU</th>
-                      <th scope="col">Цвет</th>
-                      <th scope="col">Размер</th>
-                      <th scope="col">Цена</th>
-                      <th scope="col">Активен</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {formValues.variants.map((variant, variantIndex) => (
-                      <tr
-                        key={`variant-${variantIndex}`}
-                        className={
-                          variantEditorState?.mode === 'edit' && variantEditorState.variantIndex === variantIndex
-                            ? 'product-variants-row-selected'
-                            : undefined
-                        }
-                      >
-                        <td>
-                          <button
-                            type="button"
-                            className="product-variant-row-button"
-                            onClick={() => handleOpenVariantEdit(variantIndex)}
-                            disabled={isVariantEditorBusy}
-                          >
-                            {variant.sku.trim() || `Вариант #${variantIndex + 1}`}
-                          </button>
-                        </td>
-                        <td>{getVariantOptionLabel(variant, colorOptionGroup)}</td>
-                        <td className="product-variants-cell-numeric">{getVariantOptionLabel(variant, sizeOptionGroup)}</td>
-                        <td className="product-variants-cell-numeric">{getVariantPriceLabel(variant.price)}</td>
-                        <td>{variant.isActive ? 'Да' : 'Нет'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="catalog-meta">Варианты пока не добавлены.</p>
-            )}
+	            {formValues.variants.length ? (
+	              <DataTable
+	                columns={variantColumns}
+	                data={formValues.variants}
+	                getRowId={(_, index) => `variant-${index}`}
+	                getRowClassName={(row) =>
+	                  variantEditorState?.mode === 'edit' && variantEditorState.variantIndex === row.index
+	                    ? 'product-variants-row-selected'
+	                    : undefined
+	                }
+	                wrapperClassName="product-variants-table-wrap"
+	                tableClassName="product-variants-table"
+	              />
+	            ) : (
+	              <p className="catalog-meta">Варианты пока не добавлены.</p>
+	            )}
 
             {variantEditorMode === 'inline' ? variantEditorContent : null}
           </section>

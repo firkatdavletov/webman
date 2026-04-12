@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import {
   formatMoneyMinor,
   formatOrderDeliveryDestination,
@@ -11,6 +13,7 @@ import {
   getPaymentStatusPlaceholderLabel,
   type Order,
 } from '@/entities/order';
+import { DataTable } from '@/shared/ui/data-table';
 
 type OrdersTableProps = {
   orders: Order[];
@@ -27,64 +30,105 @@ function buildCustomerMeta(order: Order): string {
 }
 
 export function OrdersTable({ orders, selectedOrderId, onOpenOrder }: OrdersTableProps) {
-  return (
-    <div className="orders-table-wrap">
-      <table className="orders-table">
-        <thead>
-          <tr>
-            <th scope="col">Номер</th>
-            <th scope="col">Создан</th>
-            <th scope="col">Клиент</th>
-            <th scope="col">Товары</th>
-            <th scope="col">Сумма</th>
-            <th scope="col">Оплата</th>
-            <th scope="col">Доставка</th>
-            <th scope="col">Статус</th>
-            <th scope="col">Действия</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((order) => {
-            const statusTone = getOrderStatusTone(order.status);
+  const columns = useMemo<ColumnDef<Order>[]>(
+    () => [
+      {
+        id: 'number',
+        header: 'Номер',
+        cell: ({ row }) => (
+          <button type="button" className="order-number-button" onClick={() => onOpenOrder(row.original.id)}>
+            {row.original.orderNumber}
+          </button>
+        ),
+      },
+      {
+        id: 'createdAt',
+        header: 'Создан',
+        cell: ({ row }) => formatOrderDateTime(row.original.createdAt),
+        meta: {
+          cellClassName: 'orders-cell-muted',
+        },
+      },
+      {
+        id: 'customer',
+        header: 'Клиент',
+        cell: ({ row }) => (
+          <>
+            <p className="orders-cell-title">{getCustomerLabel(row.original)}</p>
+            <p className="orders-cell-meta">{buildCustomerMeta(row.original)}</p>
+          </>
+        ),
+      },
+      {
+        id: 'items',
+        header: 'Товары',
+        cell: ({ row }) => (
+          <>
+            <p className="orders-cell-title">{formatOrderItemsSummary(row.original.items)}</p>
+            <p className="orders-cell-meta">Позиций: {row.original.items.length}</p>
+          </>
+        ),
+      },
+      {
+        id: 'total',
+        header: 'Сумма',
+        cell: ({ row }) => formatMoneyMinor(row.original.totalMinor),
+        meta: {
+          cellClassName: 'orders-cell-amount',
+        },
+      },
+      {
+        id: 'payment',
+        header: 'Оплата',
+        cell: ({ row }) => (
+          <>
+            <p className="orders-cell-title">{getPaymentMethodLabel(row.original.payment)}</p>
+            <p className="orders-cell-meta">{getPaymentStatusPlaceholderLabel()}</p>
+          </>
+        ),
+      },
+      {
+        id: 'delivery',
+        header: 'Доставка',
+        cell: ({ row }) => (
+          <>
+            <p className="orders-cell-title">
+              {row.original.delivery.methodName || getDeliveryTypeLabel(row.original.deliveryMethod)}
+            </p>
+            <p className="orders-cell-meta orders-cell-ellipsis">{formatOrderDeliveryDestination(row.original)}</p>
+          </>
+        ),
+      },
+      {
+        id: 'status',
+        header: 'Статус',
+        cell: ({ row }) => {
+          const statusTone = getOrderStatusTone(row.original.status);
 
-            return (
-              <tr key={order.id} className={selectedOrderId === order.id ? 'orders-row-selected' : ''}>
-                <td>
-                  <button type="button" className="order-number-button" onClick={() => onOpenOrder(order.id)}>
-                    {order.orderNumber}
-                  </button>
-                </td>
-                <td className="orders-cell-muted">{formatOrderDateTime(order.createdAt)}</td>
-                <td>
-                  <p className="orders-cell-title">{getCustomerLabel(order)}</p>
-                  <p className="orders-cell-meta">{buildCustomerMeta(order)}</p>
-                </td>
-                <td>
-                  <p className="orders-cell-title">{formatOrderItemsSummary(order.items)}</p>
-                  <p className="orders-cell-meta">Позиций: {order.items.length}</p>
-                </td>
-                <td className="orders-cell-amount">{formatMoneyMinor(order.totalMinor)}</td>
-                <td>
-                  <p className="orders-cell-title">{getPaymentMethodLabel(order.payment)}</p>
-                  <p className="orders-cell-meta">{getPaymentStatusPlaceholderLabel()}</p>
-                </td>
-                <td>
-                  <p className="orders-cell-title">{order.delivery.methodName || getDeliveryTypeLabel(order.deliveryMethod)}</p>
-                  <p className="orders-cell-meta orders-cell-ellipsis">{formatOrderDeliveryDestination(order)}</p>
-                </td>
-                <td>
-                  <span className={`order-pill order-pill-${statusTone}`}>{getOrderStatusLabel(order.status)}</span>
-                </td>
-                <td>
-                  <button type="button" className="secondary-button orders-action-button" onClick={() => onOpenOrder(order.id)}>
-                    Открыть
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+          return <span className={`order-pill order-pill-${statusTone}`}>{getOrderStatusLabel(row.original.status)}</span>;
+        },
+      },
+      {
+        id: 'actions',
+        header: 'Действия',
+        cell: ({ row }) => (
+          <button type="button" className="secondary-button orders-action-button" onClick={() => onOpenOrder(row.original.id)}>
+            Открыть
+          </button>
+        ),
+      },
+    ],
+    [onOpenOrder],
+  );
+
+  return (
+    <DataTable
+      columns={columns}
+      data={orders}
+      getRowId={(order) => order.id}
+      getRowClassName={(row) => (selectedOrderId === row.original.id ? 'orders-row-selected' : undefined)}
+      wrapperClassName="orders-table-wrap"
+      tableClassName="orders-table"
+    />
   );
 }
