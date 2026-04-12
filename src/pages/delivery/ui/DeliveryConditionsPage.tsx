@@ -28,15 +28,26 @@ import {
   buildPickupPointEditorValues,
   clearPickupPointMapDraft,
   consumePickupPointMapDraft,
-  getPickupPointCoordinateSummary,
   type PickupPointEditorValues,
   writePickupPointMapDraft,
 } from '@/features/pickup-point-map-editor';
 import { LazyDataTable } from '@/shared/ui/data-table';
+import type { TariffFormField, TariffFormValues } from './DeliveryTariffFormPanel';
+import type { PickupPointFormField } from './PickupPointFormPanel';
 
 const DeliveryZonesSection = lazy(() =>
   import('./DeliveryZonesSection').then((module) => ({
     default: module.DeliveryZonesSection,
+  })),
+);
+const DeliveryTariffFormPanel = lazy(() =>
+  import('./DeliveryTariffFormPanel').then((module) => ({
+    default: module.DeliveryTariffFormPanel,
+  })),
+);
+const PickupPointFormPanel = lazy(() =>
+  import('./PickupPointFormPanel').then((module) => ({
+    default: module.PickupPointFormPanel,
   })),
 );
 
@@ -61,18 +72,6 @@ const DEFAULT_DELIVERY_METHOD: DeliveryMethod = 'COURIER';
 
 type LoadDeliveryDataOptions = {
   showInitialLoader?: boolean;
-};
-
-type TariffFormValues = {
-  id: string;
-  method: DeliveryMethod;
-  zoneId: string;
-  isAvailable: boolean;
-  fixedPriceMinor: string;
-  freeFromAmountMinor: string;
-  currency: string;
-  estimatedDays: string;
-  deliveryMinutes: string;
 };
 
 function getDeliveryMethodLabel(method: DeliveryMethod): string {
@@ -672,7 +671,7 @@ export function DeliveryConditionsPage() {
     setZoneActionSuccess(`Зона «${zone.name}» удалена.`);
   };
 
-  const handleTariffFieldChange = (field: Exclude<keyof TariffFormValues, 'isAvailable' | 'method'>, value: string) => {
+  const handleTariffFieldChange = (field: TariffFormField, value: string) => {
     setTariffForm((currentForm) => ({
       ...currentForm,
       [field]: value,
@@ -787,7 +786,7 @@ export function DeliveryConditionsPage() {
     setTariffSaveSuccess(`Тариф для «${getDeliveryMethodLabel(nextTariff.method)}» сохранен.`);
   };
 
-  const handlePickupPointFieldChange = (field: Exclude<keyof PickupPointEditorValues, 'isActive'>, value: string) => {
+  const handlePickupPointFieldChange = (field: PickupPointFormField, value: string) => {
     setPickupPointForm((currentForm) => ({
       ...currentForm,
       [field]: value,
@@ -1031,6 +1030,23 @@ export function DeliveryConditionsPage() {
     setPaymentRules(sortCheckoutPaymentRules(result.rules));
     setPaymentRulesSaveSuccess('Правила оплаты для статических способов доставки сохранены.');
   };
+
+  const deliveryMethodOptions = useMemo(
+    () =>
+      DELIVERY_METHOD_ORDER.map((method) => ({
+        value: method,
+        label: getDeliveryMethodLabel(method),
+      })),
+    [],
+  );
+  const deliveryZoneOptions = useMemo(
+    () =>
+      zones.map((zone) => ({
+        id: zone.id,
+        label: `${zone.name} (${zone.code})`,
+      })),
+    [zones],
+  );
 
   return (
     <main className="dashboard">
@@ -1352,178 +1368,36 @@ export function DeliveryConditionsPage() {
 	                )}
               </div>
 
-              <div className="delivery-form-panel">
-                <div className="catalog-card-copy">
-                  <h4 className="delivery-subtitle">{tariffForm.id ? 'Редактирование тарифа' : 'Новый тариф'}</h4>
-                  <p className="catalog-meta">Привяжите тариф к способу доставки и зоне. Цена и порог бесплатной доставки хранятся в minor units.</p>
-                </div>
-
-                <div className="product-edit-grid">
-                  <div className="field">
-                    <label className="field-label" htmlFor="delivery-tariff-method">
-                      Способ доставки
-                    </label>
-                    <select
-                      id="delivery-tariff-method"
-                      className="field-input"
-                      value={tariffForm.method}
-                      disabled={isSavingTariff}
-                      onChange={(event) => {
-                        setTariffForm((currentForm) => ({
-                          ...currentForm,
-                          method: event.target.value as DeliveryMethod,
-                        }));
-                        setTariffSaveError('');
-                        setTariffSaveSuccess('');
-                      }}
-                    >
-                      {DELIVERY_METHOD_ORDER.map((method) => (
-                        <option key={method} value={method}>
-                          {getDeliveryMethodLabel(method)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="delivery-tariff-zone">
-                      Зона
-                    </label>
-                    <select
-                      id="delivery-tariff-zone"
-                      className="field-input"
-                      value={tariffForm.zoneId}
-                      disabled={isSavingTariff}
-                      onChange={(event) => handleTariffFieldChange('zoneId', event.target.value)}
-                    >
-                      <option value="">Без зоны</option>
-                      {zones.map((zone) => (
-                        <option key={zone.id} value={zone.id}>
-                          {zone.name} ({zone.code})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="delivery-tariff-fixed-price">
-                      Цена, minor units
-                    </label>
-                    <input
-                      id="delivery-tariff-fixed-price"
-                      type="number"
-                      className="field-input"
-                      value={tariffForm.fixedPriceMinor}
-                      disabled={isSavingTariff}
-                      onChange={(event) => handleTariffFieldChange('fixedPriceMinor', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="delivery-tariff-free-from">
-                      Бесплатно от, minor units
-                    </label>
-                    <input
-                      id="delivery-tariff-free-from"
-                      type="number"
-                      className="field-input"
-                      value={tariffForm.freeFromAmountMinor}
-                      disabled={isSavingTariff}
-                      onChange={(event) => handleTariffFieldChange('freeFromAmountMinor', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="delivery-tariff-currency">
-                      Валюта
-                    </label>
-                    <input
-                      id="delivery-tariff-currency"
-                      className="field-input"
-                      value={tariffForm.currency}
-                      disabled={isSavingTariff}
-                      onChange={(event) => handleTariffFieldChange('currency', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="delivery-tariff-estimated-days">
-                      Срок доставки, дней
-                    </label>
-                    <input
-                      id="delivery-tariff-estimated-days"
-                      type="number"
-                      className="field-input"
-                      value={tariffForm.estimatedDays}
-                      disabled={isSavingTariff}
-                      onChange={(event) => handleTariffFieldChange('estimatedDays', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="delivery-tariff-delivery-minutes">
-                      Срок доставки, минут
-                    </label>
-                    <input
-                      id="delivery-tariff-delivery-minutes"
-                      type="number"
-                      className="field-input"
-                      value={tariffForm.deliveryMinutes}
-                      disabled={isSavingTariff}
-                      onChange={(event) => handleTariffFieldChange('deliveryMinutes', event.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <label className="field-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={tariffForm.isAvailable}
-                    disabled={isSavingTariff}
-                    onChange={(event) => {
-                      setTariffForm((currentForm) => ({
-                        ...currentForm,
-                        isAvailable: event.target.checked,
-                      }));
-                      setTariffSaveError('');
-                      setTariffSaveSuccess('');
-                    }}
-                  />
-                  <span className="field-label">Тариф доступен для расчета</span>
-                </label>
-
-                {tariffSaveError ? (
-                  <p className="form-error" role="alert">
-                    {tariffSaveError}
-                  </p>
-                ) : null}
-
-                {tariffSaveSuccess ? (
-                  <p className="form-success" role="status">
-                    {tariffSaveSuccess}
-                  </p>
-                ) : null}
-
-                <div className="delivery-form-actions">
-                  <button
-                    type="button"
-                    className="submit-button"
-                    onClick={() => void handleTariffSubmit()}
-                    disabled={isSavingTariff || deletingTariffId !== null}
-                  >
-                    {isSavingTariff ? 'Сохранение...' : tariffForm.id ? 'Сохранить тариф' : 'Создать тариф'}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={handleTariffReset}
-                    disabled={isSavingTariff || deletingTariffId !== null}
-                  >
-                    Сбросить
-                  </button>
-                </div>
-              </div>
+              <Suspense fallback={<div className="delivery-form-panel"><p className="catalog-empty-state">Загрузка формы тарифа...</p></div>}>
+                <DeliveryTariffFormPanel
+                  form={tariffForm}
+                  methodOptions={deliveryMethodOptions}
+                  zoneOptions={deliveryZoneOptions}
+                  isSaving={isSavingTariff}
+                  hasPendingDelete={deletingTariffId !== null}
+                  saveError={tariffSaveError}
+                  saveSuccess={tariffSaveSuccess}
+                  onMethodChange={(method) => {
+                    setTariffForm((currentForm) => ({
+                      ...currentForm,
+                      method,
+                    }));
+                    setTariffSaveError('');
+                    setTariffSaveSuccess('');
+                  }}
+                  onFieldChange={handleTariffFieldChange}
+                  onIsAvailableChange={(value) => {
+                    setTariffForm((currentForm) => ({
+                      ...currentForm,
+                      isAvailable: value,
+                    }));
+                    setTariffSaveError('');
+                    setTariffSaveSuccess('');
+                  }}
+                  onSubmit={() => void handleTariffSubmit()}
+                  onReset={handleTariffReset}
+                />
+              </Suspense>
             </div>
           </section>
 
@@ -1572,309 +1446,33 @@ export function DeliveryConditionsPage() {
 	                )}
               </div>
 
-              <div className="delivery-form-panel">
-                <div className="catalog-card-copy">
-                  <h4 className="delivery-subtitle">{pickupPointForm.id ? 'Редактирование пункта' : 'Новый пункт'}</h4>
-                  <p className="catalog-meta">
-                    Базовые поля: код, название и адрес. Координаты можно оставить пустыми, если они не участвуют в логике расчета.
-                  </p>
-                </div>
-
-                <div className="product-edit-grid">
-                  <div className="field">
-                    <label className="field-label" htmlFor="pickup-point-code">
-                      Код
-                    </label>
-                    <input
-                      id="pickup-point-code"
-                      className="field-input"
-                      value={pickupPointForm.code}
-                      disabled={isSavingPickupPoint}
-                      onChange={(event) => handlePickupPointFieldChange('code', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="pickup-point-name">
-                      Название
-                    </label>
-                    <input
-                      id="pickup-point-name"
-                      className="field-input"
-                      value={pickupPointForm.name}
-                      disabled={isSavingPickupPoint}
-                      onChange={(event) => handlePickupPointFieldChange('name', event.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="product-edit-grid">
-                  <div className="field">
-                    <label className="field-label" htmlFor="pickup-point-country">
-                      Страна
-                    </label>
-                    <input
-                      id="pickup-point-country"
-                      className="field-input"
-                      value={pickupPointForm.country}
-                      disabled={isSavingPickupPoint}
-                      onChange={(event) => handlePickupPointFieldChange('country', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="pickup-point-region">
-                      Регион
-                    </label>
-                    <input
-                      id="pickup-point-region"
-                      className="field-input"
-                      value={pickupPointForm.region}
-                      disabled={isSavingPickupPoint}
-                      onChange={(event) => handlePickupPointFieldChange('region', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="pickup-point-city">
-                      Город
-                    </label>
-                    <input
-                      id="pickup-point-city"
-                      className="field-input"
-                      value={pickupPointForm.city}
-                      disabled={isSavingPickupPoint}
-                      onChange={(event) => handlePickupPointFieldChange('city', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="pickup-point-postal-code">
-                      Индекс
-                    </label>
-                    <input
-                      id="pickup-point-postal-code"
-                      className="field-input"
-                      value={pickupPointForm.postalCode}
-                      disabled={isSavingPickupPoint}
-                      onChange={(event) => handlePickupPointFieldChange('postalCode', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="pickup-point-street">
-                      Улица
-                    </label>
-                    <input
-                      id="pickup-point-street"
-                      className="field-input"
-                      value={pickupPointForm.street}
-                      disabled={isSavingPickupPoint}
-                      onChange={(event) => handlePickupPointFieldChange('street', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="pickup-point-house">
-                      Дом
-                    </label>
-                    <input
-                      id="pickup-point-house"
-                      className="field-input"
-                      value={pickupPointForm.house}
-                      disabled={isSavingPickupPoint}
-                      onChange={(event) => handlePickupPointFieldChange('house', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="pickup-point-apartment">
-                      Квартира / офис
-                    </label>
-                    <input
-                      id="pickup-point-apartment"
-                      className="field-input"
-                      value={pickupPointForm.apartment}
-                      disabled={isSavingPickupPoint}
-                      onChange={(event) => handlePickupPointFieldChange('apartment', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="pickup-point-entrance">
-                      Подъезд
-                    </label>
-                    <input
-                      id="pickup-point-entrance"
-                      className="field-input"
-                      value={pickupPointForm.entrance}
-                      disabled={isSavingPickupPoint}
-                      onChange={(event) => handlePickupPointFieldChange('entrance', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="pickup-point-floor">
-                      Этаж
-                    </label>
-                    <input
-                      id="pickup-point-floor"
-                      className="field-input"
-                      value={pickupPointForm.floor}
-                      disabled={isSavingPickupPoint}
-                      onChange={(event) => handlePickupPointFieldChange('floor', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="pickup-point-intercom">
-                      Домофон
-                    </label>
-                    <input
-                      id="pickup-point-intercom"
-                      className="field-input"
-                      value={pickupPointForm.intercom}
-                      disabled={isSavingPickupPoint}
-                      onChange={(event) => handlePickupPointFieldChange('intercom', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="pickup-point-latitude">
-                      Широта
-                    </label>
-                    <input
-                      id="pickup-point-latitude"
-                      className="field-input"
-                      value={pickupPointForm.latitude}
-                      disabled={isSavingPickupPoint}
-                      onChange={(event) => handlePickupPointFieldChange('latitude', event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="field-label" htmlFor="pickup-point-longitude">
-                      Долгота
-                    </label>
-                    <input
-                      id="pickup-point-longitude"
-                      className="field-input"
-                      value={pickupPointForm.longitude}
-                      disabled={isSavingPickupPoint}
-                      onChange={(event) => handlePickupPointFieldChange('longitude', event.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="field">
-                  <label className="field-label" htmlFor="pickup-point-comment">
-                    Комментарий
-                  </label>
-                  <textarea
-                    id="pickup-point-comment"
-                    className="field-input field-textarea"
-                    value={pickupPointForm.comment}
-                    disabled={isSavingPickupPoint}
-                    onChange={(event) => handlePickupPointFieldChange('comment', event.target.value)}
-                  />
-                </div>
-
-                <div className="delivery-zone-geometry-card">
-                  <div className="delivery-zone-header-row">
-                    <div className="catalog-card-copy">
-                      <h4 className="delivery-subtitle">Точка на карте</h4>
-                      <p className="catalog-meta">{getPickupPointCoordinateSummary(pickupPointForm)}</p>
-                    </div>
-
-                    <div className="delivery-table-link-group">
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={handlePickupPointOpenMap}
-                        disabled={isSavingPickupPoint || deletingPickupPointId !== null || isDetectingPickupPointAddress}
-                      >
-                        Выбрать на карте
-                      </button>
-
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={() => void handlePickupPointDetectAddress()}
-                        disabled={isSavingPickupPoint || deletingPickupPointId !== null || isDetectingPickupPointAddress}
-                      >
-                        {isDetectingPickupPointAddress ? 'Определение адреса...' : 'Определить адрес'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <p className="catalog-meta">
-                    Откройте карту, чтобы поставить точку пункта самовывоза кликом или перетащить существующий маркер.
-                  </p>
-
-                  {pickupPointDetectError ? (
-                    <p className="form-error" role="alert">
-                      {pickupPointDetectError}
-                    </p>
-                  ) : null}
-
-                  {pickupPointDetectSuccess ? (
-                    <p className="form-success" role="status">
-                      {pickupPointDetectSuccess}
-                    </p>
-                  ) : null}
-                </div>
-
-                <label className="field-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={pickupPointForm.isActive}
-                    disabled={isSavingPickupPoint || deletingPickupPointId !== null || isDetectingPickupPointAddress}
-                    onChange={(event) => {
-                      setPickupPointForm((currentForm) => ({
-                        ...currentForm,
-                        isActive: event.target.checked,
-                      }));
-                      setPickupPointDetectError('');
-                      setPickupPointDetectSuccess('');
-                      setPickupPointSaveError('');
-                      setPickupPointSaveSuccess('');
-                    }}
-                  />
-                  <span className="field-label">Показывать пункт самовывоза клиентам</span>
-                </label>
-
-                {pickupPointSaveError ? (
-                  <p className="form-error" role="alert">
-                    {pickupPointSaveError}
-                  </p>
-                ) : null}
-
-                {pickupPointSaveSuccess ? (
-                  <p className="form-success" role="status">
-                    {pickupPointSaveSuccess}
-                  </p>
-                ) : null}
-
-                <div className="delivery-form-actions">
-                  <button
-                    type="button"
-                    className="submit-button"
-                    onClick={() => void handlePickupPointSubmit()}
-                    disabled={isSavingPickupPoint || deletingPickupPointId !== null || isDetectingPickupPointAddress}
-                  >
-                    {isSavingPickupPoint ? 'Сохранение...' : pickupPointForm.id ? 'Сохранить пункт' : 'Создать пункт'}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={handlePickupPointReset}
-                    disabled={isSavingPickupPoint || deletingPickupPointId !== null || isDetectingPickupPointAddress}
-                  >
-                    Сбросить
-                  </button>
-                </div>
-              </div>
+              <Suspense fallback={<div className="delivery-form-panel"><p className="catalog-empty-state">Загрузка формы пункта...</p></div>}>
+                <PickupPointFormPanel
+                  form={pickupPointForm}
+                  isSaving={isSavingPickupPoint}
+                  hasPendingDelete={deletingPickupPointId !== null}
+                  isDetectingAddress={isDetectingPickupPointAddress}
+                  detectError={pickupPointDetectError}
+                  detectSuccess={pickupPointDetectSuccess}
+                  saveError={pickupPointSaveError}
+                  saveSuccess={pickupPointSaveSuccess}
+                  onFieldChange={handlePickupPointFieldChange}
+                  onIsActiveChange={(value) => {
+                    setPickupPointForm((currentForm) => ({
+                      ...currentForm,
+                      isActive: value,
+                    }));
+                    setPickupPointDetectError('');
+                    setPickupPointDetectSuccess('');
+                    setPickupPointSaveError('');
+                    setPickupPointSaveSuccess('');
+                  }}
+                  onOpenMap={handlePickupPointOpenMap}
+                  onDetectAddress={() => void handlePickupPointDetectAddress()}
+                  onSubmit={() => void handlePickupPointSubmit()}
+                  onReset={handlePickupPointReset}
+                />
+              </Suspense>
             </div>
           </section>
         </div>
