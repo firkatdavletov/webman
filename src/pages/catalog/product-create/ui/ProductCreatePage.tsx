@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { type Category, buildCategoryLookup, getCategories } from '@/entities/category';
 import { type ModifierGroup, getAllModifierGroups } from '@/entities/modifier-group';
@@ -13,12 +13,17 @@ import {
   mapProductEditorValuesToProductStructures,
   parseOptionalProductPrice,
   parseProductPrice,
-  ProductEditor,
   type ProductEditorValues,
   validateProductModifierGroupsSection,
   validateProductVariantsSection,
 } from '@/features/product-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
+
+const ProductEditor = lazy(() =>
+  import('@/features/product-editor/ui/ProductEditor').then((module) => ({
+    default: module.ProductEditor,
+  })),
+);
 
 export function ProductCreatePage() {
   const navigate = useNavigate();
@@ -250,22 +255,24 @@ export function ProductCreatePage() {
               <p className="detail-copy">POST /api/v1/admin/catalog/products</p>
               </div>
             </div>
-            <ProductEditor
-              idPrefix="product-create"
-              ariaLabel="Форма создания товара"
-              eyebrow="Создание"
-              title="Новый товар"
-              categoryOptions={categoryOptions}
-              availableModifierGroups={modifierGroups}
-              formValues={formValues}
-              isSaving={isSaving}
-              disableCategorySelect={!categoryOptions.length}
-              saveError={saveError}
-              submitLabel="Создать товар"
-              savingLabel="Создание..."
-              onValuesChange={handleValuesChange}
-              onSubmit={() => void handleSave()}
-            />
+            <Suspense fallback={<p className="catalog-empty-state">Загрузка редактора товара...</p>}>
+              <ProductEditor
+                idPrefix="product-create"
+                ariaLabel="Форма создания товара"
+                eyebrow="Создание"
+                title="Новый товар"
+                categoryOptions={categoryOptions}
+                availableModifierGroups={modifierGroups}
+                formValues={formValues}
+                isSaving={isSaving}
+                disableCategorySelect={!categoryOptions.length}
+                saveError={saveError}
+                submitLabel="Создать товар"
+                savingLabel="Создание..."
+                onValuesChange={handleValuesChange}
+                onSubmit={() => void handleSave()}
+              />
+            </Suspense>
           </section>
         )}
     </main>

@@ -6,7 +6,7 @@ import {
   type ModifierGroup,
   getAllModifierGroups,
 } from '@/entities/modifier-group';
-import { DataTable } from '@/shared/ui/data-table';
+import { LazyDataTable } from '@/shared/ui/data-table';
 
 function filterModifierGroups(modifierGroups: ModifierGroup[], searchQuery: string): ModifierGroup[] {
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
@@ -200,9 +200,14 @@ export function ModifierGroupsPage() {
           {isLoading ? (
             <p className="catalog-empty-state">Загрузка справочника модификаторов...</p>
           ) : filteredModifierGroups.length ? (
-            <DataTable
+            <LazyDataTable
               columns={columns}
               data={filteredModifierGroups}
+              fallback={
+                <div className="products-table-wrap">
+                  <p className="catalog-empty-state">Загрузка таблицы модификаторов...</p>
+                </div>
+              }
               getRowId={(modifierGroup) => modifierGroup.id}
               wrapperClassName="products-table-wrap"
               tableClassName="products-table"

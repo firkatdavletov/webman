@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -32,8 +32,13 @@ import {
   type PickupPointEditorValues,
   writePickupPointMapDraft,
 } from '@/features/pickup-point-map-editor';
-import { DataTable } from '@/shared/ui/data-table';
-import { DeliveryZonesSection } from './DeliveryZonesSection';
+import { LazyDataTable } from '@/shared/ui/data-table';
+
+const DeliveryZonesSection = lazy(() =>
+  import('./DeliveryZonesSection').then((module) => ({
+    default: module.DeliveryZonesSection,
+  })),
+);
 
 const DELIVERY_METHOD_LABELS: Record<DeliveryMethod, string> = {
   PICKUP: 'Самовывоз',
@@ -1287,14 +1292,22 @@ export function DeliveryConditionsPage() {
             ) : null}
           </section>
 
-          <DeliveryZonesSection
-            zones={zones}
-            isLoading={isLoading}
-            deletingZoneId={deletingZoneId}
-            actionError={zoneActionError}
-            actionSuccess={zoneActionSuccess}
-            onDeleteZone={(zone) => void handleZoneDelete(zone)}
-          />
+          <Suspense
+            fallback={
+              <section className="catalog-card catalog-data-card" aria-label="Зоны доставки">
+                <p className="catalog-empty-state">Загрузка секции зон доставки...</p>
+              </section>
+            }
+          >
+            <DeliveryZonesSection
+              zones={zones}
+              isLoading={isLoading}
+              deletingZoneId={deletingZoneId}
+              actionError={zoneActionError}
+              actionSuccess={zoneActionSuccess}
+              onDeleteZone={(zone) => void handleZoneDelete(zone)}
+            />
+          </Suspense>
 
           <section className="catalog-card catalog-data-card" aria-label="Тарифы доставки">
             <div className="catalog-section-header">
@@ -1321,9 +1334,14 @@ export function DeliveryConditionsPage() {
 	                {isLoading ? (
 	                  <p className="catalog-empty-state">Загрузка тарифов доставки...</p>
 	                ) : tariffs.length ? (
-	                  <DataTable
+	                  <LazyDataTable
 	                    columns={tariffColumns}
 	                    data={tariffs}
+	                    fallback={
+	                      <div className="delivery-table-wrap">
+	                        <p className="catalog-empty-state">Загрузка таблицы тарифов...</p>
+	                      </div>
+	                    }
 	                    getRowId={(tariff) => tariff.id}
 	                    getRowClassName={(row) => (tariffForm.id === row.original.id ? 'delivery-table-row-active' : undefined)}
 	                    wrapperClassName="delivery-table-wrap"
@@ -1534,9 +1552,14 @@ export function DeliveryConditionsPage() {
 	                {isLoading ? (
 	                  <p className="catalog-empty-state">Загрузка пунктов самовывоза...</p>
 	                ) : pickupPoints.length ? (
-	                  <DataTable
+	                  <LazyDataTable
 	                    columns={pickupPointColumns}
 	                    data={pickupPoints}
+	                    fallback={
+	                      <div className="delivery-table-wrap">
+	                        <p className="catalog-empty-state">Загрузка таблицы пунктов самовывоза...</p>
+	                      </div>
+	                    }
 	                    getRowId={(pickupPoint) => pickupPoint.id}
 	                    getRowClassName={(row) =>
 	                      pickupPointForm.id === row.original.id ? 'delivery-table-row-active' : undefined

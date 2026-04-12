@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getDeliveryZoneById } from '@/entities/delivery';
 import {
@@ -6,7 +6,6 @@ import {
   buildEmptyDeliveryZoneEditorValues,
   clearDeliveryZoneGeometry,
   cloneDeliveryZoneGeometry,
-  DeliveryZoneMapEditor,
   getDeliveryZoneDraftKey,
   getDeliveryZoneGeometryValidationError,
   getDeliveryZoneSourceFingerprint,
@@ -14,6 +13,12 @@ import {
   type DeliveryZoneEditorGeometry,
 } from '@/features/delivery-zone-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
+
+const DeliveryZoneMapEditor = lazy(() =>
+  import('@/features/delivery-zone-editor/ui/DeliveryZoneMapEditor').then((module) => ({
+    default: module.DeliveryZoneMapEditor,
+  })),
+);
 
 export function DeliveryZoneMapPage() {
   const navigate = useNavigate();
@@ -170,12 +175,14 @@ export function DeliveryZoneMapPage() {
               </p>
             </div>
 
-            <DeliveryZoneMapEditor
-              geometry={localGeometry}
-              activePolygonIndex={activePolygonIndex}
-              onActivePolygonIndexChange={setActivePolygonIndex}
-              onGeometryChange={setLocalGeometry}
-            />
+            <Suspense fallback={<p className="catalog-empty-state">Загрузка редактора карты...</p>}>
+              <DeliveryZoneMapEditor
+                geometry={localGeometry}
+                activePolygonIndex={activePolygonIndex}
+                onActivePolygonIndexChange={setActivePolygonIndex}
+                onGeometryChange={setLocalGeometry}
+              />
+            </Suspense>
 
             <div className="delivery-form-actions">
               <button type="button" className="submit-button" onClick={handleApply}>

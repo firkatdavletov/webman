@@ -1,14 +1,19 @@
-import { useMemo, useState } from 'react';
+import { Suspense, lazy, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   applyPickupPointCoordinateValues,
   getPickupPointAddressSummary,
   parsePickupPointCoordinateValues,
-  PickupPointMapEditor,
   readPickupPointMapDraft,
   writePickupPointMapDraft,
 } from '@/features/pickup-point-map-editor';
 import type { YandexMapCoordinate } from '@/shared/lib/yandex-maps/api';
+
+const PickupPointMapEditor = lazy(() =>
+  import('@/features/pickup-point-map-editor/ui/PickupPointMapEditor').then((module) => ({
+    default: module.PickupPointMapEditor,
+  })),
+);
 
 export function DeliveryPickupPointMapPage() {
   const navigate = useNavigate();
@@ -68,12 +73,14 @@ export function DeliveryPickupPointMapPage() {
               </p>
             </div>
 
-            <PickupPointMapEditor
-              coordinates={coordinates}
-              title={draftValues.name.trim() || draftValues.code.trim() || 'Пункт самовывоза'}
-              addressSummary={getPickupPointAddressSummary(draftValues)}
-              onCoordinatesChange={setCoordinates}
-            />
+            <Suspense fallback={<p className="catalog-empty-state">Загрузка редактора карты...</p>}>
+              <PickupPointMapEditor
+                coordinates={coordinates}
+                title={draftValues.name.trim() || draftValues.code.trim() || 'Пункт самовывоза'}
+                addressSummary={getPickupPointAddressSummary(draftValues)}
+                onCoordinatesChange={setCoordinates}
+              />
+            </Suspense>
 
             <div className="delivery-form-actions">
               <button type="button" className="submit-button" onClick={handleApply}>

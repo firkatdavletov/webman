@@ -20,7 +20,7 @@ import {
   type ProductEditorOptionGroupValues,
   type ProductEditorValues,
 } from '@/features/product-editor/model/productEditor';
-import { DataTable } from '@/shared/ui/data-table';
+import { LazyDataTable } from '@/shared/ui/data-table';
 
 type EditableProductField = Exclude<
   keyof ProductEditorValues,
@@ -1446,9 +1446,10 @@ export function ProductEditor({
             </div>
 
 	            {formValues.optionGroups.length ? (
-	              <DataTable
+	              <LazyDataTable
 	                columns={optionGroupColumns}
 	                data={formValues.optionGroups}
+	                fallback={<p className="catalog-meta">Загрузка таблицы опций...</p>}
 	                getRowId={(_, index) => `option-group-${index}`}
 	                getRowClassName={(row) =>
 	                  optionGroupEditorState?.mode === 'edit' && optionGroupEditorState.optionGroupIndex === row.index
@@ -1474,9 +1475,10 @@ export function ProductEditor({
             </div>
 
 	            {formValues.variants.length ? (
-	              <DataTable
+	              <LazyDataTable
 	                columns={variantColumns}
 	                data={formValues.variants}
+	                fallback={<p className="catalog-meta">Загрузка таблицы вариантов...</p>}
 	                getRowId={(_, index) => `variant-${index}`}
 	                getRowClassName={(row) =>
 	                  variantEditorState?.mode === 'edit' && variantEditorState.variantIndex === row.index

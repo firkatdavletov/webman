@@ -1,4 +1,4 @@
-import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { type Category, buildCategoryLookup, getCategories } from '@/entities/category';
 import { type ModifierGroup, getAllModifierGroups } from '@/entities/modifier-group';
@@ -19,7 +19,6 @@ import {
   mapProductEditorValuesToProductStructures,
   parseOptionalProductPrice,
   parseProductPrice,
-  ProductEditor,
   type ProductEditorValues,
   validateProductModifierGroupsSection,
   validateProductVariantsSection,
@@ -27,6 +26,11 @@ import {
 import { isUuid } from '@/shared/lib/uuid/isUuid';
 
 const SUPPORTED_PRODUCT_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const ProductEditor = lazy(() =>
+  import('@/features/product-editor/ui/ProductEditor').then((module) => ({
+    default: module.ProductEditor,
+  })),
+);
 
 export function ProductDetailsPage() {
   const { productId } = useParams();
@@ -488,24 +492,26 @@ export function ProductDetailsPage() {
             </div>
 
             {formValues ? (
-              <ProductEditor
-                idPrefix="product-edit"
-                ariaLabel="Редактирование товара"
-                eyebrow="Редактирование"
-                title="Изменить товар"
-                categoryOptions={categoryOptions}
-                availableModifierGroups={modifierGroups}
-                formValues={formValues}
-                isSaving={isSaving || isImageUploading || pendingImageRemovalKey !== null}
-                optionGroupEditorMode="drawer"
-                variantEditorMode="drawer"
-                saveError={saveError}
-                saveSuccess={saveSuccess}
-                submitLabel="Сохранить изменения"
-                savingLabel="Сохранение..."
-                onValuesChange={handleValuesChange}
-                onSubmit={() => void handleSave()}
-              />
+              <Suspense fallback={<p className="catalog-empty-state">Загрузка редактора товара...</p>}>
+                <ProductEditor
+                  idPrefix="product-edit"
+                  ariaLabel="Редактирование товара"
+                  eyebrow="Редактирование"
+                  title="Изменить товар"
+                  categoryOptions={categoryOptions}
+                  availableModifierGroups={modifierGroups}
+                  formValues={formValues}
+                  isSaving={isSaving || isImageUploading || pendingImageRemovalKey !== null}
+                  optionGroupEditorMode="drawer"
+                  variantEditorMode="drawer"
+                  saveError={saveError}
+                  saveSuccess={saveSuccess}
+                  submitLabel="Сохранить изменения"
+                  savingLabel="Сохранение..."
+                  onValuesChange={handleValuesChange}
+                  onSubmit={() => void handleSave()}
+                />
+              </Suspense>
             ) : null}
           </section>
         ) : (

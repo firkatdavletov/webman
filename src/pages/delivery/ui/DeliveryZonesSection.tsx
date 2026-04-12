@@ -6,7 +6,7 @@ import {
   getDeliveryZoneTypeLabel,
   mapDeliveryZoneGeometryDtoToDraft,
 } from '@/features/delivery-zone-editor';
-import { DataTable } from '@/shared/ui/data-table';
+import { LazyDataTable } from '@/shared/ui/data-table';
 
 type DeliveryZonesSectionProps = {
   zones: DeliveryZone[];
@@ -127,9 +127,14 @@ export function DeliveryZonesSection({
         {isLoading ? (
           <p className="catalog-empty-state">Загрузка зон доставки...</p>
         ) : zones.length ? (
-          <DataTable
+          <LazyDataTable
             columns={columns}
             data={zones}
+            fallback={
+              <div className="delivery-table-wrap">
+                <p className="catalog-empty-state">Загрузка таблицы зон доставки...</p>
+              </div>
+            }
             getRowId={(zone) => zone.id}
             wrapperClassName="delivery-table-wrap"
             tableClassName="delivery-table"

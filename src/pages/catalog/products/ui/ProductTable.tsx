@@ -3,7 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { Link } from 'react-router-dom';
 import type { Product } from '@/entities/product';
 import { formatPrice } from '@/entities/product';
-import { DataTable } from '@/shared/ui/data-table';
+import { LazyDataTable } from '@/shared/ui/data-table';
 
 type ProductTableProps = {
   products: Product[];
@@ -51,9 +51,14 @@ export function ProductTable({ products, categoryLookup }: ProductTableProps) {
   );
 
   return (
-    <DataTable
+    <LazyDataTable
       columns={columns}
       data={products}
+      fallback={
+        <div className="products-table-wrap">
+          <p className="catalog-empty-state">Загрузка таблицы товаров...</p>
+        </div>
+      }
       getRowId={(product) => product.id}
       wrapperClassName="products-table-wrap"
       tableClassName="products-table"

@@ -13,7 +13,7 @@ import {
   getPaymentStatusPlaceholderLabel,
   type Order,
 } from '@/entities/order';
-import { DataTable } from '@/shared/ui/data-table';
+import { LazyDataTable } from '@/shared/ui/data-table';
 
 type OrdersTableProps = {
   orders: Order[];
@@ -122,11 +122,16 @@ export function OrdersTable({ orders, selectedOrderId, onOpenOrder }: OrdersTabl
   );
 
   return (
-    <DataTable
+    <LazyDataTable
       columns={columns}
       data={orders}
       getRowId={(order) => order.id}
       getRowClassName={(row) => (selectedOrderId === row.original.id ? 'orders-row-selected' : undefined)}
+      fallback={
+        <div className="orders-table-wrap">
+          <p className="catalog-empty-state">Загрузка таблицы заказов...</p>
+        </div>
+      }
       wrapperClassName="orders-table-wrap"
       tableClassName="orders-table"
     />

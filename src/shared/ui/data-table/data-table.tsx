@@ -15,7 +15,7 @@ export type DataTableColumnMeta = {
   cellClassName?: string;
 };
 
-type DataTableProps<TData> = {
+export type DataTableProps<TData> = {
   columns: ColumnDef<TData, unknown>[];
   data: TData[];
   getRowId?: (originalRow: TData, index: number) => string;
