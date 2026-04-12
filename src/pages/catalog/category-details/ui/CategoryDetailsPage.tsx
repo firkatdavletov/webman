@@ -18,7 +18,6 @@ import {
   type CategoryEditorValues,
 } from '@/features/category-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
-import { NavBar } from '@/shared/ui/NavBar';
 
 const SUPPORTED_CATEGORY_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
@@ -286,10 +285,7 @@ export function CategoryDetailsPage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <nav className="breadcrumbs" aria-label="Хлебные крошки">
           <Link className="breadcrumb-link" to="/categories">
             Каталог
@@ -439,7 +435,6 @@ export function CategoryDetailsPage() {
             </Link>
           </section>
         )}
-      </main>
-    </div>
+    </main>
   );
 }

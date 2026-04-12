@@ -4,7 +4,6 @@ import type { BannerStatus, HeroBanner } from '@/entities/hero-banner';
 import { getHeroBanners } from '@/entities/hero-banner';
 import { HeroBannerFilters } from '@/pages/content/hero-banners/ui/HeroBannerFilters';
 import { HeroBannerList } from '@/pages/content/hero-banners/ui/HeroBannerList';
-import { NavBar } from '@/shared/ui/NavBar';
 
 const BANNERS_STATUS_FILTER_STORAGE_KEY = 'webman.hero-banners-page.status-filter';
 
@@ -117,10 +116,7 @@ export function HeroBannersPage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <header className="dashboard-header">
           <div>
             <p className="page-kicker">Контент</p>
@@ -206,7 +202,6 @@ export function HeroBannersPage() {
             <p className="catalog-empty-state">Баннеры не найдены.</p>
           )}
         </section>
-      </main>
-    </div>
+    </main>
   );
 }

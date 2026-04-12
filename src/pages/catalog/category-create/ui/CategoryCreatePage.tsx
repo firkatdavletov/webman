@@ -7,7 +7,6 @@ import {
   type CategoryEditorValues,
   EMPTY_CATEGORY_EDITOR_VALUES,
 } from '@/features/category-editor';
-import { NavBar } from '@/shared/ui/NavBar';
 
 export function CategoryCreatePage() {
   const navigate = useNavigate();
@@ -71,10 +70,7 @@ export function CategoryCreatePage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <nav className="breadcrumbs" aria-label="Хлебные крошки">
           <Link className="breadcrumb-link" to="/categories">
             Каталог
@@ -132,7 +128,6 @@ export function CategoryCreatePage() {
             onSubmit={() => void handleSave()}
           />
         </section>
-      </main>
-    </div>
+    </main>
   );
 }

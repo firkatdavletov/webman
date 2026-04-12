@@ -1,13 +1,9 @@
 import { Link } from 'react-router-dom';
 import { CatalogImportPanel } from '@/features/catalog-import';
-import { NavBar } from '@/shared/ui/NavBar';
 
 export function ModifierImportPage() {
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <nav className="breadcrumbs" aria-label="Хлебные крошки">
           <Link className="breadcrumb-link" to="/categories">
             Каталог
@@ -39,7 +35,6 @@ export function ModifierImportPage() {
           initialImportType="MODIFIER_GROUP"
           allowedImportTypes={['MODIFIER_GROUP', 'MODIFIER_OPTION', 'PRODUCT_MODIFIER_GROUP_LINK']}
         />
-      </main>
-    </div>
+    </main>
   );
 }

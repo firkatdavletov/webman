@@ -18,7 +18,6 @@ import { OrderFilters } from '@/features/order-filters';
 import { OrderSearch } from '@/features/order-search';
 import { filterOrders, ORDER_PAGE_SIZE_OPTIONS, paginateItems, type OrderFilters as OrdersPageFilterState } from '@/pages/orders/model/orderPageView';
 import { getPrimaryMediaImageUrl } from '@/shared/lib/media/images';
-import { NavBar } from '@/shared/ui/NavBar';
 import { OrderDetailsDrawer } from '@/widgets/order-details';
 import { OrdersTable } from '@/widgets/orders-table';
 
@@ -382,9 +381,7 @@ export function OrdersPage() {
   const isDrawerOpen = Boolean(selectedOrderId);
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
+    <>
       <main className="dashboard">
         <header className="dashboard-header">
           <div>
@@ -547,6 +544,6 @@ export function OrdersPage() {
         onClose={handleCloseOrderDrawer}
         onStatusSubmit={handleStatusSubmit}
       />
-    </div>
+    </>
   );
 }

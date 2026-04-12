@@ -13,7 +13,6 @@ import {
   type DeliveryZoneEditorValues,
 } from '@/features/delivery-zone-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
-import { NavBar } from '@/shared/ui/NavBar';
 
 export function DeliveryZoneDetailsPage() {
   const { zoneId } = useParams();
@@ -115,10 +114,7 @@ export function DeliveryZoneDetailsPage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <nav className="breadcrumbs" aria-label="Хлебные крошки">
           <Link className="breadcrumb-link" to="/delivery">
             Доставка
@@ -181,7 +177,6 @@ export function DeliveryZoneDetailsPage() {
             onReset={handleReset}
           />
         ) : null}
-      </main>
-    </div>
+    </main>
   );
 }

@@ -14,7 +14,6 @@ import {
   type DeliveryZoneEditorGeometry,
 } from '@/features/delivery-zone-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
-import { NavBar } from '@/shared/ui/NavBar';
 
 export function DeliveryZoneMapPage() {
   const navigate = useNavigate();
@@ -115,10 +114,7 @@ export function DeliveryZoneMapPage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <nav className="breadcrumbs" aria-label="Хлебные крошки">
           <Link className="breadcrumb-link" to="/delivery">
             Доставка
@@ -196,7 +192,6 @@ export function DeliveryZoneMapPage() {
             </div>
           </section>
         )}
-      </main>
-    </div>
+    </main>
   );
 }

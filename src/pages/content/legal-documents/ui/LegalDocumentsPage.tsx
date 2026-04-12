@@ -8,7 +8,6 @@ import {
   type LegalDocument,
   type LegalDocumentType,
 } from '@/entities/legal-document';
-import { NavBar } from '@/shared/ui/NavBar';
 
 type LegalDocumentFormValues = {
   title: string;
@@ -201,10 +200,7 @@ export function LegalDocumentsPage() {
   const isDirty = hasUnsavedChanges(selectedDocument, formValues);
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <header className="dashboard-header">
           <div>
             <p className="page-kicker">Контент</p>
@@ -374,7 +370,6 @@ export function LegalDocumentsPage() {
             )}
           </section>
         </section>
-      </main>
-    </div>
+    </main>
   );
 }

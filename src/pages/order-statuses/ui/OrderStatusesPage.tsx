@@ -17,7 +17,6 @@ import {
   getOrderStatusTone,
   getUserRoleLabel,
 } from '@/entities/order';
-import { NavBar } from '@/shared/ui/NavBar';
 
 const ORDER_STATE_TYPE_OPTIONS: OrderStateType[] = [
   'CREATED',
@@ -454,10 +453,7 @@ export function OrderStatusesPage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <header className="dashboard-header">
           <div>
             <p className="page-kicker">Справочники</p>
@@ -1015,7 +1011,6 @@ export function OrderStatusesPage() {
             </>
           )}
         </section>
-      </main>
-    </div>
+    </main>
   );
 }

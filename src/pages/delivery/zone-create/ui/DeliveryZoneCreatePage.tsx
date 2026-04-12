@@ -12,7 +12,6 @@ import {
   validateDeliveryZoneEditorValues,
   mapDeliveryZoneEditorValuesToPayload,
 } from '@/features/delivery-zone-editor';
-import { NavBar } from '@/shared/ui/NavBar';
 
 export function DeliveryZoneCreatePage() {
   const navigate = useNavigate();
@@ -61,10 +60,7 @@ export function DeliveryZoneCreatePage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <nav className="breadcrumbs" aria-label="Хлебные крошки">
           <Link className="breadcrumb-link" to="/delivery">
             Доставка
@@ -106,7 +102,6 @@ export function DeliveryZoneCreatePage() {
           onSubmit={() => void handleSubmit()}
           onReset={handleReset}
         />
-      </main>
-    </div>
+    </main>
   );
 }

@@ -20,7 +20,6 @@ import {
   type HeroBannerTranslationValues,
 } from '@/features/hero-banner-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
-import { NavBar } from '@/shared/ui/NavBar';
 
 export function HeroBannerDetailsPage() {
   const { bannerId } = useParams();
@@ -184,10 +183,7 @@ export function HeroBannerDetailsPage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <nav className="breadcrumbs" aria-label="Хлебные крошки">
           <Link className="breadcrumb-link" to="/hero-banners">
             Контент
@@ -369,7 +365,6 @@ export function HeroBannerDetailsPage() {
             </Link>
           </section>
         )}
-      </main>
-    </div>
+    </main>
   );
 }

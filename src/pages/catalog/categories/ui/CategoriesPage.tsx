@@ -11,7 +11,6 @@ import { filterCategoryTree } from '@/pages/catalog/categories/model/categoryPag
 import { CategoryFilters } from '@/pages/catalog/categories/ui/CategoryFilters';
 import { CategoryList } from '@/pages/catalog/categories/ui/CategoryList';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
-import { NavBar } from '@/shared/ui/NavBar';
 
 const CATEGORIES_ACTIVITY_FILTER_STORAGE_KEY = 'webman.categories-page.is-active-filter';
 const CATEGORIES_PAGE_CACHE_STORAGE_KEY = 'webman.categories-page.cache.v1';
@@ -193,10 +192,7 @@ export function CategoriesPage() {
   );
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <header className="dashboard-header">
           <div>
             <p className="page-kicker">Каталог</p>
@@ -256,7 +252,6 @@ export function CategoriesPage() {
             </p>
           )}
         </section>
-      </main>
-    </div>
+    </main>
   );
 }

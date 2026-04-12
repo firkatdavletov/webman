@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { isAuthenticated } from '@/entities/session';
+import { AppShell } from '@/shared/ui/app-shell';
 
 export function ProtectedRoute() {
   const location = useLocation();
@@ -8,5 +9,9 @@ export function ProtectedRoute() {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  return <Outlet />;
+  return (
+    <AppShell>
+      <Outlet />
+    </AppShell>
+  );
 }

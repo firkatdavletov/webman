@@ -19,7 +19,6 @@ import {
   validateProductVariantsSection,
 } from '@/features/product-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
-import { NavBar } from '@/shared/ui/NavBar';
 
 export function ProductCreatePage() {
   const navigate = useNavigate();
@@ -169,10 +168,7 @@ export function ProductCreatePage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <nav className="breadcrumbs" aria-label="Хлебные крошки">
           <Link className="breadcrumb-link" to="/categories">
             Каталог
@@ -272,7 +268,6 @@ export function ProductCreatePage() {
             />
           </section>
         )}
-      </main>
-    </div>
+    </main>
   );
 }

@@ -8,7 +8,6 @@ import {
   type ModifierGroupEditorValues,
   validateModifierGroupEditorValues,
 } from '@/features/modifier-group-editor';
-import { NavBar } from '@/shared/ui/NavBar';
 
 export function ModifierGroupCreatePage() {
   const navigate = useNavigate();
@@ -47,10 +46,7 @@ export function ModifierGroupCreatePage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <nav className="breadcrumbs" aria-label="Хлебные крошки">
           <Link className="breadcrumb-link" to="/categories">
             Каталог
@@ -113,7 +109,6 @@ export function ModifierGroupCreatePage() {
             onSubmit={() => void handleSave()}
           />
         </section>
-      </main>
-    </div>
+    </main>
   );
 }

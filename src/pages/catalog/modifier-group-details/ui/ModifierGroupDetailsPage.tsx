@@ -14,7 +14,6 @@ import {
   validateModifierGroupEditorValues,
 } from '@/features/modifier-group-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
-import { NavBar } from '@/shared/ui/NavBar';
 
 export function ModifierGroupDetailsPage() {
   const { modifierGroupId } = useParams();
@@ -96,10 +95,7 @@ export function ModifierGroupDetailsPage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <nav className="breadcrumbs" aria-label="Хлебные крошки">
           <Link className="breadcrumb-link" to="/categories">
             Каталог
@@ -197,7 +193,6 @@ export function ModifierGroupDetailsPage() {
             </Link>
           </section>
         )}
-      </main>
-    </div>
+    </main>
   );
 }

@@ -5,7 +5,6 @@ import { type Product, getAllProducts } from '@/entities/product';
 import { filterProducts } from '@/pages/catalog/products/model/productPageView';
 import { ProductFilters } from '@/pages/catalog/products/ui/ProductFilters';
 import { ProductTable } from '@/pages/catalog/products/ui/ProductTable';
-import { NavBar } from '@/shared/ui/NavBar';
 
 const PRODUCTS_ACTIVITY_FILTER_STORAGE_KEY = 'webman.products-page.is-active-filter';
 const PRODUCTS_PAGE_CACHE_STORAGE_KEY = 'webman.products-page.cache.v1';
@@ -196,10 +195,7 @@ export function ProductsPage() {
   const filteredProducts = useMemo(() => filterProducts(products, { searchQuery }), [products, searchQuery]);
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <header className="dashboard-header">
           <div>
             <p className="page-kicker">Каталог</p>
@@ -267,7 +263,6 @@ export function ProductsPage() {
             </p>
           )}
         </section>
-      </main>
-    </div>
+    </main>
   );
 }

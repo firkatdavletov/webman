@@ -25,7 +25,6 @@ import {
   validateProductVariantsSection,
 } from '@/features/product-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
-import { NavBar } from '@/shared/ui/NavBar';
 
 const SUPPORTED_PRODUCT_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
@@ -340,10 +339,7 @@ export function ProductDetailsPage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <nav className="breadcrumbs" aria-label="Хлебные крошки">
           <Link className="breadcrumb-link" to="/categories">
             Каталог
@@ -522,7 +518,6 @@ export function ProductDetailsPage() {
             </Link>
           </section>
         )}
-      </main>
-    </div>
+    </main>
   );
 }

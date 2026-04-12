@@ -5,7 +5,6 @@ import {
   type ModifierGroup,
   getAllModifierGroups,
 } from '@/entities/modifier-group';
-import { NavBar } from '@/shared/ui/NavBar';
 
 function filterModifierGroups(modifierGroups: ModifierGroup[], searchQuery: string): ModifierGroup[] {
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
@@ -68,10 +67,7 @@ export function ModifierGroupsPage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <header className="dashboard-header">
           <div>
             <p className="page-kicker">Каталог</p>
@@ -188,7 +184,6 @@ export function ModifierGroupsPage() {
             <p className="catalog-empty-state">В выбранном статусе групп модификаторов пока нет.</p>
           )}
         </section>
-      </main>
-    </div>
+    </main>
   );
 }

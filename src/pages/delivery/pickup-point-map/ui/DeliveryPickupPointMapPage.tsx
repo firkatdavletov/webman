@@ -8,7 +8,6 @@ import {
   readPickupPointMapDraft,
   writePickupPointMapDraft,
 } from '@/features/pickup-point-map-editor';
-import { NavBar } from '@/shared/ui/NavBar';
 import type { YandexMapCoordinate } from '@/shared/lib/yandex-maps/api';
 
 export function DeliveryPickupPointMapPage() {
@@ -30,10 +29,7 @@ export function DeliveryPickupPointMapPage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <nav className="breadcrumbs" aria-label="Хлебные крошки">
           <Link className="breadcrumb-link" to="/delivery">
             Доставка
@@ -90,7 +86,6 @@ export function DeliveryPickupPointMapPage() {
             </div>
           </section>
         )}
-      </main>
-    </div>
+    </main>
   );
 }

@@ -31,7 +31,6 @@ import {
   type PickupPointEditorValues,
   writePickupPointMapDraft,
 } from '@/features/pickup-point-map-editor';
-import { NavBar } from '@/shared/ui/NavBar';
 import { DeliveryZonesSection } from './DeliveryZonesSection';
 
 const DELIVERY_METHOD_LABELS: Record<DeliveryMethod, string> = {
@@ -908,10 +907,7 @@ export function DeliveryConditionsPage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <header className="dashboard-header">
           <div>
             <p className="page-kicker">Доставка</p>
@@ -1823,7 +1819,6 @@ export function DeliveryConditionsPage() {
             </div>
           </section>
         </div>
-      </main>
-    </div>
+    </main>
   );
 }

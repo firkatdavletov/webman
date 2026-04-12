@@ -9,7 +9,6 @@ import {
   type HeroBannerEditorValues,
   type HeroBannerTranslationValues,
 } from '@/features/hero-banner-editor';
-import { NavBar } from '@/shared/ui/NavBar';
 
 export function HeroBannerCreatePage() {
   const navigate = useNavigate();
@@ -90,10 +89,7 @@ export function HeroBannerCreatePage() {
   };
 
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <nav className="breadcrumbs" aria-label="Хлебные крошки">
           <Link className="breadcrumb-link" to="/hero-banners">
             Контент
@@ -142,7 +138,6 @@ export function HeroBannerCreatePage() {
             onSubmit={() => void handleSave()}
           />
         </section>
-      </main>
-    </div>
+    </main>
   );
 }

@@ -1,12 +1,8 @@
 import { CatalogImportPanel } from '@/features/catalog-import';
-import { NavBar } from '@/shared/ui/NavBar';
 
 export function CatalogImportPage() {
   return (
-    <div className="app-shell">
-      <NavBar />
-
-      <main className="dashboard">
+    <main className="dashboard">
         <header className="dashboard-header">
           <div>
             <p className="page-kicker">Каталог</p>
@@ -21,7 +17,6 @@ export function CatalogImportPage() {
           title="Импорт CSV каталога"
           description="Выберите тип данных, режим импорта и загрузите CSV-файл в кодировке UTF-8."
         />
-      </main>
-    </div>
+    </main>
   );
 }
