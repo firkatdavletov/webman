@@ -556,6 +556,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get admin dashboard counters
+         * @description Returns the aggregated counters used by the admin control panel dashboard.
+         *     `paidToday` is calculated in the backend application timezone returned in `timeZone`.
+         */
+        get: operations["getAdminDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/orders/search": {
         parameters: {
             query?: never;
@@ -1398,6 +1419,53 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+        };
+        AdminDashboardResponse: {
+            /**
+             * Format: date-time
+             * @description Timestamp when the dashboard snapshot was generated.
+             */
+            generatedAt: string;
+            /**
+             * @description IANA timezone used by the backend when calculating daily counters.
+             * @example UTC
+             */
+            timeZone: string;
+            /**
+             * Format: int64
+             * @description Count of active non-final orders shown in the admin queue.
+             */
+            orders: number;
+            /**
+             * Format: int64
+             * @description Count of distinct orders with a successful payment recorded today.
+             */
+            paidToday: number;
+            /**
+             * Format: int64
+             * @description Count of active orders whose latest payment is awaiting payment or pending.
+             */
+            awaitingPayment: number;
+            /**
+             * Format: int64
+             * @description Count of orders in initial new-order workflow states.
+             */
+            newOrders: number;
+            /**
+             * Format: int64
+             * @description Count of orders in problematic or on-hold workflow states.
+             */
+            problematicOrders: number;
+            /**
+             * Format: int64
+             * @description Count of active catalog products that have neither product images nor variant images.
+             */
+            itemsWithoutPhotos: number;
+            /**
+             * Format: int64
+             * @description Count of carts marked as abandoned.
+             */
+            abandonedBaskets: number;
         };
         OrderStatusHistoryEntryResponse: {
             code: string;
@@ -2951,6 +3019,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrderResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getAdminDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dashboard counters snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDashboardResponse"];
                 };
             };
             401: components["responses"]["UnauthorizedError"];

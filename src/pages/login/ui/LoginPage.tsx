@@ -123,23 +123,23 @@ export function LoginPage() {
             </Badge>
             <div className="space-y-3">
               <p className="text-xs font-semibold tracking-[0.24em] text-sidebar-foreground/65 uppercase">
-                Admin workspace
+                Панель управления
               </p>
               <h1 className="font-heading text-4xl leading-tight font-semibold tracking-tight">Управляйте каталогом и контентом из одного интерфейса.</h1>
               <p className="max-w-lg text-base leading-7 text-sidebar-foreground/72">
-                Новая UI-основа собирает админку вокруг общих компонентов, чтобы экраны было проще поддерживать и развивать без каскада глобальных CSS-правил.
+                Новая панель управления создана, чтобы сайт было проще поддерживать и развивать.
               </p>
             </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-[1.5rem] border border-sidebar-border bg-sidebar-accent/70 p-4">
-              <p className="text-sm font-semibold">Shared UI</p>
-              <p className="mt-2 text-sm leading-6 text-sidebar-foreground/70">Общие формы, карточки и системные паттерны вместо локальных копий верстки.</p>
+              <p className="text-sm font-semibold">Импорт каталога</p>
+              <p className="mt-2 text-sm leading-6 text-sidebar-foreground/70">Позволяет импортировать каталог с помощью таблиц CSV</p>
             </div>
             <div className="rounded-[1.5rem] border border-sidebar-border bg-sidebar-accent/70 p-4">
-              <p className="text-sm font-semibold">Tailwind tokens</p>
-              <p className="mt-2 text-sm leading-6 text-sidebar-foreground/70">Единые цвета, радиусы и состояния на основе токенов из нового слоя UI.</p>
+              <p className="text-sm font-semibold">Удобство</p>
+              <p className="mt-2 text-sm leading-6 text-sidebar-foreground/70">Позволяет быстро редактировать контент.</p>
             </div>
           </div>
         </section>
