@@ -1,4 +1,5 @@
 export * from './category';
+export * from './dashboard';
 export * from './delivery';
 export * from './legal-document';
 export * from './modifier-group';

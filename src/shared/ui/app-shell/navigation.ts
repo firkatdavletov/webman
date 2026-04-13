@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   FileTextIcon,
   ImageIcon,
+  LayoutDashboardIcon,
   LayoutGridIcon,
   ListChecksIcon,
   PackageIcon,
@@ -19,13 +20,14 @@ export type AppNavigationItem = {
 };
 
 export const appNavigationItems: AppNavigationItem[] = [
+  { group: 'Обзор', icon: LayoutDashboardIcon, label: 'Дашборд', to: '/dashboard' },
+  { group: 'Операции', icon: ShoppingCartIcon, label: 'Заказы', to: '/orders' },
+  { group: 'Операции', icon: ListChecksIcon, label: 'Статусы заказов', to: '/order-statuses' },
+  { group: 'Операции', icon: TruckIcon, label: 'Доставка', to: '/delivery' },
   { group: 'Каталог', icon: LayoutGridIcon, label: 'Категории', to: '/categories' },
   { group: 'Каталог', icon: PackageIcon, label: 'Продукты', to: '/products' },
   { group: 'Каталог', icon: SlidersHorizontalIcon, label: 'Модификаторы', to: '/modifier-groups' },
   { group: 'Каталог', icon: UploadIcon, label: 'Импорт CSV', to: '/catalog-import' },
-  { group: 'Операции', icon: ShoppingCartIcon, label: 'Заказы', to: '/orders' },
-  { group: 'Операции', icon: ListChecksIcon, label: 'Статусы заказов', to: '/order-statuses' },
-  { group: 'Операции', icon: TruckIcon, label: 'Доставка', to: '/delivery' },
   { group: 'Контент', icon: ImageIcon, label: 'Баннеры', to: '/hero-banners' },
   { group: 'Контент', icon: FileTextIcon, label: 'Документы', to: '/legal-documents' },
 ];

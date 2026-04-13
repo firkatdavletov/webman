@@ -6,6 +6,9 @@ import { ProtectedRoute } from '@/shared/routing/ProtectedRoute';
 const CategoriesPage = lazy(() =>
   import('@/pages/catalog/categories/ui/CategoriesPage').then((module) => ({ default: module.CategoriesPage })),
 );
+const DashboardPage = lazy(() =>
+  import('@/pages/dashboard/ui/DashboardPage').then((module) => ({ default: module.DashboardPage })),
+);
 const CategoryCreatePage = lazy(() =>
   import('@/pages/catalog/category-create/ui/CategoryCreatePage').then((module) => ({ default: module.CategoryCreatePage })),
 );
@@ -105,7 +108,7 @@ function FullscreenRouteFallback() {
 
 function LoginRoute() {
   if (isAuthenticated()) {
-    return <Navigate to="/categories" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (
@@ -116,13 +119,15 @@ function LoginRoute() {
 }
 
 export function AppRouter() {
-  const fallbackPath = isAuthenticated() ? '/categories' : '/login';
+  const fallbackPath = isAuthenticated() ? '/dashboard' : '/login';
 
   return (
     <Routes>
       <Route path="/login" element={<LoginRoute />} />
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<Navigate to="/categories" replace />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/admin/dashboard" element={<DashboardPage />} />
         <Route path="/catalog" element={<Navigate to="/categories" replace />} />
         <Route path="/categories" element={<CategoriesPage />} />
         <Route path="/categories/new" element={<CategoryCreatePage />} />
