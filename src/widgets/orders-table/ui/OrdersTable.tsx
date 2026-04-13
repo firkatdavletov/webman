@@ -306,11 +306,7 @@ export function OrdersTable({
       },
       {
         id: 'tags',
-        header: () => (
-          <SortHeader columnKey="tags" currentSort={sort} onSortChange={onSortChange}>
-            {ORDER_TABLE_COLUMN_LABELS.tags}
-          </SortHeader>
-        ),
+        header: () => <span>{ORDER_TABLE_COLUMN_LABELS.tags}</span>,
         cell: () => (
           <Badge variant="outline" className="h-auto rounded-full px-2.5 py-1 text-[0.72rem] font-medium text-muted-foreground">
             {getOrderTagsLabel()}

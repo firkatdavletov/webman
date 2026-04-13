@@ -1,6 +1,7 @@
 import {
   formatMoneyMinor,
   formatOrderDateTime,
+  type GetAdminOrdersParams,
   getCustomerLabel,
   getDeliveryTypeLabel,
   getOrderStatusLabel,
@@ -15,6 +16,7 @@ export const ORDER_PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 export type OrderDateRangeFilter = 'all' | 'today' | '3d' | '7d' | '30d';
 export type OrdersDensity = 'compact' | 'comfortable';
 export type OrdersSortDirection = 'asc' | 'desc';
+export type OrdersScopeViewId = 'all' | 'new' | 'in-work' | 'problematic';
 export type OrdersSortKey =
   | 'orderNumber'
   | 'createdAt'
@@ -26,6 +28,7 @@ export type OrdersSortKey =
   | 'source'
   | 'manager'
   | 'tags';
+type ServerSortableOrdersKey = Exclude<OrdersSortKey, 'tags'>;
 export type OrdersColumnId =
   | 'number'
   | 'date'
@@ -53,7 +56,7 @@ export type OrdersSortState = {
 export type OrdersSavedView = {
   id: string;
   name: string;
-  scopeViewId?: string;
+  scopeViewId?: OrdersScopeViewId;
   filters: OrderFilters;
   sort: OrdersSortState;
   visibleColumnIds: OrdersColumnId[];
@@ -102,9 +105,34 @@ export const ORDER_TABLE_COLUMN_LABELS: Record<OrdersColumnId, string> = {
 
 const NEW_ORDER_STATE_TYPES = new Set<Order['stateType']>(['CREATED', 'AWAITING_CONFIRMATION']);
 const IN_WORK_STATE_TYPES = new Set<Order['stateType']>(['CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY']);
+const SERVER_SORTABLE_ORDERS_KEYS = new Set<ServerSortableOrdersKey>([
+  'orderNumber',
+  'createdAt',
+  'customer',
+  'totalMinor',
+  'payment',
+  'delivery',
+  'status',
+  'source',
+  'manager',
+]);
 
 function getDayStart(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function getDaysAgoStart(now: Date, daysAgo: number): Date {
+  const today = getDayStart(now);
+
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate() - daysAgo);
+}
+
+function mapScopeViewIdToApiScope(scopeViewId: OrdersScopeViewId): NonNullable<GetAdminOrdersParams>['scope'] {
+  if (scopeViewId === 'in-work') {
+    return 'in_work';
+  }
+
+  return scopeViewId;
 }
 
 function compactText(value: string | null | undefined): string {
@@ -193,6 +221,79 @@ export function getOrderManagerLabel(): string {
 
 export function getOrderTagsLabel(): string {
   return 'Нет в API';
+}
+
+export function isOrdersServerSortable(sortKey: OrdersSortKey): boolean {
+  return SERVER_SORTABLE_ORDERS_KEYS.has(sortKey as ServerSortableOrdersKey);
+}
+
+export function sanitizeOrdersSort(sort: OrdersSortState | null | undefined): { key: ServerSortableOrdersKey; direction: OrdersSortDirection } {
+  if (!sort || !isOrdersServerSortable(sort.key)) {
+    return {
+      key: DEFAULT_ORDER_SORT.key as ServerSortableOrdersKey,
+      direction: DEFAULT_ORDER_SORT.direction,
+    };
+  }
+
+  return {
+    key: sort.key as ServerSortableOrdersKey,
+    direction: sort.direction === 'asc' ? 'asc' : 'desc',
+  };
+}
+
+export function buildOrdersRequestQuery({
+  filters,
+  page,
+  pageSize,
+  scopeViewId,
+  sort,
+}: {
+  filters: OrderFilters;
+  page: number;
+  pageSize: number;
+  scopeViewId: OrdersScopeViewId;
+  sort: OrdersSortState;
+}): GetAdminOrdersParams {
+  const normalizedSort = sanitizeOrdersSort(sort);
+  const nextQuery: NonNullable<GetAdminOrdersParams> = {
+    page,
+    pageSize: pageSize as NonNullable<GetAdminOrdersParams>['pageSize'],
+    scope: mapScopeViewIdToApiScope(scopeViewId),
+    sortBy: normalizedSort.key,
+    sortDirection: normalizedSort.direction,
+  };
+  const normalizedSearchQuery = compactText(filters.searchQuery);
+
+  if (normalizedSearchQuery) {
+    nextQuery.search = normalizedSearchQuery;
+  }
+
+  if (filters.statusFilter !== 'all') {
+    nextQuery.statusCodes = [filters.statusFilter];
+  }
+
+  if (filters.deliveryFilter !== 'all') {
+    nextQuery.deliveryMethods = [filters.deliveryFilter];
+  }
+
+  const now = new Date();
+  let createdFromDate: Date | null = null;
+
+  if (filters.dateRangeFilter === 'today') {
+    createdFromDate = getDayStart(now);
+  } else if (filters.dateRangeFilter === '3d') {
+    createdFromDate = getDaysAgoStart(now, 2);
+  } else if (filters.dateRangeFilter === '7d') {
+    createdFromDate = getDaysAgoStart(now, 6);
+  } else if (filters.dateRangeFilter === '30d') {
+    createdFromDate = getDaysAgoStart(now, 29);
+  }
+
+  if (createdFromDate) {
+    nextQuery.createdFrom = createdFromDate.toISOString();
+  }
+
+  return nextQuery;
 }
 
 export function getOrderSortValue(order: Order, key: OrdersSortKey): string | number {

@@ -28,6 +28,7 @@ export {
   updateOrderStatus,
 } from './api/orderApi';
 export type {
+  GetAdminOrdersParams,
   OrderListResult,
   OrderResult,
   OrderStatusHistoryResult,

@@ -13,14 +13,13 @@ import {
   changeOrderStatus,
   getAdminOrders,
   getAvailableOrderStatusTransitions,
-  getOrderById,
   getOrderStatusHistory,
+  type OrderListResult,
   type Order,
-  type OrderStatus,
-  type OrderStatusCode,
   type OrderStatusHistoryEntry,
   type OrderStatusTransition,
 } from '@/entities/order';
+import { getOrderStatuses } from '@/entities/order-status';
 import { getAllProducts } from '@/entities/product';
 import { getPrimaryMediaImageUrl } from '@/shared/lib/media/images';
 import { cn } from '@/shared/lib/cn';
@@ -38,27 +37,23 @@ import {
   buttonVariants,
 } from '@/shared/ui';
 import {
-  applySystemOrdersView,
   buildOrdersCsv,
+  buildOrdersRequestQuery,
   buildSystemOrdersViews,
   DEFAULT_ORDER_FILTERS,
   DEFAULT_ORDERS_DENSITY,
   DEFAULT_ORDER_SORT,
   DEFAULT_VISIBLE_ORDER_COLUMNS,
-  filterOrders,
-  getSystemOrdersViewCount,
-  isInWorkOrder,
-  isNewOrder,
-  isProblematicOrder,
+  isOrdersServerSortable,
   ORDER_PAGE_SIZE_OPTIONS,
   ORDER_TABLE_COLUMN_LABELS,
-  paginateItems,
-  sortOrders,
+  sanitizeOrdersSort,
   type OrderDateRangeFilter,
   type OrderFilters,
   type OrdersColumnId,
   type OrdersDensity,
   type OrdersSavedView,
+  type OrdersScopeViewId,
   type OrdersSortKey,
   type OrdersSortState,
 } from '@/pages/orders/model/orderPageView';
@@ -107,18 +102,6 @@ function upsertOrderById(orders: Order[], nextOrder: Order): Order[] {
   return nextOrders;
 }
 
-function buildAvailableStatuses(orders: Order[]): OrderStatus[] {
-  const statusesByCode = new Map<OrderStatusCode, OrderStatus>();
-
-  orders.forEach((order) => {
-    if (!statusesByCode.has(order.status.code)) {
-      statusesByCode.set(order.status.code, order.status);
-    }
-  });
-
-  return [...statusesByCode.values()].sort((left, right) => left.name.localeCompare(right.name, 'ru'));
-}
-
 function sanitizeVisibleColumnIds(value: unknown): OrdersColumnId[] {
   if (!Array.isArray(value)) {
     return [...DEFAULT_VISIBLE_ORDER_COLUMNS];
@@ -127,6 +110,14 @@ function sanitizeVisibleColumnIds(value: unknown): OrdersColumnId[] {
   const nextVisibleColumnIds = DEFAULT_VISIBLE_ORDER_COLUMNS.filter((columnId) => value.includes(columnId));
 
   return nextVisibleColumnIds.length ? nextVisibleColumnIds : [...DEFAULT_VISIBLE_ORDER_COLUMNS];
+}
+
+function sanitizeScopeViewId(value: unknown): OrdersScopeViewId {
+  if (value === 'new' || value === 'in-work' || value === 'problematic') {
+    return value;
+  }
+
+  return 'all';
 }
 
 function readCustomViews(): OrdersSavedView[] {
@@ -158,15 +149,15 @@ function readCustomViews(): OrdersSavedView[] {
       })
       .map((view) => ({
         ...view,
-        scopeViewId: typeof view.scopeViewId === 'string' ? view.scopeViewId : 'all',
+        scopeViewId: sanitizeScopeViewId(view.scopeViewId),
         filters: {
           ...DEFAULT_ORDER_FILTERS,
           ...view.filters,
         },
-        sort: {
+        sort: sanitizeOrdersSort({
           ...DEFAULT_ORDER_SORT,
           ...view.sort,
-        },
+        }),
         density: view.density === 'comfortable' ? 'comfortable' : DEFAULT_ORDERS_DENSITY,
         visibleColumnIds: sanitizeVisibleColumnIds(view.visibleColumnIds),
         isSystem: false,
@@ -356,16 +347,18 @@ export function OrdersPage() {
   const systemViews = useMemo(() => buildSystemOrdersViews(), []);
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersMeta, setOrdersMeta] = useState<OrderListResult['meta']>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const [filters, setFilters] = useState<OrderFilters>(DEFAULT_ORDER_FILTERS);
   const deferredSearchQuery = useDeferredValue(filters.searchQuery);
-  const [activeScopeViewId, setActiveScopeViewId] = useState('all');
+  const [activeScopeViewId, setActiveScopeViewId] = useState<OrdersScopeViewId>('all');
   const [activeViewId, setActiveViewId] = useState<string | null>('all');
   const [customViews, setCustomViews] = useState<OrdersSavedView[]>(() => readCustomViews());
-  const [sort, setSort] = useState<OrdersSortState>(DEFAULT_ORDER_SORT);
+  const [sort, setSort] = useState<OrdersSortState>(() => sanitizeOrdersSort(DEFAULT_ORDER_SORT));
   const [density, setDensity] = useState<OrdersDensity>(DEFAULT_ORDERS_DENSITY);
   const [visibleColumnIds, setVisibleColumnIds] = useState<OrdersColumnId[]>(DEFAULT_VISIBLE_ORDER_COLUMNS);
   const [page, setPage] = useState(1);
@@ -373,6 +366,8 @@ export function OrdersPage() {
   const [isColumnSettingsOpen, setIsColumnSettingsOpen] = useState(false);
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(() => new Set());
   const [bulkFeedbackMessage, setBulkFeedbackMessage] = useState('');
+  const [availableStatuses, setAvailableStatuses] = useState<Awaited<ReturnType<typeof getOrderStatuses>>['statuses']>([]);
+  const [statusOptionsErrorMessage, setStatusOptionsErrorMessage] = useState('');
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isOrderDetailsLoading, setIsOrderDetailsLoading] = useState(false);
@@ -388,23 +383,57 @@ export function OrdersPage() {
 
   const [productMetaById, setProductMetaById] = useState<Map<string, OrderProductMeta>>(() => new Map());
   const [productMetaErrorMessage, setProductMetaErrorMessage] = useState('');
+  const ordersRequestIdRef = useRef(0);
+  const isFirstOrdersLoadRef = useRef(true);
   const statusMetaRequestIdRef = useRef(0);
 
-  const loadOrdersData = async (showInitialLoader = false) => {
+  const ordersQuery = useMemo(
+    () =>
+      buildOrdersRequestQuery({
+        filters: {
+          ...filters,
+          searchQuery: deferredSearchQuery,
+        },
+        page,
+        pageSize,
+        scopeViewId: activeScopeViewId,
+        sort,
+      }),
+    [activeScopeViewId, deferredSearchQuery, filters.dateRangeFilter, filters.deliveryFilter, filters.statusFilter, page, pageSize, sort],
+  );
+
+  const loadOrdersData = async ({
+    query = ordersQuery,
+    showInitialLoader = false,
+  }: {
+    query?: Parameters<typeof getAdminOrders>[0];
+    showInitialLoader?: boolean;
+  } = {}) => {
+    const requestId = ordersRequestIdRef.current + 1;
+    ordersRequestIdRef.current = requestId;
+
     if (showInitialLoader) {
       setIsLoading(true);
+      setIsRefreshing(false);
     } else {
       setIsRefreshing(true);
     }
 
     setErrorMessage('');
 
-    const result = await getAdminOrders();
+    const result = await getAdminOrders(query);
+
+    if (requestId !== ordersRequestIdRef.current) {
+      return result;
+    }
 
     setOrders(result.orders);
+    setOrdersMeta(result.meta);
     setErrorMessage(result.error ?? '');
     setIsLoading(false);
     setIsRefreshing(false);
+
+    return result;
   };
 
   const loadProductMetaData = async () => {
@@ -427,6 +456,19 @@ export function OrdersPage() {
 
     setProductMetaById(nextProductMetaById);
     setProductMetaErrorMessage('');
+  };
+
+  const loadOrderStatuses = async () => {
+    const result = await getOrderStatuses();
+
+    if (result.error) {
+      setAvailableStatuses([]);
+      setStatusOptionsErrorMessage(result.error);
+      return;
+    }
+
+    setAvailableStatuses(result.statuses.filter((status) => status.isActive).sort((left, right) => left.name.localeCompare(right.name, 'ru')));
+    setStatusOptionsErrorMessage('');
   };
 
   const loadSelectedOrderStatusData = async (orderId: string) => {
@@ -454,8 +496,19 @@ export function OrdersPage() {
   };
 
   useEffect(() => {
-    void loadOrdersData(true);
+    const shouldShowInitialLoader = isFirstOrdersLoadRef.current;
+
+    isFirstOrdersLoadRef.current = false;
+
+    void loadOrdersData({
+      query: ordersQuery,
+      showInitialLoader: shouldShowInitialLoader,
+    });
+  }, [ordersQuery]);
+
+  useEffect(() => {
     void loadProductMetaData();
+    void loadOrderStatuses();
   }, []);
 
   useEffect(() => {
@@ -472,24 +525,7 @@ export function OrdersPage() {
     return nextLookup;
   }, [orders]);
 
-  const availableStatuses = useMemo(() => buildAvailableStatuses(orders), [orders]);
-
-  const scopedOrders = useMemo(() => applySystemOrdersView(orders, activeScopeViewId), [activeScopeViewId, orders]);
-  const filteredOrders = useMemo(
-    () =>
-      filterOrders(scopedOrders, {
-        ...filters,
-        searchQuery: deferredSearchQuery,
-      }),
-    [deferredSearchQuery, filters, scopedOrders],
-  );
-  const visibleOrders = useMemo(() => sortOrders(filteredOrders, sort), [filteredOrders, sort]);
-  const pagination = useMemo(() => paginateItems(visibleOrders, page, pageSize), [page, pageSize, visibleOrders]);
   const selectedOrders = useMemo(() => orders.filter((order) => selectedOrderIds.has(order.id)), [orders, selectedOrderIds]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [activeScopeViewId, deferredSearchQuery, filters.deliveryFilter, filters.dateRangeFilter, filters.statusFilter, pageSize]);
 
   useEffect(() => {
     setSelectedOrderIds((currentSelectedOrderIds) => {
@@ -510,35 +546,8 @@ export function OrdersPage() {
     const fallbackOrder = knownOrderLookup.get(selectedOrderId) ?? null;
 
     setSelectedOrder(fallbackOrder);
-    setOrderDetailsErrorMessage('');
-    setIsOrderDetailsLoading(!fallbackOrder);
-
-    if (fallbackOrder) {
-      return;
-    }
-
-    let isCancelled = false;
-
-    void (async () => {
-      const result = await getOrderById(selectedOrderId);
-
-      if (isCancelled) {
-        return;
-      }
-
-      if (result.order) {
-        setSelectedOrder(result.order);
-      } else {
-        setSelectedOrder(fallbackOrder);
-      }
-
-      setOrderDetailsErrorMessage(result.error ?? '');
-      setIsOrderDetailsLoading(false);
-    })();
-
-    return () => {
-      isCancelled = true;
-    };
+    setOrderDetailsErrorMessage(fallbackOrder ? '' : 'Детали заказа по id пока недоступны: backend ещё не отдаёт отдельный endpoint.');
+    setIsOrderDetailsLoading(false);
   }, [knownOrderLookup, selectedOrderId]);
 
   useEffect(() => {
@@ -557,11 +566,16 @@ export function OrdersPage() {
 
   const updateFilters = (updater: (currentFilters: OrderFilters) => OrderFilters) => {
     setFilters((currentFilters) => updater(currentFilters));
+    setPage(1);
     setActiveViewId(null);
     setBulkFeedbackMessage('');
   };
 
   const handleSortChange = (key: OrdersSortKey) => {
+    if (!isOrdersServerSortable(key)) {
+      return;
+    }
+
     setSort((currentSort) =>
       currentSort.key === key
         ? {
@@ -573,6 +587,7 @@ export function OrdersPage() {
             direction: key === 'orderNumber' ? 'asc' : 'desc',
           },
     );
+    setPage(1);
     setActiveViewId(null);
   };
 
@@ -592,7 +607,7 @@ export function OrdersPage() {
   };
 
   const handleRefresh = async () => {
-    await loadOrdersData();
+    await loadOrdersData({ query: ordersQuery });
 
     if (selectedOrderId) {
       await loadSelectedOrderStatusData(selectedOrderId);
@@ -628,7 +643,7 @@ export function OrdersPage() {
     setIsStatusUpdating(false);
 
     await loadSelectedOrderStatusData(updatedOrder.id);
-    void loadOrdersData();
+    void loadOrdersData({ query: ordersQuery });
   };
 
   const applyView = (view: OrdersSavedView) => {
@@ -638,9 +653,10 @@ export function OrdersPage() {
       ...DEFAULT_ORDER_FILTERS,
       ...view.filters,
     });
-    setSort(view.sort);
+    setSort(sanitizeOrdersSort(view.sort));
     setDensity(view.density);
     setVisibleColumnIds(sanitizeVisibleColumnIds(view.visibleColumnIds));
+    setPage(1);
     setSelectedOrderIds(new Set());
     setBulkFeedbackMessage('');
   };
@@ -662,7 +678,7 @@ export function OrdersPage() {
       name: nextName,
       scopeViewId: activeScopeViewId,
       filters,
-      sort,
+      sort: sanitizeOrdersSort(sort),
       visibleColumnIds,
       density,
       isSystem: false,
@@ -684,14 +700,15 @@ export function OrdersPage() {
     setActiveScopeViewId('all');
     setActiveViewId('all');
     setFilters(DEFAULT_ORDER_FILTERS);
-    setSort(DEFAULT_ORDER_SORT);
+    setSort(sanitizeOrdersSort(DEFAULT_ORDER_SORT));
     setDensity(DEFAULT_ORDERS_DENSITY);
     setVisibleColumnIds(DEFAULT_VISIBLE_ORDER_COLUMNS);
+    setPage(1);
     setSelectedOrderIds(new Set());
     setBulkFeedbackMessage('');
   };
 
-  const currentPageOrderIds = useMemo(() => pagination.paginatedItems.map((order) => order.id), [pagination.paginatedItems]);
+  const currentPageOrderIds = useMemo(() => orders.map((order) => order.id), [orders]);
   const isAllPageRowsSelected = currentPageOrderIds.length > 0 && currentPageOrderIds.every((orderId) => selectedOrderIds.has(orderId));
   const isSomePageRowsSelected = !isAllPageRowsSelected && currentPageOrderIds.some((orderId) => selectedOrderIds.has(orderId));
 
@@ -749,6 +766,45 @@ export function OrdersPage() {
     downloadCsv(`orders-${label}-${dateSuffix}.csv`, csv);
   };
 
+  const handleExportCurrentResult = async () => {
+    if (isExporting) {
+      return;
+    }
+
+    setIsExporting(true);
+    setErrorMessage('');
+
+    const exportQuery = {
+      ...ordersQuery,
+      pageSize: 100 as const,
+    };
+    const exportedOrders: Order[] = [];
+    let nextPage = 1;
+    let totalPages = 1;
+
+    try {
+      do {
+        const result = await getAdminOrders({
+          ...exportQuery,
+          page: nextPage,
+        });
+
+        if (result.error || !result.meta) {
+          setErrorMessage(result.error ?? 'Не удалось выгрузить текущую выборку заказов.');
+          return;
+        }
+
+        exportedOrders.push(...result.orders);
+        totalPages = result.meta.totalPages;
+        nextPage += 1;
+      } while (nextPage <= totalPages);
+
+      handleExport(exportedOrders, 'filtered');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const activeFilterTokens = useMemo<ActiveFilterToken[]>(
     () =>
       [
@@ -758,6 +814,7 @@ export function OrdersPage() {
               label: formatActiveScopeLabel(activeScopeViewId) as string,
               onRemove: () => {
                 setActiveScopeViewId('all');
+                setPage(1);
                 setActiveViewId(null);
               },
             }
@@ -794,30 +851,19 @@ export function OrdersPage() {
     [activeScopeViewId, availableStatuses, filters],
   );
 
-  const filteredScopeSummary = useMemo(() => {
-    if (activeScopeViewId === 'new') {
-      return scopedOrders.filter(isNewOrder).length;
-    }
-
-    if (activeScopeViewId === 'in-work') {
-      return scopedOrders.filter(isInWorkOrder).length;
-    }
-
-    if (activeScopeViewId === 'problematic') {
-      return scopedOrders.filter(isProblematicOrder).length;
-    }
-
-    return scopedOrders.length;
-  }, [activeScopeViewId, scopedOrders]);
-
+  const currentPage = ordersMeta?.page ?? page;
+  const totalPages = ordersMeta?.totalPages ?? 1;
+  const totalItems = ordersMeta?.totalItems ?? orders.length;
+  const visibleStart = orders.length ? (currentPage - 1) * pageSize + 1 : 0;
+  const visibleEnd = orders.length ? visibleStart + orders.length - 1 : 0;
   const statusText = isLoading
     ? 'Загрузка заказов...'
-    : `В очереди ${formatViewCount(orders.length)} • после фильтров ${formatViewCount(visibleOrders.length)}`;
-
+    : totalItems
+      ? `Найдено ${formatViewCount(totalItems)} • страница ${currentPage} из ${formatViewCount(totalPages)}`
+      : 'Совпадений нет';
   const visibleColumnsSummary = visibleColumnIds.map((columnId) => ORDER_TABLE_COLUMN_LABELS[columnId]).join(', ');
   const hasNoOrders = !orders.length && !isLoading;
-  const hasNoScopedOrders = Boolean(orders.length) && !scopedOrders.length && !isLoading;
-  const hasNoFilteredOrders = Boolean(scopedOrders.length) && !visibleOrders.length && !isLoading;
+  const hasActiveServerFilters = activeFilterTokens.length > 0;
 
   return (
     <>
@@ -854,9 +900,9 @@ export function OrdersPage() {
                 <Settings2Icon className="size-4" />
                 Колонки
               </Button>
-              <Button variant="outline" onClick={() => handleExport(visibleOrders, 'filtered')} disabled={!visibleOrders.length}>
+              <Button variant="outline" onClick={() => void handleExportCurrentResult()} disabled={!totalItems || isExporting}>
                 <DownloadIcon className="size-4" />
-                Экспорт
+                {isExporting ? 'Экспорт...' : 'Экспорт'}
               </Button>
             </div>
           }
@@ -865,23 +911,9 @@ export function OrdersPage() {
             <div className="space-y-3">
               <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">Saved Views</p>
               <div className="flex flex-wrap gap-2">
-                {systemViews.map((view) => {
-                  const scopedSystemOrders = applySystemOrdersView(orders, view.scopeViewId ?? 'all');
-                  const count =
-                    view.id === 'pickup' || view.id === 'today'
-                      ? filterOrders(scopedSystemOrders, view.filters).length
-                      : getSystemOrdersViewCount(orders, view.id);
-
-                  return (
-                    <ViewChip
-                      key={view.id}
-                      isActive={activeViewId === view.id}
-                      label={view.name}
-                      hint={formatViewCount(count)}
-                      onClick={() => applyView(view)}
-                    />
-                  );
-                })}
+                {systemViews.map((view) => (
+                  <ViewChip key={view.id} isActive={activeViewId === view.id} label={view.name} onClick={() => applyView(view)} />
+                ))}
                 {customViews.map((view) => (
                   <ViewChip
                     key={view.id}
@@ -904,7 +936,7 @@ export function OrdersPage() {
                     id="orders-search-input"
                     type="search"
                     className="h-11 rounded-xl bg-background/80 pl-10 shadow-sm"
-                    placeholder="Номер, клиент, телефон, email, статус"
+                    placeholder="Номер, клиент, телефон, email"
                     value={filters.searchQuery}
                     onChange={(event) => updateFilters((currentFilters) => ({ ...currentFilters, searchQuery: event.target.value }))}
                   />
@@ -966,6 +998,8 @@ export function OrdersPage() {
               </div>
             </div>
 
+            {statusOptionsErrorMessage ? <AdminNotice tone="destructive">{statusOptionsErrorMessage}</AdminNotice> : null}
+
             {activeFilterTokens.length ? (
               <div className="flex flex-wrap items-center gap-2">
                 {activeFilterTokens.map((token) => (
@@ -988,8 +1022,8 @@ export function OrdersPage() {
             ) : null}
 
             <AdminNotice>
-              Колонки <strong>Источник</strong>, <strong>Менеджер / оператор</strong> и <strong>Теги</strong> обязательны в интерфейсе, но backend их пока не отдает.
-              Источник частично выводится как производный признак, менеджер и теги помечены как `API gap`.
+              Таблица уже работает в server-side режиме, но поля <strong>Источник</strong>, <strong>Менеджер / оператор</strong> и <strong>Теги</strong> пока остаются на fallback-значениях.
+              Следующий шаг после backend detail-endpoint'а: разнести list/detail модели и подключить эти поля без заглушек.
             </AdminNotice>
 
             {isColumnSettingsOpen ? (
@@ -1048,7 +1082,10 @@ export function OrdersPage() {
                   <select
                     className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
                     value={pageSize}
-                    onChange={(event) => setPageSize(Number(event.target.value))}
+                    onChange={(event) => {
+                      setPageSize(Number(event.target.value));
+                      setPage(1);
+                    }}
                   >
                     {ORDER_PAGE_SIZE_OPTIONS.map((option) => (
                       <option key={option} value={option}>
@@ -1087,9 +1124,9 @@ export function OrdersPage() {
 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-muted-foreground">
-                {visibleOrders.length
-                  ? `Показано ${pagination.visibleStart}-${pagination.visibleEnd} из ${visibleOrders.length}. Срез содержит ${filteredScopeSummary} заказов до дополнительных фильтров.`
-                  : 'Ни одна строка не попала в текущий срез.'}
+                {orders.length
+                  ? `Показано ${visibleStart}-${visibleEnd} из ${formatViewCount(totalItems)}. Фильтры, поиск, сортировка и пагинация выполняются на сервере.`
+                  : 'Ни одна строка не попала в текущую выборку.'}
               </p>
               <p className="text-sm text-muted-foreground">
                 Сортировка: {getSortColumnLabel(sort.key)}
@@ -1102,22 +1139,16 @@ export function OrdersPage() {
               <OrdersTableSkeleton />
             ) : hasNoOrders ? (
               <AdminEmptyState
-                title="Очередь заказов пуста"
-                description="Backend не вернул ни одного активного заказа. Обновите данные позже или проверьте, не ушли ли заказы в финальные статусы вне этой очереди."
-              />
-            ) : hasNoScopedOrders ? (
-              <AdminEmptyState
-                title="В выбранном представлении нет заказов"
-                description="Этот saved view сейчас пуст. Переключитесь на другой срез или сохраните новый view под актуальную рабочую ситуацию."
-              />
-            ) : hasNoFilteredOrders ? (
-              <AdminEmptyState
-                title="Фильтры скрыли все строки"
-                description="Очередь заказов не пуста, но текущие chips и search не дают ни одного совпадения. Сбросьте часть токенов или вернитесь к базовому представлению."
+                title={hasActiveServerFilters ? 'Ничего не найдено' : 'Очередь заказов пуста'}
+                description={
+                  hasActiveServerFilters
+                    ? 'Текущие фильтры и поиск не вернули ни одного заказа. Сбросьте часть ограничений или переключитесь на другой сохранённый view.'
+                    : 'Backend не вернул ни одного активного заказа. Обновите данные позже или проверьте, не ушли ли заказы в финальные статусы вне этой очереди.'
+                }
               />
             ) : (
               <OrdersTable
-                orders={pagination.paginatedItems}
+                orders={orders}
                 activeOrderId={selectedOrderId}
                 density={density}
                 visibleColumnIds={visibleColumnIds}
@@ -1132,26 +1163,26 @@ export function OrdersPage() {
               />
             )}
 
-            {!isLoading && visibleOrders.length ? (
+            {!isLoading && orders.length ? (
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
-                    disabled={pagination.currentPage === 1}
+                    disabled={currentPage === 1}
                   >
                     Назад
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => setPage((currentPage) => Math.min(pagination.totalPages, currentPage + 1))}
-                    disabled={pagination.currentPage === pagination.totalPages}
+                    onClick={() => setPage((currentPageValue) => Math.min(totalPages, currentPageValue + 1))}
+                    disabled={currentPage === totalPages}
                   >
                     Вперёд
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Страница {pagination.currentPage} из {pagination.totalPages}
+                  Страница {currentPage} из {totalPages}
                 </p>
               </div>
             ) : null}

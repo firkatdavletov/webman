@@ -10,6 +10,8 @@ import { getApiErrorMessage } from '@/shared/api/error';
 import type { components, operations } from '@/shared/api/schema';
 
 type OrderResponse = components['schemas']['OrderResponse'];
+type AdminOrderListItemResponse = components['schemas']['AdminOrderListItemResponse'];
+type AdminOrderListMetaResponse = components['schemas']['AdminOrderListMetaResponse'];
 
 type ChangeOrderStatusRequest = {
   orderId: string;
@@ -19,9 +21,11 @@ type ChangeOrderStatusRequest = {
 };
 
 type UpdateOrderStatusRequestBody = operations['changeOrderStatus']['requestBody']['content']['application/json'];
+export type GetAdminOrdersParams = operations['getAdminOrders']['parameters']['query'];
 
 export type OrderListResult = {
   orders: Order[];
+  meta: AdminOrderListMetaResponse | null;
   error: string | null;
 };
 
@@ -106,6 +110,28 @@ function mapDeliveryAddress(address: OrderResponse['delivery']['address']): Orde
   };
 }
 
+function mapAdminOrderListAddress(address: AdminOrderListItemResponse['delivery']['address']): OrderDeliveryAddress | null {
+  if (!address) {
+    return null;
+  }
+
+  return {
+    country: address.country ?? null,
+    region: address.region ?? null,
+    city: address.city ?? null,
+    street: address.street ?? null,
+    house: address.house ?? null,
+    apartment: address.apartment ?? null,
+    postalCode: address.postalCode ?? null,
+    entrance: address.entrance ?? null,
+    floor: address.floor ?? null,
+    intercom: address.intercom ?? null,
+    comment: null,
+    latitude: null,
+    longitude: null,
+  };
+}
+
 function mapOrder(order: OrderResponse): Order {
   return {
     id: order.id,
@@ -158,15 +184,75 @@ function mapOrder(order: OrderResponse): Order {
   };
 }
 
-export async function getAdminOrders(): Promise<OrderListResult> {
+function mapAdminOrderListItem(order: AdminOrderListItemResponse): Order {
+  return {
+    id: order.id,
+    orderNumber: order.orderNumber,
+    customerType: order.customerType,
+    userId: null,
+    guestInstallId: null,
+    customerName: order.customerName ?? null,
+    customerPhone: order.customerPhone ?? null,
+    customerEmail: order.customerEmail ?? null,
+    statusCode: order.currentStatus.code,
+    statusName: order.currentStatus.name,
+    stateType: order.currentStatus.stateType,
+    status: {
+      id: order.currentStatus.id,
+      code: order.currentStatus.code,
+      name: order.currentStatus.name,
+      stateType: order.currentStatus.stateType,
+      color: null,
+      icon: null,
+      isFinal: order.currentStatus.isFinal,
+      isCancellable: false,
+      visibleToCustomer: false,
+    },
+    payment: order.payment
+      ? {
+          code: order.payment.code,
+          name: order.payment.name,
+        }
+      : null,
+    deliveryMethod: order.deliveryMethod,
+    delivery: {
+      method: order.delivery.method,
+      methodName: order.delivery.methodName,
+      priceMinor: order.deliveryFeeMinor,
+      currency: 'RUB',
+      zoneCode: null,
+      zoneName: null,
+      estimatedDays: null,
+      deliveryMinutes: null,
+      pickupPointId: null,
+      pickupPointExternalId: null,
+      pickupPointName: order.delivery.pickupPointName ?? null,
+      pickupPointAddress: order.delivery.pickupPointAddress ?? null,
+      address: mapAdminOrderListAddress(order.delivery.address),
+    },
+    comment: null,
+    items: [],
+    statusHistory: [],
+    subtotalMinor: order.subtotalMinor,
+    deliveryFeeMinor: order.deliveryFeeMinor,
+    totalMinor: order.totalMinor,
+    statusChangedAt: order.statusChangedAt,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+  };
+}
+
+export async function getAdminOrders(params?: GetAdminOrdersParams): Promise<OrderListResult> {
   try {
     const result = await apiClient.GET('/api/v1/admin/orders', {
       headers: buildAuthHeaders(),
+      params: params ? { query: params } : undefined,
     });
 
     if (result.error) {
       return {
         orders: [],
+        meta: null,
         error: getProtectedErrorMessage(result.error, 'Не удалось загрузить список заказов.'),
       };
     }
@@ -174,17 +260,20 @@ export async function getAdminOrders(): Promise<OrderListResult> {
     if (!result.data) {
       return {
         orders: [],
+        meta: null,
         error: 'Сервис заказов вернул некорректный ответ.',
       };
     }
 
     return {
-      orders: result.data.map(mapOrder),
+      orders: result.data.items.map(mapAdminOrderListItem),
+      meta: result.data.meta,
       error: null,
     };
   } catch {
     return {
       orders: [],
+      meta: null,
       error: 'Не удалось связаться с сервисом заказов.',
     };
   }
@@ -253,27 +342,9 @@ export async function getOrderById(orderId: string): Promise<OrderResult> {
     };
   }
 
-  const result = await getAdminOrders();
-
-  if (result.error) {
-    return {
-      order: null,
-      error: result.error,
-    };
-  }
-
-  const matchedOrder = result.orders.find((order) => order.id === normalizedOrderId) ?? null;
-
-  if (!matchedOrder) {
-    return {
-      order: null,
-      error: 'Заказ не найден в очереди админки.',
-    };
-  }
-
   return {
-    order: matchedOrder,
-    error: null,
+    order: null,
+    error: 'Endpoint деталей заказа по id ещё не подключён в backend.',
   };
 }
 
