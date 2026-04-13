@@ -88,6 +88,9 @@ const OrdersPage = lazy(() =>
 const OrderStatusesPage = lazy(() =>
   import('@/pages/order-statuses/ui/OrderStatusesPage').then((module) => ({ default: module.OrderStatusesPage })),
 );
+const OrderStatusEditorPage = lazy(() =>
+  import('@/pages/order-statuses/ui/OrderStatusEditorPage').then((module) => ({ default: module.OrderStatusEditorPage })),
+);
 const LoginPage = lazy(() =>
   import('@/pages/login/ui/LoginPage').then((module) => ({ default: module.LoginPage })),
 );
@@ -147,6 +150,8 @@ export function AppRouter() {
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/orders/:orderId" element={<OrdersPage />} />
         <Route path="/order-statuses" element={<OrderStatusesPage />} />
+        <Route path="/order-statuses/new" element={<OrderStatusEditorPage />} />
+        <Route path="/order-statuses/:statusId" element={<OrderStatusEditorPage />} />
         <Route path="/delivery" element={<DeliveryConditionsPage />} />
         <Route path="/delivery/pickup-points/map" element={<DeliveryPickupPointMapPage />} />
         <Route path="/delivery/zones/new" element={<DeliveryZoneCreatePage />} />
@@ -156,6 +161,8 @@ export function AppRouter() {
         <Route path="/admin/orders" element={<OrdersPage />} />
         <Route path="/admin/orders/:orderId" element={<OrdersPage />} />
         <Route path="/admin/order-statuses" element={<OrderStatusesPage />} />
+        <Route path="/admin/order-statuses/new" element={<OrderStatusEditorPage />} />
+        <Route path="/admin/order-statuses/:statusId" element={<OrderStatusEditorPage />} />
       </Route>
       <Route path="*" element={<Navigate to={fallbackPath} replace />} />
     </Routes>
