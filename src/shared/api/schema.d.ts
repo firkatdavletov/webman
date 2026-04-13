@@ -545,7 +545,8 @@ export interface paths {
         };
         /**
          * List admin queue orders
-         * @description Returns orders in active non-final workflow states, sorted by `createdAt` descending.
+         * @description Returns a server-side filtered, sorted and paginated admin order queue.
+         *     By default the queue includes active non-final workflow states only.
          */
         get: operations["getAdminOrders"];
         put?: never;
@@ -1419,6 +1420,96 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+        };
+        AdminOrderListResponse: {
+            items: components["schemas"]["AdminOrderListItemResponse"][];
+            meta: components["schemas"]["AdminOrderListMetaResponse"];
+        };
+        AdminOrderListItemResponse: {
+            /** Format: uuid */
+            id: string;
+            orderNumber: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            statusChangedAt: string;
+            customerType: components["schemas"]["OrderCustomerType"];
+            customerName?: string | null;
+            customerPhone?: string | null;
+            customerEmail?: string | null;
+            /** Format: int64 */
+            totalMinor: number;
+            /** Format: int64 */
+            subtotalMinor: number;
+            /** Format: int64 */
+            deliveryFeeMinor: number;
+            payment?: components["schemas"]["AdminOrderListPaymentResponse"] | null;
+            paymentStatus?: components["schemas"]["AdminOrderListReferenceResponse"] | null;
+            deliveryMethod: components["schemas"]["DeliveryMethodType"];
+            delivery: components["schemas"]["AdminOrderListDeliveryResponse"];
+            currentStatus: components["schemas"]["AdminOrderListStatusResponse"];
+            source?: components["schemas"]["AdminOrderListReferenceResponse"] | null;
+            manager?: components["schemas"]["AdminOrderListManagerResponse"] | null;
+            tags: components["schemas"]["AdminOrderListReferenceResponse"][];
+        };
+        AdminOrderListPaymentResponse: {
+            code: components["schemas"]["PaymentMethodCode"];
+            name: string;
+        };
+        AdminOrderListReferenceResponse: {
+            code: string;
+            name?: string | null;
+        };
+        AdminOrderListStatusResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            stateType: components["schemas"]["OrderStateType"];
+            isFinal: boolean;
+        };
+        AdminOrderListDeliveryResponse: {
+            method: components["schemas"]["DeliveryMethodType"];
+            methodName: string;
+            pickupPointName?: string | null;
+            pickupPointAddress?: string | null;
+            address?: components["schemas"]["AdminOrderListAddressResponse"] | null;
+        };
+        AdminOrderListAddressResponse: {
+            country?: string | null;
+            region?: string | null;
+            city?: string | null;
+            street?: string | null;
+            house?: string | null;
+            apartment?: string | null;
+            postalCode?: string | null;
+            entrance?: string | null;
+            floor?: string | null;
+            intercom?: string | null;
+        };
+        AdminOrderListManagerResponse: {
+            /** Format: uuid */
+            userId?: string | null;
+            displayName?: string | null;
+        };
+        AdminOrderListMetaResponse: {
+            /** Format: int32 */
+            page: number;
+            /**
+             * Format: int32
+             * @enum {integer}
+             */
+            pageSize: 25 | 50 | 100;
+            /** Format: int64 */
+            totalItems: number;
+            /** Format: int32 */
+            totalPages: number;
+            /** @enum {string} */
+            sortBy: "orderNumber" | "createdAt" | "customer" | "totalMinor" | "payment" | "delivery" | "status" | "source" | "manager";
+            /** @enum {string} */
+            sortDirection: "asc" | "desc";
         };
         AdminDashboardResponse: {
             /**
@@ -3005,7 +3096,28 @@ export interface operations {
     };
     getAdminOrders: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 1-based page number. */
+                page?: number;
+                /** @description Page size. */
+                pageSize?: 25 | 50 | 100;
+                /** @description Case-insensitive partial search by order number, customer name, phone or email. */
+                search?: string;
+                /** @description Filter by current order status codes. */
+                statusCodes?: string[];
+                /** @description Filter by delivery method. */
+                deliveryMethods?: components["schemas"]["DeliveryMethodType"][];
+                /** @description Inclusive lower bound for `createdAt`. Accepts ISO date or ISO datetime. Date-only values are interpreted in UTC from start of day. */
+                createdFrom?: string;
+                /** @description Inclusive upper bound for `createdAt`. Accepts ISO date or ISO datetime. Date-only values are interpreted in UTC until end of day. */
+                createdTo?: string;
+                /** @description Queue scope. */
+                scope?: "all" | "new" | "in_work" | "problematic";
+                /** @description Sort field. `source` and `manager` currently fall back to `createdAt` because those fields are not stored yet. */
+                sortBy?: "orderNumber" | "createdAt" | "customer" | "totalMinor" | "payment" | "delivery" | "status" | "source" | "manager";
+                /** @description Sort direction. */
+                sortDirection?: "asc" | "desc";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3018,9 +3130,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrderResponse"][];
+                    "application/json": components["schemas"]["AdminOrderListResponse"];
                 };
             };
+            400: components["responses"]["BadRequestError"];
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
             500: components["responses"]["InternalServerError"];

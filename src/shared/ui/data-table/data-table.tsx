@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { type HTMLAttributes, type ReactNode } from 'react';
 import {
   type Cell,
   flexRender,
@@ -24,6 +24,7 @@ export type DataTableProps<TData> = {
   headerRowClassName?: string;
   bodyRowClassName?: string;
   getRowClassName?: (row: Row<TData>) => string | undefined;
+  getRowProps?: (row: Row<TData>) => HTMLAttributes<HTMLTableRowElement> | undefined;
   getCellClassName?: (cell: Cell<TData, unknown>) => string | undefined;
   getHeaderClassName?: (header: Header<TData, unknown>) => string | undefined;
   emptyContent?: ReactNode;
@@ -42,6 +43,7 @@ export function DataTable<TData>({
   headerRowClassName,
   bodyRowClassName,
   getRowClassName,
+  getRowProps,
   getCellClassName,
   getHeaderClassName,
   emptyContent = null,
@@ -79,19 +81,27 @@ export function DataTable<TData>({
         </thead>
         <tbody>
           {rows.length
-            ? rows.map((row) => (
-                <tr key={row.id} className={cn(bodyRowClassName, getRowClassName?.(row))}>
-                  {row.getVisibleCells().map((cell) => {
-                    const meta = getColumnMeta(cell);
+            ? rows.map((row) => {
+                const rowProps = getRowProps?.(row);
 
-                    return (
-                      <td key={cell.id} className={cn(meta?.cellClassName, getCellClassName?.(cell))}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))
+                return (
+                  <tr
+                    key={row.id}
+                    {...rowProps}
+                    className={cn(bodyRowClassName, getRowClassName?.(row), rowProps?.className)}
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const meta = getColumnMeta(cell);
+
+                      return (
+                        <td key={cell.id} className={cn(meta?.cellClassName, getCellClassName?.(cell))}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })
             : emptyContent}
         </tbody>
       </table>

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import type { ReactNode } from 'react';
 import {
   formatMoneyMinor,
   formatOrderDeliveryDestination,
@@ -16,6 +16,8 @@ import {
   type OrderStatusTransition,
 } from '@/entities/order';
 import { ChangeOrderStatus } from '@/features/change-order-status';
+import { cn } from '@/shared/lib/cn';
+import { AdminEmptyState, AdminNotice, Badge, Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/shared/ui';
 
 type OrderItemProductMeta = {
   imageUrl: string | null;
@@ -72,6 +74,42 @@ function getStatusHistorySummary(entry: OrderStatusHistoryEntry): string {
   return `${previousStatusLabel} → ${currentStatusLabel}`;
 }
 
+function getStatusBadgeClassName(order: Order | Pick<OrderStatusHistoryEntry, 'currentStatus'>): string {
+  const tone = 'currentStatus' in order ? getOrderStatusTone(order.currentStatus) : getOrderStatusTone(order.status);
+
+  if (tone === 'success') {
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  }
+
+  if (tone === 'danger') {
+    return 'border-rose-200 bg-rose-50 text-rose-700';
+  }
+
+  if (tone === 'pending') {
+    return 'border-amber-200 bg-amber-50 text-amber-700';
+  }
+
+  return 'border-border bg-muted/40 text-muted-foreground';
+}
+
+function DetailStat({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
+  return (
+    <div className={cn('space-y-1 rounded-2xl border border-border/70 bg-background/70 p-3', wide && 'md:col-span-2')}>
+      <p className="text-[0.72rem] font-semibold tracking-[0.16em] text-muted-foreground uppercase">{label}</p>
+      <p className="text-sm font-medium text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function DetailSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-3 rounded-[1.25rem] border border-border/70 bg-muted/20 p-4">
+      <h4 className="text-sm font-semibold text-foreground">{title}</h4>
+      {children}
+    </section>
+  );
+}
+
 export function OrderDetailsDrawer({
   isOpen,
   order,
@@ -90,273 +128,198 @@ export function OrderDetailsDrawer({
   onClose,
   onStatusSubmit,
 }: OrderDetailsDrawerProps) {
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleEscape);
-
-    return () => {
-      window.removeEventListener('keydown', handleEscape);
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen) {
-    return null;
-  }
-
-  const statusTone = order ? getOrderStatusTone(order.status) : 'neutral';
-
   return (
-    <div className="order-drawer-root" role="presentation">
-      <button type="button" className="order-drawer-backdrop" aria-label="Закрыть панель заказа" onClick={onClose} />
-
-      <aside className="order-drawer" aria-label="Детали заказа">
-        <header className="order-drawer-header">
-          <div>
-            <p className="placeholder-eyebrow">Заказ</p>
-            <h3 className="order-drawer-title">{order ? order.orderNumber : 'Детали заказа'}</h3>
-            {order ? <p className="orders-cell-meta">Создан {formatOrderDateTime(order.createdAt)}</p> : null}
+    <Sheet open={isOpen} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
+      <SheetContent side="right" className="w-full max-w-[100vw] gap-0 overflow-hidden p-0 sm:max-w-[720px]">
+        <SheetHeader className="border-b border-border/70 bg-background/95 px-6 py-5">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <SheetTitle>{order ? `Заказ ${order.orderNumber}` : 'Детали заказа'}</SheetTitle>
+              {order ? (
+                <Badge
+                  variant="outline"
+                  className={cn('h-auto rounded-full border px-2.5 py-1 text-[0.72rem] font-medium', getStatusBadgeClassName(order))}
+                >
+                  {getOrderStatusLabel(order.status)}
+                </Badge>
+              ) : null}
+            </div>
+            <SheetDescription>
+              {order ? `Создан ${formatOrderDateTime(order.createdAt)} • ID ${order.id}` : 'Подготавливаем данные заказа и историю статусов.'}
+            </SheetDescription>
           </div>
-          <button type="button" className="secondary-button" onClick={onClose}>
-            Закрыть
-          </button>
-        </header>
+        </SheetHeader>
 
-        {errorMessage ? (
-          <p className="form-error" role="alert">
-            {errorMessage}
-          </p>
-        ) : null}
+        <div className="flex-1 space-y-4 overflow-y-auto bg-background px-6 py-5">
+          {errorMessage ? <AdminNotice tone="destructive">{errorMessage}</AdminNotice> : null}
 
-        {isLoading && !order ? (
-          <p className="catalog-empty-state">Загрузка деталей заказа...</p>
-        ) : null}
-
-        {order ? (
-          <div className="order-drawer-content">
-            <section className="order-detail-section" aria-label="Общая информация по заказу">
-              <h4 className="order-detail-title">Общая информация</h4>
-              <div className="order-detail-grid">
-                <div>
-                  <p className="orders-cell-meta">Номер</p>
-                  <p className="orders-cell-title">{order.orderNumber}</p>
-                </div>
-                <div>
-                  <p className="orders-cell-meta">Дата и время</p>
-                  <p className="orders-cell-title">{formatOrderDateTime(order.createdAt)}</p>
-                </div>
-                <div>
-                  <p className="orders-cell-meta">Код статуса</p>
-                  <p className="orders-cell-title">{order.status.code}</p>
-                </div>
-                <div>
-                  <p className="orders-cell-meta">Состояние</p>
-                  <p className="orders-cell-title">{getOrderStateTypeLabel(order.stateType)}</p>
-                </div>
-                <div>
-                  <p className="orders-cell-meta">Статус обновлен</p>
-                  <p className="orders-cell-title">{formatOrderDateTime(order.statusChangedAt)}</p>
-                </div>
-              </div>
-              <span className={`order-pill order-pill-${statusTone}`}>{getOrderStatusLabel(order.status)}</span>
-            </section>
-
-            <section className="order-detail-section" aria-label="Клиент">
-              <h4 className="order-detail-title">Клиент</h4>
-              <div className="order-detail-grid">
-                <div>
-                  <p className="orders-cell-meta">Имя</p>
-                  <p className="orders-cell-title">{renderInfoValue(order.customerName, 'Не указано')}</p>
-                </div>
-                <div>
-                  <p className="orders-cell-meta">Телефон</p>
-                  <p className="orders-cell-title">{renderInfoValue(order.customerPhone, 'Не указан')}</p>
-                </div>
-                <div>
-                  <p className="orders-cell-meta">Email</p>
-                  <p className="orders-cell-title">{renderInfoValue(order.customerEmail, 'Не указан')}</p>
-                </div>
-              </div>
-            </section>
-
-            <section className="order-detail-section" aria-label="Товары в заказе">
-              <h4 className="order-detail-title">Товары</h4>
-              {productMetaErrorMessage ? <p className="orders-cell-meta">{productMetaErrorMessage}</p> : null}
-              {order.items.length ? (
-                <ul className="order-item-list">
-                  {order.items.map((item) => {
-                    const itemMeta = productMetaById.get(item.productId);
-                    const imageUrl = item.imageUrl?.trim() || itemMeta?.imageUrl?.trim() || '';
-                    const itemSku = renderInfoValue(item.sku, renderInfoValue(itemMeta?.sku, 'Не указан'));
-
-                    return (
-                      <li key={item.id} className="order-item-row">
-                        {imageUrl ? (
-                          <img className="order-item-image" src={imageUrl} alt={item.title} />
-                        ) : (
-                          <div className="order-item-image-placeholder">Нет фото</div>
-                        )}
-
-                        <div className="order-item-main">
-                          <p className="orders-cell-title">{item.title}</p>
-                          <p className="orders-cell-meta">SKU: {itemSku}</p>
-                          <p className="orders-cell-meta">Количество: {formatOrderItemQuantity(item)}</p>
-                        </div>
-
-                        <div className="order-item-pricing">
-                          <p className="orders-cell-meta">Цена</p>
-                          <p className="orders-cell-title">{formatMoneyMinor(item.priceMinor)}</p>
-                          <p className="orders-cell-meta">Сумма позиции</p>
-                          <p className="orders-cell-title">{formatMoneyMinor(item.totalMinor)}</p>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <p className="catalog-empty-state">Товары в заказе отсутствуют.</p>
-              )}
-            </section>
-
-            <section className="order-detail-section" aria-label="Суммы заказа">
-              <h4 className="order-detail-title">Суммы</h4>
-              <div className="order-summary-grid">
-                <div>
-                  <p className="orders-cell-meta">Subtotal</p>
-                  <p className="orders-cell-title">{formatMoneyMinor(order.subtotalMinor)}</p>
-                </div>
-                <div>
-                  <p className="orders-cell-meta">Скидка</p>
-                  <p className="orders-cell-title">Нет данных в API</p>
-                </div>
-                <div>
-                  <p className="orders-cell-meta">Доставка</p>
-                  <p className="orders-cell-title">{formatMoneyMinor(order.deliveryFeeMinor)}</p>
-                </div>
-                <div>
-                  <p className="orders-cell-meta">Итого</p>
-                  <p className="orders-cell-title order-total-amount">{formatMoneyMinor(order.totalMinor)}</p>
-                </div>
-              </div>
-            </section>
-
-            <section className="order-detail-section" aria-label="Доставка">
-              <h4 className="order-detail-title">Доставка</h4>
-              <div className="order-detail-grid">
-                <div>
-                  <p className="orders-cell-meta">Способ доставки</p>
-                  <p className="orders-cell-title">{order.delivery.methodName || getDeliveryTypeLabel(order.deliveryMethod)}</p>
-                </div>
-                <div>
-                  <p className="orders-cell-meta">Стоимость доставки</p>
-                  <p className="orders-cell-title">{formatMoneyMinor(order.delivery.priceMinor)}</p>
-                </div>
-                <div>
-                  <p className="orders-cell-meta">Срок</p>
-                  <p className="orders-cell-title">{formatDeliveryEstimate(order)}</p>
-                </div>
-                <div className="order-detail-grid-full">
-                  <p className="orders-cell-meta">Адрес / пункт выдачи</p>
-                  <p className="orders-cell-title">{formatOrderDeliveryDestination(order)}</p>
-                </div>
-              </div>
-            </section>
-
-            <section className="order-detail-section" aria-label="Оплата">
-              <h4 className="order-detail-title">Оплата</h4>
-              <div className="order-detail-grid">
-                <div>
-                  <p className="orders-cell-meta">Способ оплаты</p>
-                  <p className="orders-cell-title">{getPaymentMethodLabel(order.payment)}</p>
-                </div>
-                <div>
-                  <p className="orders-cell-meta">Статус оплаты</p>
-                  <p className="orders-cell-title">{getPaymentStatusPlaceholderLabel()}</p>
-                </div>
-              </div>
-            </section>
-
-            {order.comment?.trim() ? (
-              <section className="order-detail-section" aria-label="Комментарий клиента">
-                <h4 className="order-detail-title">Комментарий клиента</h4>
-                <p className="orders-cell-title">{order.comment.trim()}</p>
-              </section>
-            ) : null}
-
-            {statusTransitionsErrorMessage ? (
-              <p className="form-error" role="alert">
-                {statusTransitionsErrorMessage}
-              </p>
-            ) : null}
-
-            <ChangeOrderStatus
-              currentStatus={order.status}
-              transitions={statusTransitions}
-              isSubmitting={isStatusUpdating}
-              isLoadingTransitions={isStatusMetaLoading}
-              errorMessage={statusErrorMessage}
-              successMessage={statusSuccessMessage}
-              onSubmit={onStatusSubmit}
+          {isLoading && !order ? (
+            <AdminEmptyState
+              title="Загружаем заказ"
+              description="Проверяем основную карточку, состав заказа и историю статусов. Попробуйте закрыть preview и открыть строку снова, если загрузка не завершится."
             />
+          ) : null}
 
-            <section className="order-detail-section" aria-label="История статусов">
-              <h4 className="order-detail-title">История статусов</h4>
+          {order ? (
+            <>
+              <DetailSection title="Общая информация">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <DetailStat label="Номер" value={order.orderNumber} />
+                  <DetailStat label="Дата и время" value={formatOrderDateTime(order.createdAt)} />
+                  <DetailStat label="Код статуса" value={order.status.code} />
+                  <DetailStat label="Состояние" value={getOrderStateTypeLabel(order.stateType)} />
+                  <DetailStat label="Статус обновлен" value={formatOrderDateTime(order.statusChangedAt)} />
+                  <DetailStat label="Источник" value={order.guestInstallId ? 'Гостевой checkout' : order.userId ? 'Аккаунт клиента' : 'Не передается API'} />
+                </div>
+              </DetailSection>
 
-              {statusHistoryErrorMessage ? (
-                <p className="form-error" role="alert">
-                  {statusHistoryErrorMessage}
-                </p>
+              <DetailSection title="Клиент">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <DetailStat label="Имя" value={renderInfoValue(order.customerName)} />
+                  <DetailStat label="Телефон" value={renderInfoValue(order.customerPhone, 'Не указан')} />
+                  <DetailStat label="Email" value={renderInfoValue(order.customerEmail, 'Не указан')} />
+                  <DetailStat label="Тип клиента" value={order.customerType} />
+                </div>
+              </DetailSection>
+
+              <DetailSection title="Товары">
+                {productMetaErrorMessage ? <AdminNotice>{productMetaErrorMessage}</AdminNotice> : null}
+                {order.items.length ? (
+                  <ul className="space-y-3">
+                    {order.items.map((item) => {
+                      const itemMeta = productMetaById.get(item.productId);
+                      const imageUrl = item.imageUrl?.trim() || itemMeta?.imageUrl?.trim() || '';
+                      const itemSku = renderInfoValue(item.sku, renderInfoValue(itemMeta?.sku, 'Не указан'));
+
+                      return (
+                        <li key={item.id} className="flex gap-3 rounded-[1.15rem] border border-border/70 bg-background/70 p-3">
+                          {imageUrl ? (
+                            <img className="size-16 rounded-xl border border-border/70 object-cover" src={imageUrl} alt={item.title} />
+                          ) : (
+                            <div className="flex size-16 items-center justify-center rounded-xl border border-dashed border-border text-[0.72rem] text-muted-foreground">
+                              Нет фото
+                            </div>
+                          )}
+
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <p className="font-medium text-foreground">{item.title}</p>
+                            <p className="text-xs text-muted-foreground">SKU: {itemSku}</p>
+                            <p className="text-xs text-muted-foreground">Количество: {formatOrderItemQuantity(item)}</p>
+                          </div>
+
+                          <div className="shrink-0 text-right">
+                            <p className="text-xs text-muted-foreground">Цена</p>
+                            <p className="text-sm font-medium text-foreground">{formatMoneyMinor(item.priceMinor)}</p>
+                            <p className="mt-2 text-xs text-muted-foreground">Сумма позиции</p>
+                            <p className="text-sm font-medium text-foreground">{formatMoneyMinor(item.totalMinor)}</p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <AdminEmptyState
+                    title="Состав заказа пуст"
+                    description="Backend вернул заказ без товарных позиций. Стоит проверить источник формирования заказа или повторно запросить карточку."
+                  />
+                )}
+              </DetailSection>
+
+              <DetailSection title="Суммы">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <DetailStat label="Subtotal" value={formatMoneyMinor(order.subtotalMinor)} />
+                  <DetailStat label="Скидка" value="Нет данных в API" />
+                  <DetailStat label="Доставка" value={formatMoneyMinor(order.deliveryFeeMinor)} />
+                  <DetailStat label="Итого" value={formatMoneyMinor(order.totalMinor)} />
+                </div>
+              </DetailSection>
+
+              <DetailSection title="Доставка и оплата">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <DetailStat label="Способ доставки" value={order.delivery.methodName || getDeliveryTypeLabel(order.deliveryMethod)} />
+                  <DetailStat label="Стоимость доставки" value={formatMoneyMinor(order.delivery.priceMinor)} />
+                  <DetailStat label="Срок" value={formatDeliveryEstimate(order)} />
+                  <DetailStat label="Способ оплаты" value={getPaymentMethodLabel(order.payment)} />
+                  <DetailStat label="Статус оплаты" value={getPaymentStatusPlaceholderLabel()} />
+                  <DetailStat label="Адрес / пункт выдачи" value={formatOrderDeliveryDestination(order)} wide />
+                </div>
+              </DetailSection>
+
+              {order.comment?.trim() ? (
+                <DetailSection title="Комментарий клиента">
+                  <p className="text-sm leading-6 text-foreground">{order.comment.trim()}</p>
+                </DetailSection>
               ) : null}
 
-              {isStatusMetaLoading && !statusHistory.length && order.statusHistory.length ? (
-                <ul className="order-status-history-list">
-                  {order.statusHistory.map((entry) => (
-                    <li key={`${entry.code}-${entry.timestamp}`} className="order-status-history-item">
-                      <div className="order-status-history-head">
-                        <span className="order-pill">{entry.name}</span>
-                        <p className="orders-cell-meta">{formatOrderDateTime(entry.timestamp)}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : isStatusMetaLoading && !statusHistory.length ? (
-                <p className="catalog-empty-state">Загрузка истории статусов...</p>
-              ) : statusHistory.length ? (
-                <ul className="order-status-history-list">
-                  {statusHistory.map((entry) => (
-                    <li key={entry.id} className="order-status-history-item">
-                      <div className="order-status-history-head">
-                        <span className={`order-pill order-pill-${getOrderStatusTone(entry.currentStatus)}`}>
-                          {getOrderStatusLabel(entry.currentStatus)}
-                        </span>
-                        <p className="orders-cell-meta">{formatOrderDateTime(entry.changedAt)}</p>
-                      </div>
+              {statusTransitionsErrorMessage ? <AdminNotice tone="destructive">{statusTransitionsErrorMessage}</AdminNotice> : null}
 
-                      <p className="orders-cell-meta">{getStatusHistorySummary(entry)}</p>
-                      <p className="orders-cell-meta">
-                        {getOrderStatusChangeSourceTypeLabel(entry.changeSourceType)}
-                        {entry.changedByUserId ? ` • ${entry.changedByUserId}` : ''}
-                      </p>
+              <ChangeOrderStatus
+                currentStatus={order.status}
+                transitions={statusTransitions}
+                isSubmitting={isStatusUpdating}
+                isLoadingTransitions={isStatusMetaLoading}
+                errorMessage={statusErrorMessage}
+                successMessage={statusSuccessMessage}
+                onSubmit={onStatusSubmit}
+              />
 
-                      {entry.comment?.trim() ? <p className="orders-cell-title">{entry.comment.trim()}</p> : null}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="catalog-empty-state">История изменения статусов пока пуста.</p>
-              )}
-            </section>
-          </div>
-        ) : null}
-      </aside>
-    </div>
+              <DetailSection title="История статусов">
+                {statusHistoryErrorMessage ? <AdminNotice tone="destructive">{statusHistoryErrorMessage}</AdminNotice> : null}
+
+                {isStatusMetaLoading && !statusHistory.length && order.statusHistory.length ? (
+                  <ul className="space-y-3">
+                    {order.statusHistory.map((entry) => (
+                      <li key={`${entry.code}-${entry.timestamp}`} className="rounded-[1.15rem] border border-border/70 bg-background/70 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <Badge variant="outline" className="h-auto rounded-full px-2.5 py-1 text-[0.72rem] font-medium">
+                            {entry.name}
+                          </Badge>
+                          <p className="text-xs text-muted-foreground">{formatOrderDateTime(entry.timestamp)}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : isStatusMetaLoading && !statusHistory.length ? (
+                  <AdminEmptyState
+                    title="Загружаем историю"
+                    description="Запрашиваем журнал переходов статусов. Если он не появится, проверьте доступность endpoint истории."
+                  />
+                ) : statusHistory.length ? (
+                  <ul className="space-y-3">
+                    {statusHistory.map((entry) => (
+                      <li key={entry.id} className="space-y-2 rounded-[1.15rem] border border-border/70 bg-background/70 p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              'h-auto rounded-full border px-2.5 py-1 text-[0.72rem] font-medium',
+                              getStatusBadgeClassName(entry),
+                            )}
+                          >
+                            {getOrderStatusLabel(entry.currentStatus)}
+                          </Badge>
+                          <p className="text-xs text-muted-foreground">{formatOrderDateTime(entry.changedAt)}</p>
+                        </div>
+                        <p className="text-sm text-foreground">{getStatusHistorySummary(entry)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {getOrderStatusChangeSourceTypeLabel(entry.changeSourceType)}
+                          {entry.changedByUserId ? ` • ${entry.changedByUserId}` : ''}
+                        </p>
+                        {entry.comment?.trim() ? <p className="text-sm leading-6 text-foreground">{entry.comment.trim()}</p> : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <AdminEmptyState
+                    title="История пока пуста"
+                    description="У этого заказа ещё нет записей в журнале переходов. После первого изменения статуса история появится здесь."
+                  />
+                )}
+              </DetailSection>
+            </>
+          ) : null}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

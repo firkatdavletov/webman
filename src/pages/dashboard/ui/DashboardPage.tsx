@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowRightIcon,
@@ -7,7 +7,6 @@ import {
   LayoutDashboardIcon,
   RefreshCcwIcon,
   ShoppingBasketIcon,
-  ShoppingCartIcon,
   TriangleAlertIcon,
   WalletIcon,
 } from 'lucide-react';
@@ -26,14 +25,12 @@ import {
   AdminPageHeader,
   AdminPageStatus,
   AdminSectionCard,
-  Badge,
   Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  buttonVariants,
 } from '@/shared/ui';
 
 type LoadDashboardOptions = {
@@ -153,36 +150,6 @@ function DashboardMetricSkeleton() {
   );
 }
 
-function buildFocusItems(dashboard: AdminDashboard) {
-  return [
-    {
-      key: 'new-orders',
-      label: `Новые заказы: ${formatDashboardCount(dashboard.newOrders)}`,
-      variant: dashboard.newOrders > 0 ? 'secondary' : 'outline',
-    },
-    {
-      key: 'problematic-orders',
-      label: `Проблемные: ${formatDashboardCount(dashboard.problematicOrders)}`,
-      variant: dashboard.problematicOrders > 0 ? 'destructive' : 'outline',
-    },
-    {
-      key: 'awaiting-payment',
-      label: `Ждут оплаты: ${formatDashboardCount(dashboard.awaitingPayment)}`,
-      variant: dashboard.awaitingPayment > 0 ? 'secondary' : 'outline',
-    },
-    {
-      key: 'without-photos',
-      label: `Без фото: ${formatDashboardCount(dashboard.itemsWithoutPhotos)}`,
-      variant: dashboard.itemsWithoutPhotos > 0 ? 'secondary' : 'outline',
-    },
-    {
-      key: 'abandoned-baskets',
-      label: `Брошенные корзины: ${formatDashboardCount(dashboard.abandonedBaskets)}`,
-      variant: dashboard.abandonedBaskets > 0 ? 'secondary' : 'outline',
-    },
-  ] as const;
-}
-
 export function DashboardPage() {
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
@@ -227,7 +194,6 @@ export function DashboardPage() {
   const statusText = isLoading
     ? 'Загрузка ключевых показателей...'
     : `Снимок обновлен ${formattedGeneratedAt}`;
-  const focusItems = useMemo(() => (dashboard ? buildFocusItems(dashboard) : []), [dashboard]);
 
   return (
     <AdminPage>

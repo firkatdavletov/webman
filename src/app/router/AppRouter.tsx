@@ -145,6 +145,7 @@ export function AppRouter() {
         <Route path="/hero-banners/:bannerId" element={<HeroBannerDetailsPage />} />
         <Route path="/legal-documents" element={<LegalDocumentsPage />} />
         <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/orders/:orderId" element={<OrdersPage />} />
         <Route path="/order-statuses" element={<OrderStatusesPage />} />
         <Route path="/delivery" element={<DeliveryConditionsPage />} />
         <Route path="/delivery/pickup-points/map" element={<DeliveryPickupPointMapPage />} />
@@ -153,6 +154,7 @@ export function AppRouter() {
         <Route path="/delivery/zones/:zoneId" element={<DeliveryZoneDetailsPage />} />
         <Route path="/delivery/zones/:zoneId/map" element={<DeliveryZoneMapPage />} />
         <Route path="/admin/orders" element={<OrdersPage />} />
+        <Route path="/admin/orders/:orderId" element={<OrdersPage />} />
         <Route path="/admin/order-statuses" element={<OrderStatusesPage />} />
       </Route>
       <Route path="*" element={<Navigate to={fallbackPath} replace />} />
