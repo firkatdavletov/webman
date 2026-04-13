@@ -2,7 +2,7 @@ meta:
   environment: node
   toolchain:
     name: browser
-    version: 18
+    version: 20
 
 build:
   artifacts:
