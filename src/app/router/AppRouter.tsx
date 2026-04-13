@@ -64,9 +64,35 @@ const LegalDocumentsPage = lazy(() =>
 const DeliveryConditionsPage = lazy(() =>
   import('@/pages/delivery/ui/DeliveryConditionsPage').then((module) => ({ default: module.DeliveryConditionsPage })),
 );
+const DeliveryMethodsPage = lazy(() =>
+  import('@/pages/delivery/methods/ui/DeliveryMethodsPage').then((module) => ({ default: module.DeliveryMethodsPage })),
+);
+const DeliveryMethodDetailsPage = lazy(() =>
+  import('@/pages/delivery/method-details/ui/DeliveryMethodDetailsPage').then((module) => ({
+    default: module.DeliveryMethodDetailsPage,
+  })),
+);
 const DeliveryPickupPointMapPage = lazy(() =>
   import('@/pages/delivery/pickup-point-map/ui/DeliveryPickupPointMapPage').then((module) => ({
     default: module.DeliveryPickupPointMapPage,
+  })),
+);
+const DeliveryPickupPointsPage = lazy(() =>
+  import('@/pages/delivery/pickup-points/ui/DeliveryPickupPointsPage').then((module) => ({
+    default: module.DeliveryPickupPointsPage,
+  })),
+);
+const DeliveryPickupPointDetailsPage = lazy(() =>
+  import('@/pages/delivery/pickup-point-details/ui/DeliveryPickupPointDetailsPage').then((module) => ({
+    default: module.DeliveryPickupPointDetailsPage,
+  })),
+);
+const DeliveryTariffsPage = lazy(() =>
+  import('@/pages/delivery/tariffs/ui/DeliveryTariffsPage').then((module) => ({ default: module.DeliveryTariffsPage })),
+);
+const DeliveryTariffDetailsPage = lazy(() =>
+  import('@/pages/delivery/tariff-details/ui/DeliveryTariffDetailsPage').then((module) => ({
+    default: module.DeliveryTariffDetailsPage,
   })),
 );
 const DeliveryZoneCreatePage = lazy(() =>
@@ -78,6 +104,9 @@ const DeliveryZoneDetailsPage = lazy(() =>
   import('@/pages/delivery/zone-details/ui/DeliveryZoneDetailsPage').then((module) => ({
     default: module.DeliveryZoneDetailsPage,
   })),
+);
+const DeliveryZonesPage = lazy(() =>
+  import('@/pages/delivery/zones/ui/DeliveryZonesPage').then((module) => ({ default: module.DeliveryZonesPage })),
 );
 const DeliveryZoneMapPage = lazy(() =>
   import('@/pages/delivery/zone-map/ui/DeliveryZoneMapPage').then((module) => ({ default: module.DeliveryZoneMapPage })),
@@ -153,7 +182,18 @@ export function AppRouter() {
         <Route path="/order-statuses/new" element={<OrderStatusEditorPage />} />
         <Route path="/order-statuses/:statusId" element={<OrderStatusEditorPage />} />
         <Route path="/delivery" element={<DeliveryConditionsPage />} />
+        <Route path="/delivery/methods" element={<DeliveryMethodsPage />} />
+        <Route path="/delivery/methods/:method" element={<DeliveryMethodDetailsPage />} />
+        <Route path="/delivery/zones" element={<DeliveryZonesPage />} />
         <Route path="/delivery/pickup-points/map" element={<DeliveryPickupPointMapPage />} />
+        <Route path="/delivery/pickup-points" element={<DeliveryPickupPointsPage />} />
+        <Route path="/delivery/pickup-points/new" element={<DeliveryPickupPointDetailsPage />} />
+        <Route path="/delivery/pickup-points/new/map" element={<DeliveryPickupPointMapPage />} />
+        <Route path="/delivery/pickup-points/:pickupPointId" element={<DeliveryPickupPointDetailsPage />} />
+        <Route path="/delivery/pickup-points/:pickupPointId/map" element={<DeliveryPickupPointMapPage />} />
+        <Route path="/delivery/tariffs" element={<DeliveryTariffsPage />} />
+        <Route path="/delivery/tariffs/new" element={<DeliveryTariffDetailsPage />} />
+        <Route path="/delivery/tariffs/:tariffId" element={<DeliveryTariffDetailsPage />} />
         <Route path="/delivery/zones/new" element={<DeliveryZoneCreatePage />} />
         <Route path="/delivery/zones/new/map" element={<DeliveryZoneMapPage />} />
         <Route path="/delivery/zones/:zoneId" element={<DeliveryZoneDetailsPage />} />

@@ -7,11 +7,13 @@ import {
   DeliveryZoneForm,
   getDeliveryZoneDraftKey,
   getDeliveryZoneSourceFingerprint,
+  mapDeliveryZoneEditorValuesToPayload,
   type DeliveryZoneEditorValues,
   useDeliveryZoneDraft,
   validateDeliveryZoneEditorValues,
-  mapDeliveryZoneEditorValuesToPayload,
 } from '@/features/delivery-zone-editor';
+import { cn } from '@/shared/lib/cn';
+import { AdminPage, AdminPageHeader, AdminPageStatus, buttonVariants } from '@/shared/ui';
 
 export function DeliveryZoneCreatePage() {
   const navigate = useNavigate();
@@ -60,48 +62,37 @@ export function DeliveryZoneCreatePage() {
   };
 
   return (
-    <main className="dashboard">
-        <nav className="breadcrumbs" aria-label="Хлебные крошки">
-          <Link className="breadcrumb-link" to="/delivery">
-            Доставка
-          </Link>
-          <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-current">Новая зона</span>
-        </nav>
-
-        <header className="dashboard-header">
-          <div>
-            <p className="page-kicker">Доставка</p>
-            <h2 className="page-title">Новая зона доставки</h2>
-          </div>
-
-          <div className="dashboard-actions">
-            <span className={`status-chip${isDirty ? ' delivery-status-pill-live' : ''}`}>
-              {isDirty ? 'Черновик изменен' : 'Новый черновик'}
-            </span>
-
-            <Link className="secondary-link" to="/delivery">
-              К условиям доставки
+    <AdminPage>
+      <AdminPageHeader
+        kicker="Доставка"
+        title="Новая зона доставки"
+        description="Создайте зону на отдельном экране. Если нужен polygon, откройте карту, сохраните геометрию в черновик и затем вернитесь сюда."
+        actions={
+          <>
+            <AdminPageStatus>{isDirty ? 'Черновик изменен' : 'Новый черновик'}</AdminPageStatus>
+            <Link className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'rounded-xl bg-card/80 shadow-sm')} to="/delivery/zones">
+              К списку зон
             </Link>
-          </div>
-        </header>
+          </>
+        }
+      />
 
-        <DeliveryZoneForm
-          idPrefix="delivery-zone-create"
-          eyebrow="Создание"
-          title="Новая зона"
-          description="Заполните базовые поля зоны. Если выбран тип `POLYGON`, откройте отдельный экран карты и сохраните геометрию в черновик."
-          values={currentValues}
-          isSaving={isSaving}
-          isDirty={isDirty}
-          saveError={saveError}
-          submitLabel="Создать зону"
-          savingLabel="Создание..."
-          mapEditorPath={currentValues.type === 'POLYGON' ? '/delivery/zones/new/map' : undefined}
-          onValuesChange={handleValuesChange}
-          onSubmit={() => void handleSubmit()}
-          onReset={handleReset}
-        />
-    </main>
+      <DeliveryZoneForm
+        idPrefix="delivery-zone-create"
+        eyebrow="Создание"
+        title="Новая зона"
+        description="Заполните код, тип и приоритет зоны. Базовые поля редактируются здесь, а геометрия polygon-зоны управляется через карту."
+        values={currentValues}
+        isSaving={isSaving}
+        isDirty={isDirty}
+        saveError={saveError}
+        submitLabel="Создать зону"
+        savingLabel="Создание..."
+        mapEditorPath={currentValues.type === 'POLYGON' ? '/delivery/zones/new/map' : undefined}
+        onValuesChange={handleValuesChange}
+        onSubmit={() => void handleSubmit()}
+        onReset={handleReset}
+      />
+    </AdminPage>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { getDeliveryZoneById, updateDeliveryZone } from '@/entities/delivery';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { deleteDeliveryZone, getDeliveryZoneById, updateDeliveryZone } from '@/entities/delivery';
 import {
   buildDeliveryZoneEditorValues,
   buildEmptyDeliveryZoneEditorValues,
@@ -13,17 +13,23 @@ import {
   type DeliveryZoneEditorValues,
 } from '@/features/delivery-zone-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
+import { cn } from '@/shared/lib/cn';
+import { AdminEmptyState, AdminNotice, AdminPage, AdminPageHeader, AdminPageStatus, Button, buttonVariants } from '@/shared/ui';
 
 export function DeliveryZoneDetailsPage() {
+  const navigate = useNavigate();
   const { zoneId } = useParams();
   const normalizedZoneId = useMemo(() => (zoneId ?? '').trim(), [zoneId]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
   const [sourceValues, setSourceValues] = useState(() => buildEmptyDeliveryZoneEditorValues());
-  const [sourceFingerprint, setSourceFingerprint] = useState(() => getDeliveryZoneSourceFingerprint(buildEmptyDeliveryZoneEditorValues()));
+  const [sourceFingerprint, setSourceFingerprint] = useState(() =>
+    getDeliveryZoneSourceFingerprint(buildEmptyDeliveryZoneEditorValues()),
+  );
   const [isSourceReady, setIsSourceReady] = useState(false);
   const draftKey = getDeliveryZoneDraftKey(normalizedZoneId);
   const { currentValues, isDirty, replaceDraft, resetDraft, updateCurrentValues } = useDeliveryZoneDraft({
@@ -113,57 +119,70 @@ export function DeliveryZoneDetailsPage() {
     setSaveSuccess(`Зона «${result.zone.name}» сохранена.`);
   };
 
+  const handleDelete = async () => {
+    if (!isUuid(normalizedZoneId)) {
+      return;
+    }
+
+    if (!window.confirm(`Удалить зону «${currentValues.name || currentValues.code || 'без названия'}»?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setSaveError('');
+    setSaveSuccess('');
+
+    const result = await deleteDeliveryZone(normalizedZoneId);
+
+    setIsDeleting(false);
+
+    if (result.error) {
+      setSaveError(result.error);
+      return;
+    }
+
+    navigate('/delivery/zones', { replace: true });
+  };
+
   return (
-    <main className="dashboard">
-        <nav className="breadcrumbs" aria-label="Хлебные крошки">
-          <Link className="breadcrumb-link" to="/delivery">
-            Доставка
-          </Link>
-          <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-current">{isLoading ? 'Загрузка зоны...' : currentValues.name || 'Зона доставки'}</span>
-        </nav>
-
-        <header className="dashboard-header">
-          <div>
-            <p className="page-kicker">Доставка</p>
-            <h2 className="page-title">{isLoading ? 'Загрузка зоны...' : currentValues.name || 'Зона доставки'}</h2>
-          </div>
-
-          <div className="dashboard-actions">
-            <span className={`status-chip${isDirty ? ' delivery-status-pill-live' : ''}`}>
-              {isDirty ? 'Есть несохраненные изменения' : 'Синхронизировано'}
-            </span>
-
+    <AdminPage>
+      <AdminPageHeader
+        kicker="Доставка"
+        title={isLoading ? 'Загрузка зоны...' : currentValues.name || 'Зона доставки'}
+        description="Карточка зоны отделена от списка. Полигон редактируется на карте, а все базовые поля и активация находятся здесь."
+        actions={
+          <>
+            <AdminPageStatus>{isDirty ? 'Есть несохраненные изменения' : 'Синхронизировано'}</AdminPageStatus>
             {currentValues.type === 'POLYGON' ? (
-              <Link className="secondary-link" to={`/delivery/zones/${normalizedZoneId}/map`}>
+              <Link
+                className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'rounded-xl bg-card/80 shadow-sm')}
+                to={`/delivery/zones/${normalizedZoneId}/map`}
+              >
                 Редактор карты
               </Link>
             ) : null}
-
-            <Link className="secondary-link" to="/delivery">
-              К условиям доставки
+            <Link className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'rounded-xl bg-card/80 shadow-sm')} to="/delivery/zones">
+              К списку зон
             </Link>
-          </div>
-        </header>
+          </>
+        }
+      />
 
-        {errorMessage ? (
-          <section className="catalog-card product-detail-card">
-            <p className="form-error" role="alert">
-              {errorMessage}
-            </p>
-          </section>
-        ) : null}
+      {errorMessage ? (
+        <AdminNotice tone="destructive" role="alert">
+          {errorMessage}
+        </AdminNotice>
+      ) : null}
 
-        {isLoading ? (
-          <section className="catalog-card product-detail-card">
-            <p className="catalog-empty-state">Загрузка данных зоны...</p>
-          </section>
-        ) : !errorMessage ? (
+      {isLoading ? (
+        <AdminEmptyState title="Загрузка зоны" description="Получаем текущую конфигурацию зоны доставки и её черновик." />
+      ) : !errorMessage ? (
+        <div className="space-y-6">
           <DeliveryZoneForm
             idPrefix="delivery-zone-details"
             eyebrow="Редактирование"
             title={currentValues.name || 'Зона доставки'}
-            description="Базовые поля зоны редактируются здесь. Геометрию `POLYGON`-зон меняйте на отдельном экране карты."
+            description="Базовые поля зоны редактируются здесь. Геометрию polygon-зон меняйте на отдельном экране карты."
             values={currentValues}
             isSaving={isSaving}
             isDirty={isDirty}
@@ -176,7 +195,14 @@ export function DeliveryZoneDetailsPage() {
             onSubmit={() => void handleSubmit()}
             onReset={handleReset}
           />
-        ) : null}
-    </main>
+
+          <div className="flex flex-wrap gap-3">
+            <Button type="button" variant="destructive" size="lg" className="rounded-xl" onClick={() => void handleDelete()} disabled={isDeleting || isSaving}>
+              {isDeleting ? 'Удаление...' : 'Удалить зону'}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </AdminPage>
   );
 }

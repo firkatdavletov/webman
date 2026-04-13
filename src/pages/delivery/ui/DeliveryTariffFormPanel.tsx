@@ -1,17 +1,9 @@
 import type { DeliveryMethod } from '@/entities/delivery';
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, FormField } from '@/shared/ui';
+import { checkboxInputClassName, DeliveryNativeSelect, nativeFieldClassName } from '@/pages/delivery/ui/deliveryShared';
+import type { DeliveryTariffFormValues } from '@/pages/delivery/model/deliveryAdmin';
 
-export type TariffFormValues = {
-  id: string;
-  method: DeliveryMethod;
-  zoneId: string;
-  isAvailable: boolean;
-  fixedPriceMinor: string;
-  freeFromAmountMinor: string;
-  currency: string;
-  estimatedDays: string;
-  deliveryMinutes: string;
-};
-
+export type TariffFormValues = DeliveryTariffFormValues;
 export type TariffFormField = Exclude<keyof TariffFormValues, 'isAvailable' | 'method'>;
 
 type DeliveryTariffFormPanelProps = {
@@ -52,153 +44,137 @@ export function DeliveryTariffFormPanel({
   const isActionDisabled = isSaving || hasPendingDelete;
 
   return (
-    <div className="delivery-form-panel">
-      <div className="catalog-card-copy">
-        <h4 className="delivery-subtitle">{form.id ? 'Редактирование тарифа' : 'Новый тариф'}</h4>
-        <p className="catalog-meta">Привяжите тариф к способу доставки и зоне. Цена и порог бесплатной доставки хранятся в minor units.</p>
-      </div>
+    <Card className="rounded-[1.75rem] border border-border/70 bg-card/90 py-0 shadow-[0_24px_70px_rgba(12,35,39,0.08)]">
+      <CardHeader className="gap-2 border-b border-border/70 py-6">
+        <CardTitle className="text-xl font-semibold tracking-tight">{form.id ? 'Редактирование тарифа' : 'Новый тариф'}</CardTitle>
+        <CardDescription className="max-w-3xl text-sm leading-6">
+          Привяжите тариф к способу доставки и зоне. Цена и порог бесплатной доставки хранятся в minor units.
+        </CardDescription>
+      </CardHeader>
 
-      <div className="product-edit-grid">
-        <div className="field">
-          <label className="field-label" htmlFor="delivery-tariff-method">
-            Способ доставки
-          </label>
-          <select
-            id="delivery-tariff-method"
-            className="field-input"
-            value={form.method}
+      <CardContent className="space-y-6 py-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField htmlFor="delivery-tariff-method" label="Способ доставки">
+            <DeliveryNativeSelect
+              id="delivery-tariff-method"
+              value={form.method}
+              disabled={isSaving}
+              onChange={(event) => onMethodChange(event.target.value as DeliveryMethod)}
+            >
+              {methodOptions.map((method) => (
+                <option key={method.value} value={method.value}>
+                  {method.label}
+                </option>
+              ))}
+            </DeliveryNativeSelect>
+          </FormField>
+
+          <FormField htmlFor="delivery-tariff-zone" label="Зона">
+            <DeliveryNativeSelect
+              id="delivery-tariff-zone"
+              value={form.zoneId}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('zoneId', event.target.value)}
+            >
+              <option value="">Без зоны</option>
+              {zoneOptions.map((zone) => (
+                <option key={zone.id} value={zone.id}>
+                  {zone.label}
+                </option>
+              ))}
+            </DeliveryNativeSelect>
+          </FormField>
+
+          <FormField htmlFor="delivery-tariff-fixed-price" label="Цена, minor units">
+            <input
+              id="delivery-tariff-fixed-price"
+              type="number"
+              className={nativeFieldClassName}
+              value={form.fixedPriceMinor}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('fixedPriceMinor', event.target.value)}
+            />
+          </FormField>
+
+          <FormField htmlFor="delivery-tariff-free-from" label="Бесплатно от, minor units">
+            <input
+              id="delivery-tariff-free-from"
+              type="number"
+              className={nativeFieldClassName}
+              value={form.freeFromAmountMinor}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('freeFromAmountMinor', event.target.value)}
+            />
+          </FormField>
+
+          <FormField htmlFor="delivery-tariff-currency" label="Валюта">
+            <input
+              id="delivery-tariff-currency"
+              className={nativeFieldClassName}
+              value={form.currency}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('currency', event.target.value)}
+            />
+          </FormField>
+
+          <FormField htmlFor="delivery-tariff-estimated-days" label="Срок доставки, дней">
+            <input
+              id="delivery-tariff-estimated-days"
+              type="number"
+              className={nativeFieldClassName}
+              value={form.estimatedDays}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('estimatedDays', event.target.value)}
+            />
+          </FormField>
+
+          <FormField htmlFor="delivery-tariff-delivery-minutes" label="Срок доставки, минут">
+            <input
+              id="delivery-tariff-delivery-minutes"
+              type="number"
+              className={nativeFieldClassName}
+              value={form.deliveryMinutes}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('deliveryMinutes', event.target.value)}
+            />
+          </FormField>
+        </div>
+
+        <label className="flex items-start gap-3 rounded-[1.25rem] border border-border/70 bg-muted/20 px-4 py-4">
+          <input
+            type="checkbox"
+            className={checkboxInputClassName}
+            checked={form.isAvailable}
             disabled={isSaving}
-            onChange={(event) => onMethodChange(event.target.value as DeliveryMethod)}
+            onChange={(event) => onIsAvailableChange(event.target.checked)}
+          />
+          <span className="space-y-1">
+            <span className="block text-sm font-medium text-foreground">Тариф доступен для расчета</span>
+            <span className="block text-xs leading-5 text-muted-foreground">
+              Отключённый тариф останется в системе, но не будет участвовать в расчёте стоимости доставки.
+            </span>
+          </span>
+        </label>
+
+        {saveError ? <p className="text-sm font-medium text-destructive">{saveError}</p> : null}
+        {saveSuccess ? <p className="text-sm font-medium text-emerald-700">{saveSuccess}</p> : null}
+
+        <div className="flex flex-wrap gap-3">
+          <Button type="button" size="lg" className="rounded-xl shadow-sm" onClick={onSubmit} disabled={isActionDisabled}>
+            {isSaving ? 'Сохранение...' : form.id ? 'Сохранить тариф' : 'Создать тариф'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="rounded-xl bg-background/80 shadow-sm"
+            onClick={onReset}
+            disabled={isActionDisabled}
           >
-            {methodOptions.map((method) => (
-              <option key={method.value} value={method.value}>
-                {method.label}
-              </option>
-            ))}
-          </select>
+            Сбросить
+          </Button>
         </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor="delivery-tariff-zone">
-            Зона
-          </label>
-          <select
-            id="delivery-tariff-zone"
-            className="field-input"
-            value={form.zoneId}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('zoneId', event.target.value)}
-          >
-            <option value="">Без зоны</option>
-            {zoneOptions.map((zone) => (
-              <option key={zone.id} value={zone.id}>
-                {zone.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor="delivery-tariff-fixed-price">
-            Цена, minor units
-          </label>
-          <input
-            id="delivery-tariff-fixed-price"
-            type="number"
-            className="field-input"
-            value={form.fixedPriceMinor}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('fixedPriceMinor', event.target.value)}
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor="delivery-tariff-free-from">
-            Бесплатно от, minor units
-          </label>
-          <input
-            id="delivery-tariff-free-from"
-            type="number"
-            className="field-input"
-            value={form.freeFromAmountMinor}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('freeFromAmountMinor', event.target.value)}
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor="delivery-tariff-currency">
-            Валюта
-          </label>
-          <input
-            id="delivery-tariff-currency"
-            className="field-input"
-            value={form.currency}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('currency', event.target.value)}
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor="delivery-tariff-estimated-days">
-            Срок доставки, дней
-          </label>
-          <input
-            id="delivery-tariff-estimated-days"
-            type="number"
-            className="field-input"
-            value={form.estimatedDays}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('estimatedDays', event.target.value)}
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor="delivery-tariff-delivery-minutes">
-            Срок доставки, минут
-          </label>
-          <input
-            id="delivery-tariff-delivery-minutes"
-            type="number"
-            className="field-input"
-            value={form.deliveryMinutes}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('deliveryMinutes', event.target.value)}
-          />
-        </div>
-      </div>
-
-      <label className="field-checkbox">
-        <input
-          type="checkbox"
-          checked={form.isAvailable}
-          disabled={isSaving}
-          onChange={(event) => onIsAvailableChange(event.target.checked)}
-        />
-        <span className="field-label">Тариф доступен для расчета</span>
-      </label>
-
-      {saveError ? (
-        <p className="form-error" role="alert">
-          {saveError}
-        </p>
-      ) : null}
-
-      {saveSuccess ? (
-        <p className="form-success" role="status">
-          {saveSuccess}
-        </p>
-      ) : null}
-
-      <div className="delivery-form-actions">
-        <button type="button" className="submit-button" onClick={onSubmit} disabled={isActionDisabled}>
-          {isSaving ? 'Сохранение...' : form.id ? 'Сохранить тариф' : 'Создать тариф'}
-        </button>
-
-        <button type="button" className="secondary-button" onClick={onReset} disabled={isActionDisabled}>
-          Сбросить
-        </button>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

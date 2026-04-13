@@ -13,6 +13,8 @@ import {
   type DeliveryZoneEditorGeometry,
 } from '@/features/delivery-zone-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
+import { cn } from '@/shared/lib/cn';
+import { AdminNotice, AdminPage, AdminPageHeader, AdminPageStatus, Button, buttonVariants } from '@/shared/ui';
 
 const DeliveryZoneMapEditor = lazy(() =>
   import('@/features/delivery-zone-editor/ui/DeliveryZoneMapEditor').then((module) => ({
@@ -119,86 +121,67 @@ export function DeliveryZoneMapPage() {
   };
 
   return (
-    <main className="dashboard">
-        <nav className="breadcrumbs" aria-label="Хлебные крошки">
-          <Link className="breadcrumb-link" to="/delivery">
-            Доставка
-          </Link>
-          <span className="breadcrumb-separator">/</span>
-          <Link className="breadcrumb-link" to={backPath}>
-            {isCreateFlow ? 'Новая зона' : currentValues.name || 'Зона доставки'}
-          </Link>
-          <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-current">Редактор карты</span>
-        </nav>
-
-        <header className="dashboard-header">
-          <div>
-            <p className="page-kicker">Доставка</p>
-            <h2 className="page-title">Редактор зоны на карте</h2>
-          </div>
-
-          <div className="dashboard-actions">
-            <span className={`status-chip${hasLocalChanges ? ' delivery-status-pill-live' : ''}`}>
-              {hasLocalChanges ? 'Есть несохраненные правки карты' : 'Карта синхронизирована'}
-            </span>
-
-            <Link className="secondary-link" to={backPath}>
+    <AdminPage>
+      <AdminPageHeader
+        kicker="Доставка"
+        title="Редактор зоны на карте"
+        description="Геометрия сохраняется в черновик карточки зоны. После возврата на форму не забудьте сохранить саму зону в backend."
+        actions={
+          <>
+            <AdminPageStatus>{hasLocalChanges ? 'Есть несохраненные правки карты' : 'Карта синхронизирована'}</AdminPageStatus>
+            <Link className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'rounded-xl bg-card/80 shadow-sm')} to={backPath}>
               Вернуться к форме
             </Link>
-          </div>
-        </header>
+          </>
+        }
+      />
 
-        {errorMessage ? (
-          <p className="form-error delivery-page-error" role="alert">
-            {errorMessage}
-          </p>
-        ) : null}
+      {errorMessage ? (
+        <AdminNotice tone="destructive" role="alert">
+          {errorMessage}
+        </AdminNotice>
+      ) : null}
 
-        {isLoading ? (
-          <section className="catalog-card product-detail-card">
-            <p className="catalog-empty-state">Загрузка геометрии зоны...</p>
-          </section>
-        ) : currentValues.type !== 'POLYGON' ? (
-          <section className="catalog-card product-detail-card">
-            <p className="form-error" role="alert">
-              Редактор карты доступен только для зон типа `POLYGON`. Измените тип зоны на форме и откройте карту повторно.
+      {isLoading ? (
+        <section className="rounded-[1.75rem] border border-border/70 bg-card/90 px-6 py-8 text-sm text-muted-foreground shadow-[0_24px_70px_rgba(12,35,39,0.08)]">
+          Загрузка геометрии зоны...
+        </section>
+      ) : currentValues.type !== 'POLYGON' ? (
+        <AdminNotice tone="destructive" role="alert">
+          Редактор карты доступен только для зон типа `POLYGON`. Измените тип зоны на форме и откройте карту повторно.
+        </AdminNotice>
+      ) : (
+        <section className="space-y-5 rounded-[1.75rem] border border-border/70 bg-card/90 p-6 shadow-[0_24px_70px_rgba(12,35,39,0.08)]">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">Map editor</p>
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">{currentValues.name || 'Polygon zone'}</h2>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Работайте с контурами локально, затем примените геометрию и вернитесь в карточку зоны.
             </p>
-          </section>
-        ) : (
-          <section className="catalog-card product-detail-card delivery-zone-map-card">
-            <div className="catalog-card-copy">
-              <p className="placeholder-eyebrow">Map editor</p>
-              <h3 className="product-detail-title">{currentValues.name || 'Polygon zone'}</h3>
-              <p className="catalog-card-text">
-                Геометрия сохраняется сначала в локальный draft зоны. После возврата на форму не забудьте сохранить саму зону на backend.
-              </p>
-            </div>
+          </div>
 
-            <Suspense fallback={<p className="catalog-empty-state">Загрузка редактора карты...</p>}>
-              <DeliveryZoneMapEditor
-                geometry={localGeometry}
-                activePolygonIndex={activePolygonIndex}
-                onActivePolygonIndexChange={setActivePolygonIndex}
-                onGeometryChange={setLocalGeometry}
-              />
-            </Suspense>
+          <Suspense fallback={<p className="text-sm text-muted-foreground">Загрузка редактора карты...</p>}>
+            <DeliveryZoneMapEditor
+              geometry={localGeometry}
+              activePolygonIndex={activePolygonIndex}
+              onActivePolygonIndexChange={setActivePolygonIndex}
+              onGeometryChange={setLocalGeometry}
+            />
+          </Suspense>
 
-            <div className="delivery-form-actions">
-              <button type="button" className="submit-button" onClick={handleApply}>
-                Применить геометрию
-              </button>
-
-              <button type="button" className="secondary-button" onClick={() => navigate(backPath)}>
-                Отменить
-              </button>
-
-              <button type="button" className="secondary-button secondary-button-danger" onClick={handleReset}>
-                Сбросить
-              </button>
-            </div>
-          </section>
-        )}
-    </main>
+          <div className="flex flex-wrap gap-3">
+            <Button type="button" size="lg" className="rounded-xl shadow-sm" onClick={handleApply}>
+              Применить геометрию
+            </Button>
+            <Button type="button" variant="outline" size="lg" className="rounded-xl bg-background/80 shadow-sm" onClick={() => navigate(backPath)}>
+              Отменить
+            </Button>
+            <Button type="button" variant="destructive" size="lg" className="rounded-xl" onClick={handleReset}>
+              Сбросить
+            </Button>
+          </div>
+        </section>
+      )}
+    </AdminPage>
   );
 }

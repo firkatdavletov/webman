@@ -5,6 +5,9 @@ import {
   type DeliveryZoneEditorValues,
   getDeliveryZoneTypeLabel,
 } from '@/features/delivery-zone-editor/model/types';
+import { cn } from '@/shared/lib/cn';
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, FormField } from '@/shared/ui';
+import { checkboxInputClassName, DeliveryNativeSelect, nativeFieldClassName } from '@/pages/delivery/ui/deliveryShared';
 
 type DeliveryZoneFormProps = {
   idPrefix: string;
@@ -51,196 +54,180 @@ export function DeliveryZoneForm({
   };
 
   return (
-    <section className="catalog-card product-detail-card delivery-zone-form-card" aria-label={title}>
-      <div className="catalog-card-copy">
-        <p className="placeholder-eyebrow">{eyebrow}</p>
-        <div className="delivery-zone-header-row">
-          <div>
-            <h3 className="product-detail-title">{title}</h3>
-            <p className="catalog-card-text">{description}</p>
+    <Card className="rounded-[1.75rem] border border-border/70 bg-card/90 py-0 shadow-[0_24px_70px_rgba(12,35,39,0.08)]">
+      <CardHeader className="gap-2 border-b border-border/70 py-6">
+        <div className="space-y-1.5">
+          <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">{eyebrow}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <CardTitle className="text-xl font-semibold tracking-tight md:text-2xl">{title}</CardTitle>
+            <span
+              className={cn(
+                'inline-flex rounded-full border px-3 py-1 text-[0.72rem] font-medium',
+                isDirty ? 'border-primary/30 bg-primary/10 text-primary' : 'border-border/70 bg-muted/40 text-muted-foreground',
+              )}
+            >
+              {isDirty ? 'Есть несохраненные изменения' : 'Изменений нет'}
+            </span>
           </div>
-
-          <span className={`delivery-status-pill${isDirty ? ' delivery-status-pill-live' : ''}`}>
-            {isDirty ? 'Есть несохраненные изменения' : 'Изменений нет'}
-          </span>
+          <CardDescription className="max-w-3xl text-sm leading-6">{description}</CardDescription>
         </div>
-      </div>
+      </CardHeader>
 
-      <div className="product-edit-grid">
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-code`}>
-            Код
-          </label>
-          <input
-            id={`${idPrefix}-code`}
-            className="field-input"
-            value={values.code}
-            disabled={isSaving}
-            onChange={(event) => handleFieldChange('code', event.target.value)}
-          />
-        </div>
+      <CardContent className="space-y-6 py-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField htmlFor={`${idPrefix}-code`} label="Код">
+            <input
+              id={`${idPrefix}-code`}
+              className={nativeFieldClassName}
+              value={values.code}
+              disabled={isSaving}
+              onChange={(event) => handleFieldChange('code', event.target.value)}
+            />
+          </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-name`}>
-            Название
-          </label>
-          <input
-            id={`${idPrefix}-name`}
-            className="field-input"
-            value={values.name}
-            disabled={isSaving}
-            onChange={(event) => handleFieldChange('name', event.target.value)}
-          />
-        </div>
+          <FormField htmlFor={`${idPrefix}-name`} label="Название">
+            <input
+              id={`${idPrefix}-name`}
+              className={nativeFieldClassName}
+              value={values.name}
+              disabled={isSaving}
+              onChange={(event) => handleFieldChange('name', event.target.value)}
+            />
+          </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-type`}>
-            Тип зоны
-          </label>
-          <select
-            id={`${idPrefix}-type`}
-            className="field-input"
-            value={values.type}
-            disabled={isSaving}
-            onChange={(event) => handleFieldChange('type', event.target.value)}
+          <FormField
+            htmlFor={`${idPrefix}-type`}
+            label="Тип зоны"
+            description={
+              DELIVERY_ZONE_TYPE_OPTIONS.find((option) => option.value === values.type)?.description ?? getDeliveryZoneTypeLabel(values.type)
+            }
           >
-            {DELIVERY_ZONE_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <p className="catalog-meta">
-            {DELIVERY_ZONE_TYPE_OPTIONS.find((option) => option.value === values.type)?.description ?? getDeliveryZoneTypeLabel(values.type)}
-          </p>
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-priority`}>
-            Приоритет
-          </label>
-          <input
-            id={`${idPrefix}-priority`}
-            type="number"
-            className="field-input"
-            value={values.priority}
-            disabled={isSaving}
-            onChange={(event) => handleFieldChange('priority', event.target.value)}
-          />
-          <p className="catalog-meta">Меньший приоритет можно использовать для более точного матчирования зон на backend.</p>
-        </div>
-      </div>
-
-      {values.type === 'CITY' ? (
-        <div className="product-edit-grid">
-          <div className="field">
-            <label className="field-label" htmlFor={`${idPrefix}-city`}>
-              Город
-            </label>
-            <input
-              id={`${idPrefix}-city`}
-              className="field-input"
-              value={values.city}
+            <DeliveryNativeSelect
+              id={`${idPrefix}-type`}
+              value={values.type}
               disabled={isSaving}
-              onChange={(event) => handleFieldChange('city', event.target.value)}
-            />
-          </div>
-        </div>
-      ) : null}
-
-      {values.type === 'POSTAL_CODE' ? (
-        <div className="product-edit-grid">
-          <div className="field">
-            <label className="field-label" htmlFor={`${idPrefix}-postal-code`}>
-              Почтовый индекс
-            </label>
-            <input
-              id={`${idPrefix}-postal-code`}
-              className="field-input"
-              value={values.postalCode}
-              disabled={isSaving}
-              onChange={(event) => handleFieldChange('postalCode', event.target.value)}
-            />
-          </div>
-        </div>
-      ) : null}
-
-      {values.type === 'POLYGON' ? (
-        <div className="delivery-zone-geometry-card">
-          <div className="delivery-zone-header-row">
-            <div className="catalog-card-copy">
-              <h4 className="delivery-subtitle">Геометрия зоны</h4>
-              <p className="catalog-meta">{getDeliveryZoneGeometrySummary(values.geometry)}</p>
-            </div>
-
-            {mapEditorPath ? (
-              <Link className="secondary-link" to={mapEditorPath}>
-                Открыть редактор зоны на карте
-              </Link>
-            ) : null}
-          </div>
-
-          {values.geometry?.polygons.length ? (
-            <div className="delivery-zone-preview-list">
-              {values.geometry.polygons.map((polygon, polygonIndex) => (
-                <article key={`polygon-${polygonIndex}`} className="delivery-zone-preview-item">
-                  <h5 className="delivery-zone-preview-title">Контур {polygonIndex + 1}</h5>
-                  <p className="catalog-meta">
-                    {polygon.outer.length} вершин{polygon.holes.length ? ` • ${polygon.holes.length} внутренних колец` : ''}
-                  </p>
-                </article>
+              onChange={(event) => handleFieldChange('type', event.target.value)}
+            >
+              {DELIVERY_ZONE_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
-            </div>
-          ) : (
-            <p className="catalog-empty-state delivery-zone-empty-note">
-              Геометрия пока не задана. Откройте карту, чтобы нарисовать контур зоны.
-            </p>
-          )}
+            </DeliveryNativeSelect>
+          </FormField>
 
-          {geometryValidationError ? (
-            <p className="form-error" role="alert">
-              {geometryValidationError}
-            </p>
-          ) : null}
+          <FormField
+            htmlFor={`${idPrefix}-priority`}
+            label="Приоритет"
+            description="Меньший приоритет можно использовать для более точного матчирования зон на backend."
+          >
+            <input
+              id={`${idPrefix}-priority`}
+              type="number"
+              className={nativeFieldClassName}
+              value={values.priority}
+              disabled={isSaving}
+              onChange={(event) => handleFieldChange('priority', event.target.value)}
+            />
+          </FormField>
         </div>
-      ) : null}
 
-      <label className="field-checkbox">
-        <input
-          type="checkbox"
-          checked={values.isActive}
-          disabled={isSaving}
-          onChange={(event) =>
-            onValuesChange((currentValues) => ({
-              ...currentValues,
-              isActive: event.target.checked,
-            }))
-          }
-        />
-        <span className="field-label">Использовать зону в расчете доставки</span>
-      </label>
+        {values.type === 'CITY' ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormField htmlFor={`${idPrefix}-city`} label="Город">
+              <input
+                id={`${idPrefix}-city`}
+                className={nativeFieldClassName}
+                value={values.city}
+                disabled={isSaving}
+                onChange={(event) => handleFieldChange('city', event.target.value)}
+              />
+            </FormField>
+          </div>
+        ) : null}
 
-      {saveError ? (
-        <p className="form-error" role="alert">
-          {saveError}
-        </p>
-      ) : null}
+        {values.type === 'POSTAL_CODE' ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormField htmlFor={`${idPrefix}-postal-code`} label="Почтовый индекс">
+              <input
+                id={`${idPrefix}-postal-code`}
+                className={nativeFieldClassName}
+                value={values.postalCode}
+                disabled={isSaving}
+                onChange={(event) => handleFieldChange('postalCode', event.target.value)}
+              />
+            </FormField>
+          </div>
+        ) : null}
 
-      {saveSuccess ? (
-        <p className="form-success" role="status">
-          {saveSuccess}
-        </p>
-      ) : null}
+        {values.type === 'POLYGON' ? (
+          <section className="space-y-4 rounded-[1.5rem] border border-border/70 bg-muted/20 p-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="space-y-1">
+                <h3 className="text-base font-semibold text-foreground">Геометрия зоны</h3>
+                <p className="text-sm leading-6 text-muted-foreground">{getDeliveryZoneGeometrySummary(values.geometry)}</p>
+              </div>
+              {mapEditorPath ? (
+                <Button variant="outline" size="lg" className="rounded-xl bg-background/80 shadow-sm" render={<Link to={mapEditorPath} />}>
+                  Открыть редактор зоны на карте
+                </Button>
+              ) : null}
+            </div>
 
-      <div className="delivery-form-actions">
-        <button type="button" className="submit-button" onClick={onSubmit} disabled={isSaving}>
-          {isSaving ? savingLabel : submitLabel}
-        </button>
+            {values.geometry?.polygons.length ? (
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {values.geometry.polygons.map((polygon, polygonIndex) => (
+                  <article key={`polygon-${polygonIndex}`} className="rounded-[1.25rem] border border-border/70 bg-background/75 px-4 py-4">
+                    <h4 className="text-sm font-semibold text-foreground">Контур {polygonIndex + 1}</h4>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      {polygon.outer.length} вершин{polygon.holes.length ? ` • ${polygon.holes.length} внутренних колец` : ''}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-[1.25rem] border border-dashed border-border/80 bg-background/60 px-4 py-5 text-sm leading-6 text-muted-foreground">
+                Геометрия пока не задана. Откройте карту, чтобы нарисовать контур зоны.
+              </p>
+            )}
 
-        <button type="button" className="secondary-button" onClick={onReset} disabled={isSaving}>
-          Сбросить к последнему сохранению
-        </button>
-      </div>
-    </section>
+            {geometryValidationError ? <p className="text-sm font-medium text-destructive">{geometryValidationError}</p> : null}
+          </section>
+        ) : null}
+
+        <label className="flex items-start gap-3 rounded-[1.25rem] border border-border/70 bg-muted/20 px-4 py-4">
+          <input
+            type="checkbox"
+            className={checkboxInputClassName}
+            checked={values.isActive}
+            disabled={isSaving}
+            onChange={(event) =>
+              onValuesChange((currentValues) => ({
+                ...currentValues,
+                isActive: event.target.checked,
+              }))
+            }
+          />
+          <span className="space-y-1">
+            <span className="block text-sm font-medium text-foreground">Использовать зону в расчете доставки</span>
+            <span className="block text-xs leading-5 text-muted-foreground">
+              Если зона выключена, backend не должен использовать её при поиске совпадений.
+            </span>
+          </span>
+        </label>
+
+        {saveError ? <p className="text-sm font-medium text-destructive">{saveError}</p> : null}
+        {saveSuccess ? <p className="text-sm font-medium text-emerald-700">{saveSuccess}</p> : null}
+
+        <div className="flex flex-wrap gap-3">
+          <Button type="button" size="lg" className="rounded-xl shadow-sm" onClick={onSubmit} disabled={isSaving}>
+            {isSaving ? savingLabel : submitLabel}
+          </Button>
+          <Button type="button" variant="outline" size="lg" className="rounded-xl bg-background/80 shadow-sm" onClick={onReset} disabled={isSaving}>
+            Сбросить к последнему сохранению
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

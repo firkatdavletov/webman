@@ -1,5 +1,5 @@
 import { Suspense, lazy, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   applyPickupPointCoordinateValues,
   getPickupPointAddressSummary,
@@ -8,6 +8,8 @@ import {
   writePickupPointMapDraft,
 } from '@/features/pickup-point-map-editor';
 import type { YandexMapCoordinate } from '@/shared/lib/yandex-maps/api';
+import { cn } from '@/shared/lib/cn';
+import { AdminNotice, AdminPage, AdminPageHeader, Button, buttonVariants } from '@/shared/ui';
 
 const PickupPointMapEditor = lazy(() =>
   import('@/features/pickup-point-map-editor/ui/PickupPointMapEditor').then((module) => ({
@@ -17,7 +19,14 @@ const PickupPointMapEditor = lazy(() =>
 
 export function DeliveryPickupPointMapPage() {
   const navigate = useNavigate();
+  const { pickupPointId } = useParams();
   const initialDraft = useMemo(() => readPickupPointMapDraft(), []);
+  const normalizedPickupPointId = (pickupPointId ?? '').trim();
+  const backPath = normalizedPickupPointId
+    ? `/delivery/pickup-points/${normalizedPickupPointId}`
+    : initialDraft?.id
+      ? `/delivery/pickup-points/${initialDraft.id}`
+      : '/delivery/pickup-points/new';
   const [draftValues] = useState(initialDraft);
   const [coordinates, setCoordinates] = useState<YandexMapCoordinate | null>(() =>
     initialDraft ? parsePickupPointCoordinateValues(initialDraft) : null,
@@ -25,74 +34,60 @@ export function DeliveryPickupPointMapPage() {
 
   const handleApply = () => {
     if (!draftValues) {
-      navigate('/delivery', { replace: true });
+      navigate('/delivery/pickup-points', { replace: true });
       return;
     }
 
     writePickupPointMapDraft(applyPickupPointCoordinateValues(draftValues, coordinates));
-    navigate('/delivery', { replace: true });
+    navigate(backPath, { replace: true });
   };
 
   return (
-    <main className="dashboard">
-        <nav className="breadcrumbs" aria-label="Хлебные крошки">
-          <Link className="breadcrumb-link" to="/delivery">
-            Доставка
+    <AdminPage>
+      <AdminPageHeader
+        kicker="Доставка"
+        title="Выбор координат пункта самовывоза"
+        description="Точка на карте сохраняется в черновик формы пункта. После возврата на карточку не забудьте сохранить сам пункт."
+        actions={
+          <Link className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'rounded-xl bg-card/80 shadow-sm')} to={backPath}>
+            Вернуться к карточке
           </Link>
-          <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-current">Пункт самовывоза на карте</span>
-        </nav>
+        }
+      />
 
-        <header className="dashboard-header">
-          <div>
-            <p className="page-kicker">Доставка</p>
-            <h2 className="page-title">Выбор координат пункта самовывоза</h2>
+      {!draftValues ? (
+        <AdminNotice tone="destructive" role="alert">
+          Черновик пункта самовывоза не найден. Откройте карту из формы пункта, чтобы передать текущие данные.
+        </AdminNotice>
+      ) : (
+        <section className="space-y-5 rounded-[1.75rem] border border-border/70 bg-card/90 p-6 shadow-[0_24px_70px_rgba(12,35,39,0.08)]">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">Map editor</p>
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">
+              {draftValues.name.trim() || draftValues.code.trim() || 'Пункт самовывоза'}
+            </h2>
+            <p className="text-sm leading-6 text-muted-foreground">{getPickupPointAddressSummary(draftValues)}</p>
           </div>
 
-          <div className="dashboard-actions">
-            <Link className="secondary-link" to="/delivery">
-              Вернуться к условиям доставки
-            </Link>
+          <Suspense fallback={<p className="text-sm text-muted-foreground">Загрузка редактора карты...</p>}>
+            <PickupPointMapEditor
+              coordinates={coordinates}
+              title={draftValues.name.trim() || draftValues.code.trim() || 'Пункт самовывоза'}
+              addressSummary={getPickupPointAddressSummary(draftValues)}
+              onCoordinatesChange={setCoordinates}
+            />
+          </Suspense>
+
+          <div className="flex flex-wrap gap-3">
+            <Button type="button" size="lg" className="rounded-xl shadow-sm" onClick={handleApply}>
+              Применить координаты
+            </Button>
+            <Button type="button" variant="outline" size="lg" className="rounded-xl bg-background/80 shadow-sm" onClick={() => navigate(backPath, { replace: true })}>
+              Отменить
+            </Button>
           </div>
-        </header>
-
-        {!draftValues ? (
-          <section className="catalog-card product-detail-card">
-            <p className="form-error" role="alert">
-              Черновик пункта самовывоза не найден. Откройте карту из формы пункта на странице доставки.
-            </p>
-          </section>
-        ) : (
-          <section className="catalog-card product-detail-card delivery-zone-map-card">
-            <div className="catalog-card-copy">
-              <p className="placeholder-eyebrow">Map editor</p>
-              <h3 className="product-detail-title">{draftValues.name.trim() || draftValues.code.trim() || 'Пункт самовывоза'}</h3>
-              <p className="catalog-card-text">
-                Координаты сохраняются обратно в текущую форму пункта самовывоза на странице доставки. После возврата не забудьте
-                сохранить сам пункт.
-              </p>
-            </div>
-
-            <Suspense fallback={<p className="catalog-empty-state">Загрузка редактора карты...</p>}>
-              <PickupPointMapEditor
-                coordinates={coordinates}
-                title={draftValues.name.trim() || draftValues.code.trim() || 'Пункт самовывоза'}
-                addressSummary={getPickupPointAddressSummary(draftValues)}
-                onCoordinatesChange={setCoordinates}
-              />
-            </Suspense>
-
-            <div className="delivery-form-actions">
-              <button type="button" className="submit-button" onClick={handleApply}>
-                Применить координаты
-              </button>
-
-              <button type="button" className="secondary-button" onClick={() => navigate('/delivery', { replace: true })}>
-                Отменить
-              </button>
-            </div>
-          </section>
-        )}
-    </main>
+        </section>
+      )}
+    </AdminPage>
   );
 }

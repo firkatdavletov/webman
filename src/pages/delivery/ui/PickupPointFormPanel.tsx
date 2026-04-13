@@ -1,4 +1,6 @@
 import { getPickupPointCoordinateSummary, type PickupPointEditorValues } from '@/features/pickup-point-map-editor';
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, FormField } from '@/shared/ui';
+import { checkboxInputClassName, DeliveryTextarea, nativeFieldClassName } from '@/pages/delivery/ui/deliveryShared';
 
 export type PickupPointFormField = Exclude<keyof PickupPointEditorValues, 'isActive'>;
 
@@ -38,279 +40,228 @@ export function PickupPointFormPanel({
   const isActionDisabled = isSaving || hasPendingDelete || isDetectingAddress;
 
   return (
-    <div className="delivery-form-panel">
-      <div className="catalog-card-copy">
-        <h4 className="delivery-subtitle">{form.id ? 'Редактирование пункта' : 'Новый пункт'}</h4>
-        <p className="catalog-meta">
+    <Card className="rounded-[1.75rem] border border-border/70 bg-card/90 py-0 shadow-[0_24px_70px_rgba(12,35,39,0.08)]">
+      <CardHeader className="gap-2 border-b border-border/70 py-6">
+        <CardTitle className="text-xl font-semibold tracking-tight">{form.id ? 'Редактирование пункта' : 'Новый пункт'}</CardTitle>
+        <CardDescription className="max-w-3xl text-sm leading-6">
           Базовые поля: код, название и адрес. Координаты можно оставить пустыми, если они не участвуют в логике расчета.
-        </p>
-      </div>
+        </CardDescription>
+      </CardHeader>
 
-      <div className="product-edit-grid">
-        <div className="field">
-          <label className="field-label" htmlFor="pickup-point-code">
-            Код
-          </label>
-          <input
-            id="pickup-point-code"
-            className="field-input"
-            value={form.code}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('code', event.target.value)}
-          />
+      <CardContent className="space-y-6 py-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField htmlFor="pickup-point-code" label="Код">
+            <input
+              id="pickup-point-code"
+              className={nativeFieldClassName}
+              value={form.code}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('code', event.target.value)}
+            />
+          </FormField>
+
+          <FormField htmlFor="pickup-point-name" label="Название">
+            <input
+              id="pickup-point-name"
+              className={nativeFieldClassName}
+              value={form.name}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('name', event.target.value)}
+            />
+          </FormField>
         </div>
 
-        <div className="field">
-          <label className="field-label" htmlFor="pickup-point-name">
-            Название
-          </label>
-          <input
-            id="pickup-point-name"
-            className="field-input"
-            value={form.name}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('name', event.target.value)}
-          />
-        </div>
-      </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <FormField htmlFor="pickup-point-country" label="Страна">
+            <input
+              id="pickup-point-country"
+              className={nativeFieldClassName}
+              value={form.country}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('country', event.target.value)}
+            />
+          </FormField>
 
-      <div className="product-edit-grid">
-        <div className="field">
-          <label className="field-label" htmlFor="pickup-point-country">
-            Страна
-          </label>
-          <input
-            id="pickup-point-country"
-            className="field-input"
-            value={form.country}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('country', event.target.value)}
-          />
-        </div>
+          <FormField htmlFor="pickup-point-region" label="Регион">
+            <input
+              id="pickup-point-region"
+              className={nativeFieldClassName}
+              value={form.region}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('region', event.target.value)}
+            />
+          </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor="pickup-point-region">
-            Регион
-          </label>
-          <input
-            id="pickup-point-region"
-            className="field-input"
-            value={form.region}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('region', event.target.value)}
-          />
-        </div>
+          <FormField htmlFor="pickup-point-city" label="Город">
+            <input
+              id="pickup-point-city"
+              className={nativeFieldClassName}
+              value={form.city}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('city', event.target.value)}
+            />
+          </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor="pickup-point-city">
-            Город
-          </label>
-          <input
-            id="pickup-point-city"
-            className="field-input"
-            value={form.city}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('city', event.target.value)}
-          />
-        </div>
+          <FormField htmlFor="pickup-point-postal-code" label="Индекс">
+            <input
+              id="pickup-point-postal-code"
+              className={nativeFieldClassName}
+              value={form.postalCode}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('postalCode', event.target.value)}
+            />
+          </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor="pickup-point-postal-code">
-            Индекс
-          </label>
-          <input
-            id="pickup-point-postal-code"
-            className="field-input"
-            value={form.postalCode}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('postalCode', event.target.value)}
-          />
-        </div>
+          <FormField htmlFor="pickup-point-street" label="Улица">
+            <input
+              id="pickup-point-street"
+              className={nativeFieldClassName}
+              value={form.street}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('street', event.target.value)}
+            />
+          </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor="pickup-point-street">
-            Улица
-          </label>
-          <input
-            id="pickup-point-street"
-            className="field-input"
-            value={form.street}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('street', event.target.value)}
-          />
-        </div>
+          <FormField htmlFor="pickup-point-house" label="Дом">
+            <input
+              id="pickup-point-house"
+              className={nativeFieldClassName}
+              value={form.house}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('house', event.target.value)}
+            />
+          </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor="pickup-point-house">
-            Дом
-          </label>
-          <input
-            id="pickup-point-house"
-            className="field-input"
-            value={form.house}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('house', event.target.value)}
-          />
-        </div>
+          <FormField htmlFor="pickup-point-apartment" label="Квартира / офис">
+            <input
+              id="pickup-point-apartment"
+              className={nativeFieldClassName}
+              value={form.apartment}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('apartment', event.target.value)}
+            />
+          </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor="pickup-point-apartment">
-            Квартира / офис
-          </label>
-          <input
-            id="pickup-point-apartment"
-            className="field-input"
-            value={form.apartment}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('apartment', event.target.value)}
-          />
-        </div>
+          <FormField htmlFor="pickup-point-entrance" label="Подъезд">
+            <input
+              id="pickup-point-entrance"
+              className={nativeFieldClassName}
+              value={form.entrance}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('entrance', event.target.value)}
+            />
+          </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor="pickup-point-entrance">
-            Подъезд
-          </label>
-          <input
-            id="pickup-point-entrance"
-            className="field-input"
-            value={form.entrance}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('entrance', event.target.value)}
-          />
-        </div>
+          <FormField htmlFor="pickup-point-floor" label="Этаж">
+            <input
+              id="pickup-point-floor"
+              className={nativeFieldClassName}
+              value={form.floor}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('floor', event.target.value)}
+            />
+          </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor="pickup-point-floor">
-            Этаж
-          </label>
-          <input
-            id="pickup-point-floor"
-            className="field-input"
-            value={form.floor}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('floor', event.target.value)}
-          />
+          <FormField htmlFor="pickup-point-intercom" label="Домофон">
+            <input
+              id="pickup-point-intercom"
+              className={nativeFieldClassName}
+              value={form.intercom}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('intercom', event.target.value)}
+            />
+          </FormField>
+
+          <FormField htmlFor="pickup-point-latitude" label="Широта">
+            <input
+              id="pickup-point-latitude"
+              className={nativeFieldClassName}
+              value={form.latitude}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('latitude', event.target.value)}
+            />
+          </FormField>
+
+          <FormField htmlFor="pickup-point-longitude" label="Долгота">
+            <input
+              id="pickup-point-longitude"
+              className={nativeFieldClassName}
+              value={form.longitude}
+              disabled={isSaving}
+              onChange={(event) => onFieldChange('longitude', event.target.value)}
+            />
+          </FormField>
         </div>
 
-        <div className="field">
-          <label className="field-label" htmlFor="pickup-point-intercom">
-            Домофон
-          </label>
-          <input
-            id="pickup-point-intercom"
-            className="field-input"
-            value={form.intercom}
+        <FormField htmlFor="pickup-point-comment" label="Комментарий">
+          <DeliveryTextarea
+            id="pickup-point-comment"
+            value={form.comment}
             disabled={isSaving}
-            onChange={(event) => onFieldChange('intercom', event.target.value)}
+            onChange={(event) => onFieldChange('comment', event.target.value)}
           />
-        </div>
+        </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor="pickup-point-latitude">
-            Широта
-          </label>
+        <section className="space-y-4 rounded-[1.5rem] border border-border/70 bg-muted/20 p-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-1">
+              <h3 className="text-base font-semibold text-foreground">Точка на карте</h3>
+              <p className="text-sm leading-6 text-muted-foreground">{getPickupPointCoordinateSummary(form)}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <Button type="button" variant="outline" size="lg" className="rounded-xl bg-background/80 shadow-sm" onClick={onOpenMap} disabled={isActionDisabled}>
+                Выбрать на карте
+              </Button>
+              <Button type="button" variant="outline" size="lg" className="rounded-xl bg-background/80 shadow-sm" onClick={onDetectAddress} disabled={isActionDisabled}>
+                {isDetectingAddress ? 'Определение адреса...' : 'Определить адрес'}
+              </Button>
+            </div>
+          </div>
+
+          <p className="text-sm leading-6 text-muted-foreground">
+            Откройте карту, чтобы поставить точку пункта самовывоза кликом или перетащить существующий маркер.
+          </p>
+
+          {detectError ? <p className="text-sm font-medium text-destructive">{detectError}</p> : null}
+          {detectSuccess ? <p className="text-sm font-medium text-emerald-700">{detectSuccess}</p> : null}
+        </section>
+
+        <label className="flex items-start gap-3 rounded-[1.25rem] border border-border/70 bg-muted/20 px-4 py-4">
           <input
-            id="pickup-point-latitude"
-            className="field-input"
-            value={form.latitude}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('latitude', event.target.value)}
+            type="checkbox"
+            className={checkboxInputClassName}
+            checked={form.isActive}
+            disabled={isActionDisabled}
+            onChange={(event) => onIsActiveChange(event.target.checked)}
           />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor="pickup-point-longitude">
-            Долгота
-          </label>
-          <input
-            id="pickup-point-longitude"
-            className="field-input"
-            value={form.longitude}
-            disabled={isSaving}
-            onChange={(event) => onFieldChange('longitude', event.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="field">
-        <label className="field-label" htmlFor="pickup-point-comment">
-          Комментарий
+          <span className="space-y-1">
+            <span className="block text-sm font-medium text-foreground">Показывать пункт самовывоза клиентам</span>
+            <span className="block text-xs leading-5 text-muted-foreground">
+              Отключенный пункт остаётся в справочнике, но не отображается в клиентском приложении.
+            </span>
+          </span>
         </label>
-        <textarea
-          id="pickup-point-comment"
-          className="field-input field-textarea"
-          value={form.comment}
-          disabled={isSaving}
-          onChange={(event) => onFieldChange('comment', event.target.value)}
-        />
-      </div>
 
-      <div className="delivery-zone-geometry-card">
-        <div className="delivery-zone-header-row">
-          <div className="catalog-card-copy">
-            <h4 className="delivery-subtitle">Точка на карте</h4>
-            <p className="catalog-meta">{getPickupPointCoordinateSummary(form)}</p>
-          </div>
+        {saveError ? <p className="text-sm font-medium text-destructive">{saveError}</p> : null}
+        {saveSuccess ? <p className="text-sm font-medium text-emerald-700">{saveSuccess}</p> : null}
 
-          <div className="delivery-table-link-group">
-            <button type="button" className="secondary-button" onClick={onOpenMap} disabled={isActionDisabled}>
-              Выбрать на карте
-            </button>
-
-            <button type="button" className="secondary-button" onClick={onDetectAddress} disabled={isActionDisabled}>
-              {isDetectingAddress ? 'Определение адреса...' : 'Определить адрес'}
-            </button>
-          </div>
+        <div className="flex flex-wrap gap-3">
+          <Button type="button" size="lg" className="rounded-xl shadow-sm" onClick={onSubmit} disabled={isActionDisabled}>
+            {isSaving ? 'Сохранение...' : form.id ? 'Сохранить пункт' : 'Создать пункт'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="rounded-xl bg-background/80 shadow-sm"
+            onClick={onReset}
+            disabled={isActionDisabled}
+          >
+            Сбросить
+          </Button>
         </div>
-
-        <p className="catalog-meta">
-          Откройте карту, чтобы поставить точку пункта самовывоза кликом или перетащить существующий маркер.
-        </p>
-
-        {detectError ? (
-          <p className="form-error" role="alert">
-            {detectError}
-          </p>
-        ) : null}
-
-        {detectSuccess ? (
-          <p className="form-success" role="status">
-            {detectSuccess}
-          </p>
-        ) : null}
-      </div>
-
-      <label className="field-checkbox">
-        <input
-          type="checkbox"
-          checked={form.isActive}
-          disabled={isActionDisabled}
-          onChange={(event) => onIsActiveChange(event.target.checked)}
-        />
-        <span className="field-label">Показывать пункт самовывоза клиентам</span>
-      </label>
-
-      {saveError ? (
-        <p className="form-error" role="alert">
-          {saveError}
-        </p>
-      ) : null}
-
-      {saveSuccess ? (
-        <p className="form-success" role="status">
-          {saveSuccess}
-        </p>
-      ) : null}
-
-      <div className="delivery-form-actions">
-        <button type="button" className="submit-button" onClick={onSubmit} disabled={isActionDisabled}>
-          {isSaving ? 'Сохранение...' : form.id ? 'Сохранить пункт' : 'Создать пункт'}
-        </button>
-
-        <button type="button" className="secondary-button" onClick={onReset} disabled={isActionDisabled}>
-          Сбросить
-        </button>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
