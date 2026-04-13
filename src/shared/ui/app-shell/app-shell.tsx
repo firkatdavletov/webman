@@ -1,4 +1,5 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { LogOutIcon, PanelLeftIcon } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { logout } from '@/entities/session';
 import { cn } from '@/shared/lib/cn';
@@ -16,25 +17,71 @@ type AppNavigationProps = {
 };
 
 function AppNavigation({ onNavigate }: AppNavigationProps) {
+  const navigationGroups = useMemo(() => {
+    const groups = new Map<string, typeof appNavigationItems>();
+
+    appNavigationItems.forEach((item) => {
+      const items = groups.get(item.group);
+
+      if (items) {
+        items.push(item);
+        return;
+      }
+
+      groups.set(item.group, [item]);
+    });
+
+    return Array.from(groups.entries());
+  }, []);
+
   return (
-    <nav className="grid gap-1.5" aria-label="Основная навигация">
-      {appNavigationItems.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            cn(
-              'flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/72 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              isActive && 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm',
-            )
-          }
-        >
-          <span>{item.label}</span>
-          <span className="size-2 rounded-full bg-current/30" aria-hidden="true" />
-        </NavLink>
+    <div className="space-y-5">
+      {navigationGroups.map(([groupLabel, items]) => (
+        <section key={groupLabel} className="space-y-2.5" aria-label={groupLabel}>
+          <p className="px-3 text-[0.68rem] font-semibold tracking-[0.22em] text-sidebar-foreground/45 uppercase">{groupLabel}</p>
+          <nav className="grid gap-1.5" aria-label={`${groupLabel} navigation`}>
+            {items.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={onNavigate}
+                  className={({ isActive }) =>
+                    cn(
+                      'group flex items-center gap-3 rounded-2xl border border-transparent px-3 py-2.5 text-sm font-medium text-sidebar-foreground/72 transition-all hover:border-sidebar-border hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground',
+                      isActive && 'border-sidebar-border bg-sidebar-primary/16 text-sidebar-foreground shadow-[0_10px_24px_rgba(0,0,0,0.18)]',
+                    )
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <span
+                        className={cn(
+                          'flex size-9 items-center justify-center rounded-xl border border-sidebar-border bg-sidebar-accent/65 text-sidebar-foreground/65 transition-all',
+                          isActive && 'border-sidebar-border bg-sidebar-primary/22 text-sidebar-foreground',
+                        )}
+                      >
+                        <Icon className="size-4" />
+                      </span>
+                      <span className="flex-1">{item.label}</span>
+                      <span
+                        className={cn(
+                          'size-2 rounded-full bg-current/20 transition-all',
+                          isActive && 'scale-110 bg-sidebar-foreground/80',
+                        )}
+                        aria-hidden="true"
+                      />
+                    </>
+                  )}
+                </NavLink>
+              );
+            })}
+          </nav>
+        </section>
       ))}
-    </nav>
+    </div>
   );
 }
 
@@ -47,12 +94,12 @@ function ShellSidebar({ onLogout, onNavigate }: ShellSidebarProps) {
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="border-b border-sidebar-border px-5 py-5">
-        <Badge className="mb-4 bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary">
+        <Badge className="mb-4 rounded-full bg-sidebar-primary px-3 py-1 text-sidebar-primary-foreground hover:bg-sidebar-primary">
           Webman CMS
         </Badge>
         <div className="space-y-1">
           <h1 className="text-xl font-semibold tracking-tight">Панель управления</h1>
-          <p className="text-sm text-sidebar-foreground/70">Каталог, заказы и контент интернет-магазина.</p>
+          <p className="text-sm leading-6 text-sidebar-foreground/70">Каталог, заказы и контент интернет-магазина.</p>
         </div>
       </div>
 
@@ -60,13 +107,18 @@ function ShellSidebar({ onLogout, onNavigate }: ShellSidebarProps) {
         <AppNavigation onNavigate={onNavigate} />
       </div>
 
-      <div className="border-t border-sidebar-border p-3">
+      <div className="space-y-3 border-t border-sidebar-border p-3">
+        <div className="rounded-2xl border border-sidebar-border bg-sidebar-accent/70 p-3">
+          <p className="text-[0.68rem] font-semibold tracking-[0.2em] text-sidebar-foreground/45 uppercase">Workspace</p>
+          <p className="mt-1 text-sm font-medium text-sidebar-foreground">Admin web app</p>
+        </div>
         <Button
           type="button"
           variant="secondary"
-          className="w-full justify-center bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/85"
+          className="h-10 w-full justify-center rounded-xl bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/85"
           onClick={onLogout}
         >
+          <LogOutIcon />
           Выйти
         </Button>
       </div>
@@ -78,6 +130,11 @@ export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+  const currentSection = useMemo(
+    () =>
+      appNavigationItems.find(({ to }) => location.pathname === to || location.pathname.startsWith(`${to}/`))?.label ?? 'Панель управления',
+    [location.pathname],
+  );
 
   useEffect(() => {
     setIsNavigationOpen(false);
@@ -100,10 +157,20 @@ export function AppShell({ children }: AppShellProps) {
 
           <div className="min-w-0">
             <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/70 bg-background/92 px-4 py-3 backdrop-blur md:hidden">
-              <Button type="button" variant="outline" size="sm" onClick={() => setIsNavigationOpen(true)}>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="rounded-xl bg-card/80 shadow-sm"
+                onClick={() => setIsNavigationOpen(true)}
+              >
+                <PanelLeftIcon />
                 Меню
               </Button>
-              <Badge variant="secondary">Webman CMS</Badge>
+              <div className="text-right">
+                <p className="text-[0.68rem] font-semibold tracking-[0.18em] text-primary uppercase">Webman CMS</p>
+                <p className="text-sm font-medium text-foreground">{currentSection}</p>
+              </div>
             </header>
 
             <div className="min-w-0">{children}</div>

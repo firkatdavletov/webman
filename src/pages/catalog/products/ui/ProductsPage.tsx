@@ -5,6 +5,17 @@ import { type Product, getAllProducts } from '@/entities/product';
 import { filterProducts } from '@/pages/catalog/products/model/productPageView';
 import { ProductFilters } from '@/pages/catalog/products/ui/ProductFilters';
 import { ProductTable } from '@/pages/catalog/products/ui/ProductTable';
+import {
+  AdminEmptyState,
+  AdminNotice,
+  AdminPage,
+  AdminPageHeader,
+  AdminPageStatus,
+  AdminSectionCard,
+  Button,
+  buttonVariants,
+} from '@/shared/ui';
+import { cn } from '@/shared/lib/cn';
 
 const PRODUCTS_ACTIVITY_FILTER_STORAGE_KEY = 'webman.products-page.is-active-filter';
 const PRODUCTS_PAGE_CACHE_STORAGE_KEY = 'webman.products-page.cache.v1';
@@ -193,26 +204,28 @@ export function ProductsPage() {
 
   const categoryLookup = useMemo(() => buildCategoryLookup(categories), [categories]);
   const filteredProducts = useMemo(() => filterProducts(products, { searchQuery }), [products, searchQuery]);
+  const statusText = isLoading
+    ? 'Загрузка продуктов...'
+    : `${isActiveFilter ? 'Активные' : 'Неактивные'}: ${products.length} товаров • ${categories.length} категорий`;
+  const resultsMeta = filteredProducts.length ? `Найдено ${filteredProducts.length} товаров` : 'Товары с таким названием не найдены';
 
   return (
-    <main className="dashboard">
-        <header className="dashboard-header">
-          <div>
-            <p className="page-kicker">Каталог</p>
-            <h2 className="page-title">Продукты</h2>
-          </div>
-          <div className="dashboard-actions">
-            <span className="status-chip">
-              {isLoading
-                ? 'Загрузка продуктов...'
-                : `${isActiveFilter ? 'Активные' : 'Неактивные'}: ${products.length} товаров • ${categories.length} категорий`}
-            </span>
-            <Link className="secondary-link" to="/products/new">
+    <AdminPage>
+      <AdminPageHeader
+        kicker="Каталог"
+        title="Продукты"
+        description="Рабочий список товаров с быстрым поиском, фильтрацией по активности и переходом в детальные карточки."
+        actions={
+          <>
+            <AdminPageStatus>{statusText}</AdminPageStatus>
+            <Link className={cn(buttonVariants({ size: 'lg' }), 'rounded-xl shadow-sm')} to="/products/new">
               Добавить товар
             </Link>
-            <button
+            <Button
               type="button"
-              className="secondary-button"
+              variant="outline"
+              size="lg"
+              className="rounded-xl bg-card/80 shadow-sm"
               onClick={() =>
                 void loadProductsData({
                   isActive: isActiveFilter,
@@ -221,48 +234,44 @@ export function ProductsPage() {
               disabled={isLoading || isRefreshing}
             >
               {isRefreshing ? 'Обновление...' : 'Обновить данные'}
-            </button>
-          </div>
-        </header>
+            </Button>
+          </>
+        }
+      />
 
-        <section className="catalog-card catalog-data-card" aria-label="Товары в базе данных">
-          <div className="catalog-section-header">
-            <div className="catalog-card-copy">
-              <p className="placeholder-eyebrow">База данных</p>
-              <h3 className="catalog-card-title">Текущие товары</h3>
-              <p className="catalog-card-text">Список ниже строится напрямую из ответа бэкенда.</p>
-            </div>
-          </div>
+      <AdminSectionCard
+        aria-label="Товары в базе данных"
+        eyebrow="База данных"
+        title="Текущие товары"
+        description="Таблица собирается напрямую из ответа API и отображает SKU, категорию и цену каждого товара."
+      >
+        <div className="space-y-4">
+          <ProductFilters
+            searchQuery={searchQuery}
+            isActive={isActiveFilter}
+            onSearchQueryChange={setSearchQuery}
+            onIsActiveChange={handleIsActiveFilterChange}
+          />
+          <p className="text-sm text-muted-foreground">{resultsMeta}</p>
+        </div>
 
-          <div className="catalog-controls">
-            <ProductFilters
-              searchQuery={searchQuery}
-              isActive={isActiveFilter}
-              onSearchQueryChange={setSearchQuery}
-              onIsActiveChange={handleIsActiveFilterChange}
-            />
+        {errorMessage ? (
+          <AdminNotice tone="destructive" role="alert">
+            {errorMessage}
+          </AdminNotice>
+        ) : null}
 
-            <p className="catalog-results-meta">
-              {filteredProducts.length ? `Найдено ${filteredProducts.length} товаров` : 'Товары с таким названием не найдены'}
-            </p>
-          </div>
-
-          {errorMessage ? (
-            <p className="form-error" role="alert">
-              {errorMessage}
-            </p>
-          ) : null}
-
-          {isLoading ? (
-            <p className="catalog-empty-state">Загрузка товаров с бэкенда...</p>
-          ) : filteredProducts.length ? (
-            <ProductTable products={filteredProducts} categoryLookup={categoryLookup} />
-          ) : (
-            <p className="catalog-empty-state">
-              {products.length ? 'Товары с таким названием не найдены.' : 'Бэкенд не вернул товары.'}
-            </p>
-          )}
-        </section>
-    </main>
+        {isLoading ? (
+          <AdminEmptyState title="Загрузка товаров" description="Получаем товары и справочник категорий с бэкенда." />
+        ) : filteredProducts.length ? (
+          <ProductTable products={filteredProducts} categoryLookup={categoryLookup} />
+        ) : (
+          <AdminEmptyState
+            title={products.length ? 'Товары не найдены' : 'Товары отсутствуют'}
+            description={products.length ? 'Попробуйте изменить поисковый запрос или переключить фильтр активности.' : 'Бэкенд не вернул товары.'}
+          />
+        )}
+      </AdminSectionCard>
+    </AdminPage>
   );
 }

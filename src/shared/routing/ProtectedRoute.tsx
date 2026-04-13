@@ -2,18 +2,15 @@ import { Suspense } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { isAuthenticated } from '@/entities/session';
 import { AppShell } from '@/shared/ui/app-shell';
+import { AdminEmptyState, AdminPage, AdminSectionCard } from '@/shared/ui';
 
 function ProtectedRouteFallback() {
   return (
-    <main className="dashboard" aria-busy="true" aria-live="polite">
-      <section className="catalog-card catalog-data-card">
-        <div className="catalog-card-copy">
-          <p className="placeholder-eyebrow">Загрузка</p>
-          <h2 className="catalog-card-title">Подготовка раздела</h2>
-          <p className="catalog-card-text">Загружаем код страницы и подключаем её зависимости.</p>
-        </div>
-      </section>
-    </main>
+    <AdminPage aria-busy="true" aria-live="polite">
+      <AdminSectionCard eyebrow="Загрузка" title="Подготовка раздела" description="Загружаем код страницы и подключаем её зависимости.">
+        <AdminEmptyState description="Компоненты маршрута будут показаны сразу после загрузки чанка." />
+      </AdminSectionCard>
+    </AdminPage>
   );
 }
 

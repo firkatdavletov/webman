@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '@/entities/session';
+import { AdminNotice, Badge, Button, Card, CardContent, CardHeader, CardTitle, FormField, Input } from '@/shared/ui';
 
 type FieldName = 'login' | 'password';
 
@@ -108,74 +109,104 @@ export function LoginPage() {
   };
 
   return (
-    <main className="auth-page">
-      <section className="auth-card" aria-labelledby="login-title">
-        <div className="auth-copy">
-          <span className="auth-kicker">Webman CMS</span>
-          <h1 id="login-title" className="auth-title">
-            Вход в панель управления
-          </h1>
-          <p className="auth-description">Используйте логин и пароль, чтобы войти в защищенную админ-панель.</p>
-        </div>
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10 sm:px-6 lg:px-8">
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(17,117,108,0.18),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(16,34,40,0.18),transparent_28%)]"
+        aria-hidden="true"
+      />
 
-        <form className="auth-form" onSubmit={handleSubmit} noValidate>
-          <div className="field">
-            <label className="field-label" htmlFor="login">
-              Логин
-            </label>
-            <input
-              ref={loginRef}
-              id="login"
-              name="login"
-              type="text"
-              className="field-input"
-              autoComplete="username"
-              value={values.login}
-              onChange={(event) => handleChange('login', event.target.value)}
-              aria-invalid={Boolean(errors.login)}
-              aria-describedby={errors.login ? 'login-error' : undefined}
-            />
-            {errors.login ? (
-              <p id="login-error" className="field-error" role="alert">
-                {errors.login}
+      <div className="relative grid w-full max-w-6xl gap-6 lg:grid-cols-[1.05fr_minmax(22rem,30rem)]">
+        <section className="hidden rounded-[2rem] border border-sidebar-border bg-sidebar px-8 py-9 text-sidebar-foreground shadow-[0_28px_80px_rgba(12,35,39,0.24)] lg:flex lg:flex-col lg:justify-between">
+          <div className="space-y-5">
+            <Badge className="w-fit rounded-full bg-sidebar-primary px-3 py-1 text-sidebar-primary-foreground hover:bg-sidebar-primary">
+              Webman CMS
+            </Badge>
+            <div className="space-y-3">
+              <p className="text-xs font-semibold tracking-[0.24em] text-sidebar-foreground/65 uppercase">
+                Admin workspace
               </p>
-            ) : null}
+              <h1 className="font-heading text-4xl leading-tight font-semibold tracking-tight">Управляйте каталогом и контентом из одного интерфейса.</h1>
+              <p className="max-w-lg text-base leading-7 text-sidebar-foreground/72">
+                Новая UI-основа собирает админку вокруг общих компонентов, чтобы экраны было проще поддерживать и развивать без каскада глобальных CSS-правил.
+              </p>
+            </div>
           </div>
 
-          <div className="field">
-            <label className="field-label" htmlFor="password">
-              Пароль
-            </label>
-            <input
-              ref={passwordRef}
-              id="password"
-              name="password"
-              type="password"
-              className="field-input"
-              autoComplete="current-password"
-              value={values.password}
-              onChange={(event) => handleChange('password', event.target.value)}
-              aria-invalid={Boolean(errors.password)}
-              aria-describedby={errors.password ? 'password-error' : undefined}
-            />
-            {errors.password ? (
-              <p id="password-error" className="field-error" role="alert">
-                {errors.password}
-              </p>
-            ) : null}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-[1.5rem] border border-sidebar-border bg-sidebar-accent/70 p-4">
+              <p className="text-sm font-semibold">Shared UI</p>
+              <p className="mt-2 text-sm leading-6 text-sidebar-foreground/70">Общие формы, карточки и системные паттерны вместо локальных копий верстки.</p>
+            </div>
+            <div className="rounded-[1.5rem] border border-sidebar-border bg-sidebar-accent/70 p-4">
+              <p className="text-sm font-semibold">Tailwind tokens</p>
+              <p className="mt-2 text-sm leading-6 text-sidebar-foreground/70">Единые цвета, радиусы и состояния на основе токенов из нового слоя UI.</p>
+            </div>
           </div>
+        </section>
 
-          {submitError ? (
-            <p className="form-error" role="alert">
-              {submitError}
-            </p>
-          ) : null}
+        <Card
+          className="rounded-[2rem] border border-border/70 bg-card/92 py-0 shadow-[0_28px_80px_rgba(12,35,39,0.14)] backdrop-blur-md"
+          aria-labelledby="login-title"
+        >
+          <CardHeader className="gap-3 border-b border-border/70 px-6 py-6 sm:px-8 sm:py-8">
+            <Badge variant="secondary" className="w-fit rounded-full px-3 py-1 text-[0.72rem] tracking-[0.16em] uppercase">
+              Webman CMS
+            </Badge>
+            <div className="space-y-2">
+              <CardTitle id="login-title" className="text-3xl font-semibold tracking-tight">
+                Вход в панель управления
+              </CardTitle>
+              <p className="max-w-md text-sm leading-6 text-muted-foreground">
+                Используйте логин и пароль, чтобы войти в защищенную админ-панель и продолжить работу с каталогом.
+              </p>
+            </div>
+          </CardHeader>
 
-          <button type="submit" className="submit-button" disabled={isSubmitting}>
-            {isSubmitting ? 'Вход...' : 'Войти'}
-          </button>
-        </form>
-      </section>
+          <CardContent className="px-6 py-6 sm:px-8 sm:py-8">
+            <form className="grid gap-5" onSubmit={handleSubmit} noValidate>
+              <FormField error={errors.login} htmlFor="login" label="Логин">
+                <Input
+                  ref={loginRef}
+                  id="login"
+                  name="login"
+                  type="text"
+                  className="h-11 rounded-xl bg-background/80 shadow-sm"
+                  autoComplete="username"
+                  value={values.login}
+                  onChange={(event) => handleChange('login', event.target.value)}
+                  aria-invalid={Boolean(errors.login)}
+                  aria-describedby={errors.login ? 'login-error' : undefined}
+                />
+              </FormField>
+
+              <FormField error={errors.password} htmlFor="password" label="Пароль">
+                <Input
+                  ref={passwordRef}
+                  id="password"
+                  name="password"
+                  type="password"
+                  className="h-11 rounded-xl bg-background/80 shadow-sm"
+                  autoComplete="current-password"
+                  value={values.password}
+                  onChange={(event) => handleChange('password', event.target.value)}
+                  aria-invalid={Boolean(errors.password)}
+                  aria-describedby={errors.password ? 'password-error' : undefined}
+                />
+              </FormField>
+
+              {submitError ? (
+                <AdminNotice tone="destructive" role="alert">
+                  {submitError}
+                </AdminNotice>
+              ) : null}
+
+              <Button type="submit" size="lg" className="mt-2 h-11 rounded-xl shadow-sm" disabled={isSubmitting}>
+                {isSubmitting ? 'Вход...' : 'Войти'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </main>
   );
 }

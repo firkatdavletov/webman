@@ -11,6 +11,17 @@ import { filterCategoryTree } from '@/pages/catalog/categories/model/categoryPag
 import { CategoryFilters } from '@/pages/catalog/categories/ui/CategoryFilters';
 import { CategoryList } from '@/pages/catalog/categories/ui/CategoryList';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
+import {
+  AdminEmptyState,
+  AdminNotice,
+  AdminPage,
+  AdminPageHeader,
+  AdminPageStatus,
+  AdminSectionCard,
+  Button,
+  buttonVariants,
+} from '@/shared/ui';
+import { cn } from '@/shared/lib/cn';
 
 const CATEGORIES_ACTIVITY_FILTER_STORAGE_KEY = 'webman.categories-page.is-active-filter';
 const CATEGORIES_PAGE_CACHE_STORAGE_KEY = 'webman.categories-page.cache.v1';
@@ -190,26 +201,30 @@ export function CategoriesPage() {
       }),
     [flattenedCategories, searchQuery],
   );
+  const statusText = isLoading
+    ? 'Загрузка категорий...'
+    : `${isActiveFilter ? 'Активные' : 'Неактивные'}: ${totalCategories} категорий • ${totalProducts} связанных товаров`;
+  const resultsMeta = filteredCategories.length
+    ? `Найдено ${filteredCategories.length} категорий`
+    : 'Категории с таким названием не найдены';
 
   return (
-    <main className="dashboard">
-        <header className="dashboard-header">
-          <div>
-            <p className="page-kicker">Каталог</p>
-            <h2 className="page-title">Категории</h2>
-          </div>
-          <div className="dashboard-actions">
-            <span className="status-chip">
-              {isLoading
-                ? 'Загрузка категорий...'
-                : `${isActiveFilter ? 'Активные' : 'Неактивные'}: ${totalCategories} категорий • ${totalProducts} связанных товаров`}
-            </span>
-            <Link className="secondary-link" to="/categories/new">
+    <AdminPage>
+      <AdminPageHeader
+        kicker="Каталог"
+        title="Категории"
+        description="Фильтруйте дерево категорий, быстро переходите в карточки и отслеживайте состояние каталога из одного раздела."
+        actions={
+          <>
+            <AdminPageStatus>{statusText}</AdminPageStatus>
+            <Link className={cn(buttonVariants({ size: 'lg' }), 'rounded-xl shadow-sm')} to="/categories/new">
               Добавить категорию
             </Link>
-            <button
+            <Button
               type="button"
-              className="secondary-button"
+              variant="outline"
+              size="lg"
+              className="rounded-xl bg-card/80 shadow-sm"
               onClick={() =>
                 void loadCategoriesData({
                   isActive: isActiveFilter,
@@ -218,40 +233,46 @@ export function CategoriesPage() {
               disabled={isLoading || isRefreshing}
             >
               {isRefreshing ? 'Обновление...' : 'Обновить данные'}
-            </button>
-          </div>
-        </header>
+            </Button>
+          </>
+        }
+      />
 
-        <section className="catalog-card catalog-data-card" aria-label="Категории в базе данных">
-          <div className="catalog-controls">
-            <CategoryFilters
-              searchQuery={searchQuery}
-              isActive={isActiveFilter}
-              onSearchQueryChange={setSearchQuery}
-              onIsActiveChange={handleIsActiveFilterChange}
-            />
+      <AdminSectionCard
+        aria-label="Категории в базе данных"
+        eyebrow="Список"
+        title="Категории в базе данных"
+        description="Данные ниже строятся из ответа бэкенда и обновляются без перезагрузки маршрута."
+      >
+        <div className="space-y-4">
+          <CategoryFilters
+            searchQuery={searchQuery}
+            isActive={isActiveFilter}
+            onSearchQueryChange={setSearchQuery}
+            onIsActiveChange={handleIsActiveFilterChange}
+          />
+          <p className="text-sm text-muted-foreground">{resultsMeta}</p>
+        </div>
 
-            <p className="catalog-results-meta">
-              {filteredCategories.length ? `Найдено ${filteredCategories.length} категорий` : 'Категории с таким названием не найдены'}
-            </p>
-          </div>
+        {errorMessage ? (
+          <AdminNotice tone="destructive" role="alert">
+            {errorMessage}
+          </AdminNotice>
+        ) : null}
 
-          {errorMessage ? (
-            <p className="form-error" role="alert">
-              {errorMessage}
-            </p>
-          ) : null}
-
-          {isLoading ? (
-            <p className="catalog-empty-state">Загрузка категорий с бэкенда...</p>
-          ) : filteredCategories.length ? (
-            <CategoryList items={filteredCategories} focusedCategoryId={focusedCategoryId} />
-          ) : (
-            <p className="catalog-empty-state">
-              {categories.length ? 'Категории с таким названием не найдены.' : 'Бэкенд не вернул категории.'}
-            </p>
-          )}
-        </section>
-    </main>
+        {isLoading ? (
+          <AdminEmptyState title="Загрузка категорий" description="Получаем категории с бэкенда и обновляем локальный кеш страницы." />
+        ) : filteredCategories.length ? (
+          <CategoryList items={filteredCategories} focusedCategoryId={focusedCategoryId} />
+        ) : (
+          <AdminEmptyState
+            title={categories.length ? 'Категории не найдены' : 'Каталог пока пуст'}
+            description={
+              categories.length ? 'Попробуйте изменить поисковый запрос или переключить фильтр активности.' : 'Бэкенд не вернул категории.'
+            }
+          />
+        )}
+      </AdminSectionCard>
+    </AdminPage>
   );
 }
