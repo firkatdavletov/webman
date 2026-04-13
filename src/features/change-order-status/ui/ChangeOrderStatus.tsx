@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getOrderStatusLabel, type OrderStatus, type OrderStatusTransition } from '@/entities/order';
+import { cn } from '@/shared/lib/cn';
 import { Button } from '@/shared/ui';
 
 type ChangeOrderStatusProps = {
@@ -44,12 +45,18 @@ export function ChangeOrderStatus({
   }, [currentStatus.id, transitionOptions]);
 
   const canSubmit = !disabled && !isSubmitting && !isLoadingTransitions && Boolean(nextStatusId);
+  const selectedTransition = transitionOptions.find((transition) => transition.toStatus.id === nextStatusId) ?? null;
 
   return (
     <section className="space-y-4 rounded-[1.25rem] border border-border/70 bg-background/70 p-4" aria-label="Изменение статуса заказа">
-      <div className="space-y-1">
-        <h4 className="text-sm font-semibold text-foreground">Статус заказа</h4>
-        <p className="text-sm text-muted-foreground">Меняйте workflow прямо из preview, история обновится после сохранения.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h4 className="text-sm font-semibold text-foreground">Смена статуса</h4>
+          <p className="text-sm text-muted-foreground">Переходы доступны прямо на странице заказа, без дополнительных модалок.</p>
+        </div>
+        <div className="rounded-full border border-border/70 bg-muted/40 px-3 py-1 text-xs font-medium text-foreground">
+          Текущий статус: {getOrderStatusLabel(currentStatus)}
+        </div>
       </div>
 
       <form
@@ -67,25 +74,34 @@ export function ChangeOrderStatus({
           });
         }}
       >
-        <label className="space-y-2 text-sm font-medium text-foreground" htmlFor="change-order-status-select">
-          <span>Новый статус</span>
-          <select
-            id="change-order-status-select"
-            className="flex h-10 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60"
-            value={nextStatusId}
-            onChange={(event) => setNextStatusId(event.target.value)}
-            disabled={disabled || isSubmitting || isLoadingTransitions || !transitionOptions.length}
-          >
-            <option value="" disabled>
-              {transitionOptions.length ? 'Выберите статус' : 'Нет доступных переходов'}
-            </option>
-            {transitionOptions.map((transition) => (
-              <option key={transition.id} value={transition.toStatus.id}>
-                {getOrderStatusLabel(transition.toStatus)}
-              </option>
-            ))}
-          </select>
-        </label>
+        {transitionOptions.length ? (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">Следующий статус</p>
+            <div className="flex flex-wrap gap-2">
+              {transitionOptions.map((transition) => {
+                const isActive = transition.toStatus.id === nextStatusId;
+
+                return (
+                  <button
+                    key={transition.id}
+                    type="button"
+                    className={cn(
+                      'rounded-full border px-3 py-2 text-sm font-medium transition-colors',
+                      isActive
+                        ? 'border-primary/30 bg-primary/10 text-primary'
+                        : 'border-border bg-background text-foreground hover:bg-muted/60',
+                    )}
+                    onClick={() => setNextStatusId(transition.toStatus.id)}
+                    disabled={disabled || isSubmitting || isLoadingTransitions}
+                    aria-pressed={isActive}
+                  >
+                    {getOrderStatusLabel(transition.toStatus)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
 
         <label className="space-y-2 text-sm font-medium text-foreground" htmlFor="change-order-status-comment">
           <span>Комментарий к изменению</span>
@@ -103,6 +119,11 @@ export function ChangeOrderStatus({
           <Button type="submit" disabled={!canSubmit}>
             {isSubmitting ? 'Сохранение...' : 'Сохранить статус'}
           </Button>
+          {selectedTransition ? (
+            <p className="text-sm text-muted-foreground">
+              Будет установлен статус <span className="font-medium text-foreground">{getOrderStatusLabel(selectedTransition.toStatus)}</span>
+            </p>
+          ) : null}
         </div>
       </form>
 

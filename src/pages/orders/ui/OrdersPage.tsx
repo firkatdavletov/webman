@@ -8,11 +8,12 @@ import {
   SlidersHorizontalIcon,
   Trash2Icon,
 } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   changeOrderStatus,
   getAdminOrders,
   getAvailableOrderStatusTransitions,
+  getOrderById,
   getOrderStatusHistory,
   type OrderListResult,
   type Order,
@@ -57,7 +58,7 @@ import {
   type OrdersSortKey,
   type OrdersSortState,
 } from '@/pages/orders/model/orderPageView';
-import { OrderDetailsDrawer } from '@/widgets/order-details';
+import { OrderDetailsPage } from '@/pages/orders/ui/OrderDetailsPage';
 import { OrdersTable } from '@/widgets/orders-table';
 
 type OrderProductMeta = {
@@ -341,8 +342,10 @@ function ViewChip({
 
 export function OrdersPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const params = useParams<{ orderId?: string }>();
   const selectedOrderId = params.orderId ?? null;
+  const ordersBasePath = location.pathname.startsWith('/admin/orders') ? '/admin/orders' : '/orders';
 
   const systemViews = useMemo(() => buildSystemOrdersViews(), []);
 
@@ -385,6 +388,7 @@ export function OrdersPage() {
   const [productMetaErrorMessage, setProductMetaErrorMessage] = useState('');
   const ordersRequestIdRef = useRef(0);
   const isFirstOrdersLoadRef = useRef(true);
+  const orderDetailsRequestIdRef = useRef(0);
   const statusMetaRequestIdRef = useRef(0);
 
   const ordersQuery = useMemo(
@@ -471,6 +475,40 @@ export function OrdersPage() {
     setStatusOptionsErrorMessage('');
   };
 
+  const loadSelectedOrderDetails = async (orderId: string, fallbackOrder?: Order | null) => {
+    const requestId = orderDetailsRequestIdRef.current + 1;
+    orderDetailsRequestIdRef.current = requestId;
+
+    setIsOrderDetailsLoading(true);
+    setOrderDetailsErrorMessage('');
+
+    if (fallbackOrder !== undefined) {
+      setSelectedOrder(fallbackOrder);
+    }
+
+    const result = await getOrderById(orderId);
+
+    if (requestId !== orderDetailsRequestIdRef.current) {
+      return result;
+    }
+
+    if (!result.order) {
+      setSelectedOrder(fallbackOrder ?? null);
+      setOrderDetailsErrorMessage(result.error ?? 'Не удалось загрузить детали заказа.');
+      setIsOrderDetailsLoading(false);
+      return result;
+    }
+
+    const nextOrder = result.order;
+
+    setSelectedOrder(nextOrder);
+    setOrders((currentOrders) => upsertOrderById(currentOrders, nextOrder));
+    setOrderDetailsErrorMessage('');
+    setIsOrderDetailsLoading(false);
+
+    return result;
+  };
+
   const loadSelectedOrderStatusData = async (orderId: string) => {
     const requestId = statusMetaRequestIdRef.current + 1;
     statusMetaRequestIdRef.current = requestId;
@@ -496,6 +534,10 @@ export function OrdersPage() {
   };
 
   useEffect(() => {
+    if (selectedOrderId) {
+      return;
+    }
+
     const shouldShowInitialLoader = isFirstOrdersLoadRef.current;
 
     isFirstOrdersLoadRef.current = false;
@@ -504,7 +546,7 @@ export function OrdersPage() {
       query: ordersQuery,
       showInitialLoader: shouldShowInitialLoader,
     });
-  }, [ordersQuery]);
+  }, [ordersQuery, selectedOrderId]);
 
   useEffect(() => {
     void loadProductMetaData();
@@ -537,18 +579,21 @@ export function OrdersPage() {
 
   useEffect(() => {
     if (!selectedOrderId) {
+      orderDetailsRequestIdRef.current += 1;
       setSelectedOrder(null);
       setOrderDetailsErrorMessage('');
       setIsOrderDetailsLoading(false);
+      setStatusUpdateErrorMessage('');
+      setStatusUpdateSuccessMessage('');
       return;
     }
 
     const fallbackOrder = knownOrderLookup.get(selectedOrderId) ?? null;
 
-    setSelectedOrder(fallbackOrder);
-    setOrderDetailsErrorMessage(fallbackOrder ? '' : 'Детали заказа по id пока недоступны: backend ещё не отдаёт отдельный endpoint.');
-    setIsOrderDetailsLoading(false);
-  }, [knownOrderLookup, selectedOrderId]);
+    setStatusUpdateErrorMessage('');
+    setStatusUpdateSuccessMessage('');
+    void loadSelectedOrderDetails(selectedOrderId, fallbackOrder);
+  }, [selectedOrderId]);
 
   useEffect(() => {
     if (!selectedOrderId) {
@@ -594,24 +639,28 @@ export function OrdersPage() {
   const handleOpenOrder = (orderId: string) => {
     setStatusUpdateErrorMessage('');
     setStatusUpdateSuccessMessage('');
-    navigate(`/orders/${orderId}`);
+    navigate(`${ordersBasePath}/${orderId}`);
   };
 
-  const handleCloseOrderDrawer = () => {
+  const handleCloseOrderPage = () => {
     setSelectedOrder(null);
     setOrderDetailsErrorMessage('');
     setStatusUpdateErrorMessage('');
     setStatusUpdateSuccessMessage('');
     setIsStatusUpdating(false);
-    navigate('/orders', { replace: true });
+    navigate(ordersBasePath, { replace: true });
   };
 
   const handleRefresh = async () => {
-    await loadOrdersData({ query: ordersQuery });
-
     if (selectedOrderId) {
-      await loadSelectedOrderStatusData(selectedOrderId);
+      await Promise.all([
+        loadSelectedOrderDetails(selectedOrderId, selectedOrder),
+        loadSelectedOrderStatusData(selectedOrderId),
+      ]);
+      return;
     }
+
+    await loadOrdersData({ query: ordersQuery });
   };
 
   const handleStatusSubmit = async ({ statusId, comment }: { statusId: string; comment: string | null }) => {
@@ -865,49 +914,74 @@ export function OrdersPage() {
   const hasNoOrders = !orders.length && !isLoading;
   const hasActiveServerFilters = activeFilterTokens.length > 0;
 
-  return (
-    <>
-      <AdminPage>
-        <AdminPageHeader
-          kicker="Операции"
-          title="Заказы"
-          description="Очередь заказов"
-          actions={
-            <>
-              <AdminPageStatus>{statusText}</AdminPageStatus>
-              <Button variant="outline" onClick={() => void handleRefresh()} disabled={isLoading || isRefreshing}>
-                <RefreshCcwIcon className={cn('size-4', isRefreshing && 'animate-spin')} />
-                {isRefreshing ? 'Обновление...' : 'Обновить'}
-              </Button>
-              <Link className={buttonVariants({ variant: 'outline' })} to="/order-statuses">
-                Справочник статусов
-              </Link>
-            </>
-          }
-        />
+  if (selectedOrderId) {
+    return (
+      <OrderDetailsPage
+        orderId={selectedOrderId}
+        backPath={ordersBasePath}
+        order={selectedOrder}
+        isLoading={isOrderDetailsLoading}
+        isRefreshing={isOrderDetailsLoading || isStatusMetaLoading}
+        errorMessage={orderDetailsErrorMessage}
+        isStatusMetaLoading={isStatusMetaLoading}
+        isStatusUpdating={isStatusUpdating}
+        statusTransitions={availableStatusTransitions}
+        statusTransitionsErrorMessage={statusTransitionsErrorMessage}
+        statusHistory={statusHistory}
+        statusHistoryErrorMessage={statusHistoryErrorMessage}
+        statusErrorMessage={statusUpdateErrorMessage}
+        statusSuccessMessage={statusUpdateSuccessMessage}
+        productMetaById={productMetaById}
+        productMetaErrorMessage={productMetaErrorMessage}
+        onBack={handleCloseOrderPage}
+        onRefresh={() => void handleRefresh()}
+        onStatusSubmit={handleStatusSubmit}
+      />
+    );
+  }
 
-        <AdminSectionCard
-          eyebrow="Список заказов"
-          title="Операционный список заказов"
-          description="Сохранённые представления задают рабочий контекст, quick filters уточняют выдачу, а экспорт всегда учитывает текущие фильтры и видимые колонки."
-          action={
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" onClick={handleSaveCurrentView}>
-                <SlidersHorizontalIcon className="size-4" />
-                Сохранить вид
-              </Button>
-              <Button variant="outline" onClick={() => setIsColumnSettingsOpen((currentValue) => !currentValue)} aria-pressed={isColumnSettingsOpen}>
-                <Settings2Icon className="size-4" />
-                Колонки
-              </Button>
-              <Button variant="outline" onClick={() => void handleExportCurrentResult()} disabled={!totalItems || isExporting}>
-                <DownloadIcon className="size-4" />
-                {isExporting ? 'Экспорт...' : 'Экспорт'}
-              </Button>
-            </div>
-          }
-        >
-          <div className="space-y-5">
+  return (
+    <AdminPage>
+      <AdminPageHeader
+        kicker="Операции"
+        title="Заказы"
+        description="Очередь заказов"
+        actions={
+          <>
+            <AdminPageStatus>{statusText}</AdminPageStatus>
+            <Button variant="outline" onClick={() => void handleRefresh()} disabled={isLoading || isRefreshing}>
+              <RefreshCcwIcon className={cn('size-4', isRefreshing && 'animate-spin')} />
+              {isRefreshing ? 'Обновление...' : 'Обновить'}
+            </Button>
+            <Link className={buttonVariants({ variant: 'outline' })} to="/order-statuses">
+              Справочник статусов
+            </Link>
+          </>
+        }
+      />
+
+      <AdminSectionCard
+        eyebrow="Список заказов"
+        title="Операционный список заказов"
+        description="Сохранённые представления задают рабочий контекст, quick filters уточняют выдачу, а экспорт всегда учитывает текущие фильтры и видимые колонки."
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" onClick={handleSaveCurrentView}>
+              <SlidersHorizontalIcon className="size-4" />
+              Сохранить вид
+            </Button>
+            <Button variant="outline" onClick={() => setIsColumnSettingsOpen((currentValue) => !currentValue)} aria-pressed={isColumnSettingsOpen}>
+              <Settings2Icon className="size-4" />
+              Колонки
+            </Button>
+            <Button variant="outline" onClick={() => void handleExportCurrentResult()} disabled={!totalItems || isExporting}>
+              <DownloadIcon className="size-4" />
+              {isExporting ? 'Экспорт...' : 'Экспорт'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-5">
             <div className="space-y-3">
               <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">Saved Views</p>
               <div className="flex flex-wrap gap-2">
@@ -1022,8 +1096,8 @@ export function OrdersPage() {
             ) : null}
 
             <AdminNotice>
-              Таблица уже работает в server-side режиме, но поля <strong>Источник</strong>, <strong>Менеджер / оператор</strong> и <strong>Теги</strong> пока остаются на fallback-значениях.
-              Следующий шаг после backend detail-endpoint'а: разнести list/detail модели и подключить эти поля без заглушек.
+              Детали заказа теперь открываются отдельной страницей. Таблица остаётся server-side, а поля <strong>Источник</strong>,{' '}
+              <strong>Менеджер / оператор</strong> и <strong>Теги</strong> в списке пока ещё показываются с fallback-значениями.
             </AdminNotice>
 
             {isColumnSettingsOpen ? (
@@ -1149,7 +1223,7 @@ export function OrdersPage() {
             ) : (
               <OrdersTable
                 orders={orders}
-                activeOrderId={selectedOrderId}
+                activeOrderId={null}
                 density={density}
                 visibleColumnIds={visibleColumnIds}
                 selectedOrderIds={selectedOrderIds}
@@ -1186,29 +1260,9 @@ export function OrdersPage() {
                 </p>
               </div>
             ) : null}
-          </div>
-        </AdminSectionCard>
-      </AdminPage>
-
-      <OrderDetailsDrawer
-        isOpen={Boolean(selectedOrderId)}
-        order={selectedOrder}
-        isLoading={isOrderDetailsLoading}
-        errorMessage={orderDetailsErrorMessage}
-        isStatusMetaLoading={isStatusMetaLoading}
-        isStatusUpdating={isStatusUpdating}
-        statusTransitions={availableStatusTransitions}
-        statusTransitionsErrorMessage={statusTransitionsErrorMessage}
-        statusHistory={statusHistory}
-        statusHistoryErrorMessage={statusHistoryErrorMessage}
-        statusErrorMessage={statusUpdateErrorMessage}
-        statusSuccessMessage={statusUpdateSuccessMessage}
-        productMetaById={productMetaById}
-        productMetaErrorMessage={productMetaErrorMessage}
-        onClose={handleCloseOrderDrawer}
-        onStatusSubmit={handleStatusSubmit}
-      />
-    </>
+        </div>
+      </AdminSectionCard>
+    </AdminPage>
   );
 }
 

@@ -342,10 +342,40 @@ export async function getOrderById(orderId: string): Promise<OrderResult> {
     };
   }
 
-  return {
-    order: null,
-    error: 'Endpoint деталей заказа по id ещё не подключён в backend.',
-  };
+  try {
+    const result = await apiClient.GET('/api/v1/admin/orders/{orderId}', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: {
+          orderId: normalizedOrderId,
+        },
+      },
+    });
+
+    if (result.error) {
+      return {
+        order: null,
+        error: getProtectedErrorMessage(result.error, 'Не удалось загрузить детали заказа.'),
+      };
+    }
+
+    if (!result.data) {
+      return {
+        order: null,
+        error: 'Сервис деталей заказа вернул некорректный ответ.',
+      };
+    }
+
+    return {
+      order: mapOrder(result.data),
+      error: null,
+    };
+  } catch {
+    return {
+      order: null,
+      error: 'Не удалось связаться с сервисом деталей заказа.',
+    };
+  }
 }
 
 export async function getAvailableOrderStatusTransitions(orderId: string): Promise<OrderStatusTransitionsResult> {
