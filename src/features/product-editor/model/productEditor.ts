@@ -337,10 +337,7 @@ function mapFormModifierGroupsToProduct(
         isRequired: modifierDefinition?.isRequired ?? false,
         isActive: group.isActive,
         sortOrder: parseSortOrder(group.sortOrder) ?? 0,
-        options:
-          modifierDefinition?.options.map((option) => ({
-            ...option,
-          })) ?? [],
+        options: [],
       };
     })
     .filter((group) => Boolean(group.modifierGroupId));

@@ -8,6 +8,13 @@ import {
   type ModifierGroupEditorValues,
   validateModifierGroupEditorValues,
 } from '@/features/modifier-group-editor';
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminSectionCard,
+  buttonVariants,
+} from '@/shared/ui';
+import { cn } from '@/shared/lib/cn';
 
 export function ModifierGroupCreatePage() {
   const navigate = useNavigate();
@@ -46,69 +53,39 @@ export function ModifierGroupCreatePage() {
   };
 
   return (
-    <main className="dashboard">
-        <nav className="breadcrumbs" aria-label="Хлебные крошки">
-          <Link className="breadcrumb-link" to="/categories">
-            Каталог
+    <AdminPage>
+      <AdminPageHeader
+        kicker="Каталог"
+        title="Новая группа модификаторов"
+        description="Создайте группу и задайте правила выбора. Опции можно добавить сразу после сохранения группы."
+        actions={
+          <Link className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'rounded-xl')} to="/modifier-groups">
+            К списку групп
           </Link>
-          <span className="breadcrumb-separator">/</span>
-          <Link className="breadcrumb-link" to="/modifier-groups">
-            Модификаторы
-          </Link>
-          <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-current">Новая группа</span>
-        </nav>
+        }
+      />
 
-        <header className="dashboard-header">
-          <div>
-            <p className="page-kicker">Каталог</p>
-            <h2 className="page-title">Новая группа модификаторов</h2>
-          </div>
-          <div className="dashboard-actions">
-            <Link className="secondary-link" to="/modifier-groups">
-              К списку групп
-            </Link>
-          </div>
-        </header>
-
-        <section className="catalog-card product-detail-card" aria-label="Создание группы модификаторов">
-          <div className="product-detail-grid">
-            <div className="detail-block">
-              <h4 className="detail-title">Идентификатор</h4>
-              <p className="detail-copy">ID будет назначен после сохранения.</p>
-            </div>
-
-            <div className="detail-block">
-              <h4 className="detail-title">Опции</h4>
-              <p className="detail-copy">В форме можно задать платные и бесплатные опции, флаги default и сортировку.</p>
-            </div>
-
-            <div className="detail-block">
-              <h4 className="detail-title">Связи с товарами</h4>
-              <p className="detail-copy">После сохранения группу можно привязать к карточкам товаров.</p>
-            </div>
-
-            <div className="detail-block">
-              <h4 className="detail-title">API</h4>
-              <p className="detail-copy">POST /api/v1/admin/catalog/modifier-groups</p>
-            </div>
-          </div>
-
-          <ModifierGroupEditor
-            idPrefix="modifier-group-create"
-            ariaLabel="Форма создания группы модификаторов"
-            eyebrow="Создание"
-            title="Новая группа"
-            description="Заполните справочник опций и параметры выбора, чтобы затем подключать группу к товарам."
-            formValues={formValues}
-            isSaving={isSaving}
-            saveError={saveError}
-            submitLabel="Создать группу"
-            savingLabel="Создание..."
-            onValuesChange={handleValuesChange}
-            onSubmit={() => void handleSave()}
-          />
-        </section>
-    </main>
+      <AdminSectionCard
+        aria-label="Создание группы модификаторов"
+        eyebrow="Создание"
+        title="Параметры группы"
+        description="Группа определяет ограничения выбора в карточках товаров."
+      >
+        <ModifierGroupEditor
+          idPrefix="modifier-group-create"
+          ariaLabel="Форма создания группы модификаторов"
+          eyebrow="Форма"
+          title="Новая группа"
+          description="После сохранения откроется карточка группы, где можно добавить отдельные опции."
+          formValues={formValues}
+          isSaving={isSaving}
+          saveError={saveError}
+          submitLabel="Создать группу"
+          savingLabel="Создание..."
+          onValuesChange={handleValuesChange}
+          onSubmit={() => void handleSave()}
+        />
+      </AdminSectionCard>
+    </AdminPage>
   );
 }

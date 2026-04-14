@@ -25,7 +25,6 @@ export type ModifierGroup = {
   isRequired: boolean;
   isActive: boolean;
   sortOrder: number;
-  options: ModifierOption[];
 };
 
 export type ProductModifierGroupLink = {

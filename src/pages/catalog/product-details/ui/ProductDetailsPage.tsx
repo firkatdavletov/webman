@@ -468,9 +468,7 @@ export function ProductDetailsPage() {
         isRequired: modifierDefinition.isRequired,
         isActive: modifierGroup.isActive,
         sortOrder: parsedSortOrder,
-        options: modifierDefinition.options.map((option) => ({
-          ...option,
-        })),
+        options: [],
       });
     }
 

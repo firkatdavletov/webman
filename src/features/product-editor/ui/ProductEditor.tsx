@@ -1586,8 +1586,7 @@ export function ProductEditor({
                   {selectedModifierGroup ? (
                     <div className="product-editor-helper-list">
                       <p className="catalog-meta">
-                        {selectedModifierGroup.code} • {selectedModifierGroup.options.length} опций •{' '}
-                        {formatModifierConstraints(selectedModifierGroup)}
+                        {selectedModifierGroup.code} • {formatModifierConstraints(selectedModifierGroup)}
                       </p>
                       <p className="catalog-meta">
                         Справочник: {selectedModifierGroup.isActive ? 'активен' : 'выключен'}

@@ -47,6 +47,11 @@ const ModifierGroupDetailsPage = lazy(() =>
     default: module.ModifierGroupDetailsPage,
   })),
 );
+const ModifierOptionDetailsPage = lazy(() =>
+  import('@/pages/catalog/modifier-option-details/ui/ModifierOptionDetailsPage').then((module) => ({
+    default: module.ModifierOptionDetailsPage,
+  })),
+);
 const CatalogImportPage = lazy(() =>
   import('@/pages/catalog/import/ui/CatalogImportPage').then((module) => ({ default: module.CatalogImportPage })),
 );
@@ -182,6 +187,8 @@ export function AppRouter() {
         <Route path="/modifier-groups" element={<ModifierGroupsPage />} />
         <Route path="/modifier-groups/new" element={<ModifierGroupCreatePage />} />
         <Route path="/modifier-groups/:modifierGroupId" element={<ModifierGroupDetailsPage />} />
+        <Route path="/modifier-groups/:modifierGroupId/options/new" element={<ModifierOptionDetailsPage />} />
+        <Route path="/modifier-groups/:modifierGroupId/options/:optionId" element={<ModifierOptionDetailsPage />} />
         <Route path="/catalog-import" element={<CatalogImportPage />} />
         <Route path="/modifier-import" element={<ModifierImportPage />} />
         <Route path="/hero-banners" element={<HeroBannersPage />} />

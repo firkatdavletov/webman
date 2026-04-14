@@ -1,13 +1,19 @@
 import { getAccessToken } from '@/entities/session';
-import type { ModifierGroup } from '@/entities/modifier-group/model/types';
+import type { ModifierGroup, ModifierOption } from '@/entities/modifier-group/model/types';
 import { type ApiError, apiClient } from '@/shared/api/client';
 import { getApiErrorMessage } from '@/shared/api/error';
 import type { components } from '@/shared/api/schema';
 
 type ModifierGroupResponse = components['schemas']['ModifierGroupResponse'];
+type ModifierOptionResponse = components['schemas']['ModifierOptionResponse'];
 type UpsertModifierGroupRequest = components['schemas']['UpsertModifierGroupRequest'];
+type UpsertModifierOptionRequest = components['schemas']['UpsertModifierOptionRequest'];
 
 type GetAllModifierGroupsOptions = {
+  isActive?: boolean;
+};
+
+type GetModifierGroupOptionsOptions = {
   isActive?: boolean;
 };
 
@@ -18,6 +24,16 @@ type AdminModifierGroupListResult = {
 
 type AdminModifierGroupResult = {
   data?: ModifierGroupResponse;
+  error?: ApiError;
+};
+
+type AdminModifierOptionListResult = {
+  data?: ModifierOptionResponse[];
+  error?: ApiError;
+};
+
+type AdminModifierOptionResult = {
+  data?: ModifierOptionResponse;
   error?: ApiError;
 };
 
@@ -33,6 +49,32 @@ const adminModifierGroupsApiClient = apiClient as unknown as {
       };
     },
   ): Promise<AdminModifierGroupListResult>;
+  GET(
+    path: '/api/v1/admin/catalog/modifier-groups/{groupId}/options',
+    init: {
+      headers?: HeadersInit;
+      params: {
+        path: {
+          groupId: string;
+        };
+        query?: {
+          isActive?: boolean;
+        };
+      };
+    },
+  ): Promise<AdminModifierOptionListResult>;
+  GET(
+    path: '/api/v1/admin/catalog/modifier-groups/{groupId}/options/{optionId}',
+    init: {
+      headers?: HeadersInit;
+      params: {
+        path: {
+          groupId: string;
+          optionId: string;
+        };
+      };
+    },
+  ): Promise<AdminModifierOptionResult>;
   POST(
     path: '/api/v1/admin/catalog/modifier-groups',
     init: {
@@ -40,6 +82,18 @@ const adminModifierGroupsApiClient = apiClient as unknown as {
       body: UpsertModifierGroupRequest;
     },
   ): Promise<AdminModifierGroupResult>;
+  POST(
+    path: '/api/v1/admin/catalog/modifier-groups/{groupId}/options',
+    init: {
+      headers?: HeadersInit;
+      params: {
+        path: {
+          groupId: string;
+        };
+      };
+      body: UpsertModifierOptionRequest;
+    },
+  ): Promise<AdminModifierOptionResult>;
 };
 
 export type ModifierGroupListResult = {
@@ -54,6 +108,21 @@ export type ModifierGroupResult = {
 
 export type SaveModifierGroupResult = {
   modifierGroup: ModifierGroup | null;
+  error: string | null;
+};
+
+export type ModifierOptionListResult = {
+  options: ModifierOption[];
+  error: string | null;
+};
+
+export type ModifierOptionResult = {
+  option: ModifierOption | null;
+  error: string | null;
+};
+
+export type SaveModifierOptionResult = {
+  option: ModifierOption | null;
   error: string | null;
 };
 
@@ -91,18 +160,21 @@ function mapModifierGroup(group: ModifierGroupResponse): ModifierGroup {
     isRequired: group.isRequired,
     isActive: group.isActive,
     sortOrder: group.sortOrder,
-    options: group.options.map((option) => ({
-      id: option.id,
-      code: option.code,
-      name: option.name,
-      description: option.description ?? null,
-      priceType: option.priceType,
-      price: option.price,
-      applicationScope: option.applicationScope,
-      isDefault: option.isDefault,
-      isActive: option.isActive,
-      sortOrder: option.sortOrder,
-    })),
+  };
+}
+
+function mapModifierOption(option: ModifierOptionResponse): ModifierOption {
+  return {
+    id: option.id,
+    code: option.code,
+    name: option.name,
+    description: option.description ?? null,
+    priceType: option.priceType,
+    price: option.price,
+    applicationScope: option.applicationScope,
+    isDefault: option.isDefault,
+    isActive: option.isActive,
+    sortOrder: option.sortOrder,
   };
 }
 
@@ -116,17 +188,21 @@ function mapSaveModifierGroupRequest(modifierGroup: ModifierGroup): UpsertModifi
     isRequired: modifierGroup.isRequired,
     isActive: modifierGroup.isActive,
     sortOrder: modifierGroup.sortOrder,
-    options: modifierGroup.options.map((option) => ({
-      code: option.code,
-      name: option.name,
-      description: option.description,
-      priceType: option.priceType,
-      price: option.priceType === 'FREE' ? undefined : option.price,
-      applicationScope: option.applicationScope,
-      isDefault: option.isDefault,
-      isActive: option.isActive,
-      sortOrder: option.sortOrder,
-    })),
+  };
+}
+
+function mapSaveModifierOptionRequest(option: ModifierOption): UpsertModifierOptionRequest {
+  return {
+    id: option.id || null,
+    code: option.code,
+    name: option.name,
+    description: option.description,
+    priceType: option.priceType,
+    price: option.price,
+    applicationScope: option.applicationScope,
+    isDefault: option.isDefault,
+    isActive: option.isActive,
+    sortOrder: option.sortOrder,
   };
 }
 
@@ -159,6 +235,50 @@ async function fetchModifierGroupsByActivity(isActive?: boolean): Promise<Modifi
     return {
       modifierGroups: [],
       error: 'Не удалось связаться с сервисом модификаторов.',
+    };
+  }
+}
+
+async function fetchModifierOptionsByActivity(groupId: string, isActive?: boolean): Promise<ModifierOptionListResult> {
+  try {
+    const result = await adminModifierGroupsApiClient.GET('/api/v1/admin/catalog/modifier-groups/{groupId}/options', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: {
+          groupId,
+        },
+        ...(isActive === undefined
+          ? {}
+          : {
+              query: {
+                isActive,
+              },
+            }),
+      },
+    });
+
+    if (result.error) {
+      return {
+        options: [],
+        error: getProtectedErrorMessage(result.error, 'Не удалось загрузить опции модификаторов.'),
+      };
+    }
+
+    if (!result.data) {
+      return {
+        options: [],
+        error: 'Сервис опций модификаторов вернул некорректный ответ.',
+      };
+    }
+
+    return {
+      options: result.data.map(mapModifierOption),
+      error: null,
+    };
+  } catch {
+    return {
+      options: [],
+      error: 'Не удалось связаться с сервисом опций модификаторов.',
     };
   }
 }
@@ -235,6 +355,106 @@ export async function saveModifierGroup(modifierGroup: ModifierGroup): Promise<S
     return {
       modifierGroup: null,
       error: 'Не удалось связаться с сервисом сохранения модификаторов.',
+    };
+  }
+}
+
+export async function getModifierGroupOptions(
+  groupId: string,
+  options: GetModifierGroupOptionsOptions = {},
+): Promise<ModifierOptionListResult> {
+  if (options.isActive !== undefined) {
+    return fetchModifierOptionsByActivity(groupId, options.isActive);
+  }
+
+  const [activeResult, inactiveResult] = await Promise.all([
+    fetchModifierOptionsByActivity(groupId, true),
+    fetchModifierOptionsByActivity(groupId, false),
+  ]);
+  const optionById = new Map<string, ModifierOption>();
+
+  [...activeResult.options, ...inactiveResult.options].forEach((option) => {
+    optionById.set(option.id, option);
+  });
+
+  return {
+    options: Array.from(optionById.values()),
+    error: [activeResult.error, inactiveResult.error].filter(Boolean).join(' ') || null,
+  };
+}
+
+export async function getModifierGroupOptionById(groupId: string, optionId: string): Promise<ModifierOptionResult> {
+  try {
+    const result = await adminModifierGroupsApiClient.GET('/api/v1/admin/catalog/modifier-groups/{groupId}/options/{optionId}', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: {
+          groupId,
+          optionId,
+        },
+      },
+    });
+
+    if (result.error) {
+      return {
+        option: null,
+        error: getProtectedErrorMessage(result.error, 'Не удалось загрузить опцию модификатора.'),
+      };
+    }
+
+    if (!result.data) {
+      return {
+        option: null,
+        error: 'Сервис опции модификатора вернул некорректный ответ.',
+      };
+    }
+
+    return {
+      option: mapModifierOption(result.data),
+      error: null,
+    };
+  } catch {
+    return {
+      option: null,
+      error: 'Не удалось связаться с сервисом опции модификатора.',
+    };
+  }
+}
+
+export async function saveModifierGroupOption(groupId: string, option: ModifierOption): Promise<SaveModifierOptionResult> {
+  try {
+    const result = await adminModifierGroupsApiClient.POST('/api/v1/admin/catalog/modifier-groups/{groupId}/options', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: {
+          groupId,
+        },
+      },
+      body: mapSaveModifierOptionRequest(option),
+    });
+
+    if (result.error) {
+      return {
+        option: null,
+        error: getProtectedErrorMessage(result.error, 'Не удалось сохранить опцию модификатора.'),
+      };
+    }
+
+    if (!result.data) {
+      return {
+        option: null,
+        error: 'Сервис сохранения опции модификатора вернул некорректный ответ.',
+      };
+    }
+
+    return {
+      option: mapModifierOption(result.data),
+      error: null,
+    };
+  } catch {
+    return {
+      option: null,
+      error: 'Не удалось связаться с сервисом сохранения опции модификатора.',
     };
   }
 }
