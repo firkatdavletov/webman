@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   addDeliveryZonePolygon,
   appendDeliveryZonePolygonPoint,
@@ -19,7 +19,9 @@ import type {
   DeliveryZoneEditorCoordinate,
   DeliveryZoneEditorGeometry,
 } from '@/features/delivery-zone-editor/model/types';
+import { cn } from '@/shared/lib/cn';
 import { requestCurrentBrowserLocation } from '@/shared/lib/yandex-maps/geolocation';
+import { AdminNotice, Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@/shared/ui';
 
 type DeliveryZoneMapEditorProps = {
   geometry: DeliveryZoneEditorGeometry | null;
@@ -31,6 +33,11 @@ type DeliveryZoneMapEditorProps = {
 const DEFAULT_MAP_CENTER: DeliveryZoneEditorCoordinate = [37.617635, 55.755814];
 const DEFAULT_MAP_ZOOM = 10;
 const CURRENT_LOCATION_ZOOM = 15;
+const MAP_SURFACE_CLASS_NAME =
+  'min-h-[560px] overflow-hidden rounded-[1.5rem] border border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(17,117,108,0.08),transparent_34%),linear-gradient(180deg,rgba(248,252,251,0.96),rgba(240,247,246,0.94))]';
+const MARKER_CLASS_NAME =
+  'grid size-8 place-items-center rounded-full border-2 border-white bg-primary text-[0.78rem] font-bold text-primary-foreground shadow-[0_10px_24px_rgba(12,35,39,0.24)]';
+const INFO_CARD_CLASS_NAME = 'rounded-[1.5rem] border border-border/70 bg-card/90 py-0 shadow-[0_18px_50px_rgba(12,35,39,0.08)]';
 
 function formatCoordinateValue(value: number): string {
   return value.toFixed(6);
@@ -101,6 +108,7 @@ export function DeliveryZoneMapEditor({
   const [userLocation, setUserLocation] = useState<YandexMapCoordinate | null>(null);
   const [isUserLocationLoading, setIsUserLocationLoading] = useState(false);
   const [userLocationError, setUserLocationError] = useState('');
+  const skipNextViewportSyncRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -134,6 +142,11 @@ export function DeliveryZoneMapEditor({
   const serializedGeometry = useMemo(() => JSON.stringify(geometry), [geometry]);
 
   useEffect(() => {
+    if (skipNextViewportSyncRef.current) {
+      skipNextViewportSyncRef.current = false;
+      return;
+    }
+
     setMapLocation(buildMapLocation(getDeliveryZoneGeometryBounds(geometry)));
   }, [serializedGeometry]);
 
@@ -176,6 +189,11 @@ export function DeliveryZoneMapEditor({
     polygons.length === 0 ? 0 : Math.min(Math.max(activePolygonIndex, 0), Math.max(polygons.length - 1, 0));
   const activePolygon = polygons[safeActivePolygonIndex] ?? null;
 
+  const updateGeometryWithoutMovingMap = (nextGeometry: DeliveryZoneEditorGeometry | null) => {
+    skipNextViewportSyncRef.current = true;
+    onGeometryChange(nextGeometry);
+  };
+
   const handleMapClick = (object: unknown, event: { coordinates?: DeliveryZoneEditorCoordinate } | undefined) => {
     if (object) {
       return;
@@ -195,20 +213,20 @@ export function DeliveryZoneMapEditor({
       onActivePolygonIndexChange(0);
     }
 
-    onGeometryChange(nextGeometry);
+    updateGeometryWithoutMovingMap(nextGeometry);
   };
 
   const handleAddPolygon = () => {
     const nextGeometry = addDeliveryZonePolygon(geometry);
 
-    onGeometryChange(nextGeometry);
+    updateGeometryWithoutMovingMap(nextGeometry);
     onActivePolygonIndexChange(Math.max(nextGeometry.polygons.length - 1, 0));
   };
 
   const handleDeletePolygon = (polygonIndex: number) => {
     const nextGeometry = removeDeliveryZonePolygon(geometry, polygonIndex);
 
-    onGeometryChange(nextGeometry);
+    updateGeometryWithoutMovingMap(nextGeometry);
     onActivePolygonIndexChange(Math.max(0, polygonIndex - 1));
   };
 
@@ -219,11 +237,11 @@ export function DeliveryZoneMapEditor({
       return;
     }
 
-    onGeometryChange(updateDeliveryZonePolygonPoint(geometry, safeActivePolygonIndex, pointIndex, coordinate));
+    updateGeometryWithoutMovingMap(updateDeliveryZonePolygonPoint(geometry, safeActivePolygonIndex, pointIndex, coordinate));
   };
 
   const handleDeleteVertex = (pointIndex: number) => {
-    onGeometryChange(removeDeliveryZonePolygonPoint(geometry, safeActivePolygonIndex, pointIndex));
+    updateGeometryWithoutMovingMap(removeDeliveryZonePolygonPoint(geometry, safeActivePolygonIndex, pointIndex));
   };
 
   const handleFitToGeometry = () => {
@@ -251,185 +269,257 @@ export function DeliveryZoneMapEditor({
   };
 
   const handleClearGeometry = () => {
-    onGeometryChange(clearDeliveryZoneGeometry());
+    updateGeometryWithoutMovingMap(clearDeliveryZoneGeometry());
     onActivePolygonIndexChange(0);
   };
 
   if (mapError) {
     return (
-      <div className="delivery-zone-map-shell">
-        <div className="delivery-zone-map-canvas delivery-zone-map-fallback">
-          <p className="form-error" role="alert">
-            {mapError}
-          </p>
-        </div>
-      </div>
+      <AdminNotice tone="destructive" role="alert" className="rounded-[1.5rem] border-destructive/20 bg-destructive/5">
+        {mapError}
+      </AdminNotice>
     );
   }
 
   return (
-    <div className="delivery-zone-map-shell">
-      <div className="delivery-zone-map-stage">
-        <div className="delivery-zone-map-toolbar">
-          <span className="status-chip">{getDeliveryZoneGeometrySummary(geometry)}</span>
-          <div className="delivery-zone-map-toolbar-actions">
-            <button type="button" className="secondary-button" onClick={handleAddPolygon}>
-              Новый контур
-            </button>
-            <button type="button" className="secondary-button" onClick={handleFocusUserLocation} disabled={isUserLocationLoading}>
-              {isUserLocationLoading ? 'Определяем местоположение...' : 'Мое местоположение'}
-            </button>
-            <button type="button" className="secondary-button" onClick={handleFitToGeometry}>
-              Вписать в экран
-            </button>
-            <button type="button" className="secondary-button secondary-button-danger" onClick={handleClearGeometry}>
-              Очистить
-            </button>
-          </div>
-        </div>
-
-        <div className="delivery-zone-map-canvas">
-          {isMapLoading || !mapApi ? (
-            <div className="delivery-zone-map-placeholder">
-              <p className="catalog-empty-state">Загрузка карты...</p>
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(19rem,0.8fr)]">
+      <Card className="rounded-[1.75rem] border border-border/70 bg-card/90 py-0 shadow-[0_24px_70px_rgba(12,35,39,0.08)]">
+        <CardHeader className="gap-4 border-b border-border/70 py-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1">
+              <p className="text-[0.72rem] font-semibold tracking-[0.18em] text-primary uppercase">Map canvas</p>
+              <CardTitle className="text-xl font-semibold tracking-tight">Карта зоны</CardTitle>
             </div>
-          ) : (
-            (() => {
-              const { YMap, YMapDefaultFeaturesLayer, YMapDefaultSchemeLayer, YMapFeature, YMapListener, YMapMarker } = mapApi;
+            <Badge
+              variant="secondary"
+              className="h-auto rounded-full border border-border/70 bg-card/80 px-3 py-1 text-[0.72rem] font-medium shadow-sm"
+            >
+              {getDeliveryZoneGeometrySummary(geometry)}
+            </Badge>
+          </div>
 
-              return (
-                <YMap location={mapLocation} mode="vector" className="delivery-zone-map-instance">
-                  <YMapDefaultSchemeLayer />
-                  <YMapDefaultFeaturesLayer />
-                  <YMapListener layer="any" onClick={handleMapClick} />
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="lg" className="rounded-full bg-background/80 px-4 shadow-sm" onClick={handleAddPolygon}>
+              Новый контур
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="rounded-full bg-background/80 px-4 shadow-sm"
+              onClick={handleFocusUserLocation}
+              disabled={isUserLocationLoading}
+            >
+              {isUserLocationLoading ? 'Определяем местоположение...' : 'Мое местоположение'}
+            </Button>
+            <Button type="button" variant="outline" size="lg" className="rounded-full bg-background/80 px-4 shadow-sm" onClick={handleFitToGeometry}>
+              Вписать в экран
+            </Button>
+            <Button type="button" variant="destructive" size="lg" className="rounded-full px-4 shadow-sm" onClick={handleClearGeometry}>
+              Очистить
+            </Button>
+          </div>
+        </CardHeader>
 
-                  {polygons.map((polygon, polygonIndex) => {
-                    if (polygon.outer.length < 3) {
-                      return null;
-                    }
+        <CardContent className="pt-5">
+          <div className={MAP_SURFACE_CLASS_NAME}>
+            {isMapLoading || !mapApi ? (
+              <div className="flex min-h-[560px] items-center justify-center px-6 py-8">
+                <p className="text-sm font-medium text-muted-foreground">Загрузка карты...</p>
+              </div>
+            ) : (
+              (() => {
+                const { YMap, YMapDefaultFeaturesLayer, YMapDefaultSchemeLayer, YMapFeature, YMapListener, YMapMarker } = mapApi;
 
-                    return (
-                      <YMapFeature
-                        key={`polygon-feature-${polygonIndex}`}
-                        geometry={{
-                          type: 'Polygon',
-                          coordinates: [
-                            [...polygon.outer, polygon.outer[0]].filter(Boolean),
-                            ...polygon.holes.map((ring) => [...ring, ring[0]].filter(Boolean)),
-                          ],
-                        }}
-                        style={getFeatureStyle(polygonIndex === safeActivePolygonIndex)}
-                      />
-                    );
-                  })}
+                return (
+                  <YMap location={mapLocation} mode="vector" className="h-full min-h-[560px] w-full">
+                    <YMapDefaultSchemeLayer />
+                    <YMapDefaultFeaturesLayer />
+                    <YMapListener layer="any" onClick={handleMapClick} />
 
-                  {userLocation ? (
-                    <YMapMarker coordinates={userLocation}>
-                      <div className="delivery-zone-map-marker delivery-point-map-marker delivery-zone-map-marker-current">Вы</div>
-                    </YMapMarker>
-                  ) : null}
+                    {polygons.map((polygon, polygonIndex) => {
+                      if (polygon.outer.length < 3) {
+                        return null;
+                      }
 
-                  {activePolygon?.outer.map((point, pointIndex) => (
-                    <YMapMarker
-                      key={`polygon-point-${safeActivePolygonIndex}-${pointIndex}`}
-                      coordinates={point}
-                      draggable
-                      onDragMove={(event) => handleVertexDrag(pointIndex, event)}
-                      onDragEnd={(event) => handleVertexDrag(pointIndex, event)}
-                    >
-                      <div className={`delivery-zone-map-marker${pointIndex === 0 ? ' delivery-zone-map-marker-primary' : ''}`}>
-                        {pointIndex + 1}
-                      </div>
-                    </YMapMarker>
-                  ))}
-                </YMap>
-              );
-            })()
-          )}
-        </div>
-      </div>
+                      return (
+                        <YMapFeature
+                          key={`polygon-feature-${polygonIndex}`}
+                          geometry={{
+                            type: 'Polygon',
+                            coordinates: [
+                              [...polygon.outer, polygon.outer[0]].filter(Boolean),
+                              ...polygon.holes.map((ring) => [...ring, ring[0]].filter(Boolean)),
+                            ],
+                          }}
+                          style={getFeatureStyle(polygonIndex === safeActivePolygonIndex)}
+                        />
+                      );
+                    })}
 
-      <aside className="delivery-zone-map-sidebar">
-        <div className="catalog-card-copy">
-          <h4 className="delivery-subtitle">Как редактировать</h4>
-          <p className="catalog-meta">
-            Клик по карте добавляет вершину в активный контур. Перетаскивайте маркеры, чтобы править форму, и удаляйте лишние точки
-            или контуры в списке справа.
-          </p>
-        </div>
+                    {userLocation ? (
+                      <YMapMarker coordinates={userLocation}>
+                        <div className={cn(MARKER_CLASS_NAME, 'min-w-10 bg-sky-700 px-2 text-[0.72rem]')}>Вы</div>
+                      </YMapMarker>
+                    ) : null}
 
-        <div className="delivery-zone-preview-item">
-          <h5 className="delivery-zone-preview-title">Местоположение</h5>
-          <p className="catalog-meta">
-            {isUserLocationLoading
-              ? 'Запрашиваем доступ к местоположению браузера и переводим карту к текущей точке.'
-              : userLocation
-                ? `Карта переведена к вашей точке: широта ${formatCoordinateValue(userLocation[1])}, долгота ${formatCoordinateValue(userLocation[0])}.`
-                : userLocationError || 'Текущее местоположение пока не определено.'}
-          </p>
-        </div>
-
-        <div className="delivery-zone-contour-list">
-          {polygons.length ? (
-            polygons.map((polygon, polygonIndex) => (
-              <article
-                key={`polygon-card-${polygonIndex}`}
-                className={`delivery-zone-contour-card${polygonIndex === safeActivePolygonIndex ? ' delivery-zone-contour-card-active' : ''}`}
-              >
-                <div className="delivery-zone-header-row">
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={() => onActivePolygonIndexChange(polygonIndex)}
-                  >
-                    Контур {polygonIndex + 1}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="secondary-button secondary-button-danger"
-                    onClick={() => handleDeletePolygon(polygonIndex)}
-                  >
-                    Удалить
-                  </button>
-                </div>
-
-                <p className="catalog-meta">
-                  {polygon.outer.length} вершин{polygon.holes.length ? ` • ${polygon.holes.length} внутренних колец сохранено` : ''}
-                </p>
-
-                {polygonIndex === safeActivePolygonIndex ? (
-                  <div className="delivery-zone-vertex-list">
-                    {polygon.outer.length ? (
-                      polygon.outer.map((point, pointIndex) => (
-                        <div key={`vertex-${polygonIndex}-${pointIndex}`} className="delivery-zone-vertex-item">
-                          <div>
-                            <p className="delivery-zone-vertex-title">Точка {pointIndex + 1}</p>
-                            <p className="catalog-meta">
-                              {formatCoordinateValue(point[1])}, {formatCoordinateValue(point[0])}
-                            </p>
-                          </div>
-
-                          <button
-                            type="button"
-                            className="secondary-button secondary-button-danger"
-                            onClick={() => handleDeleteVertex(pointIndex)}
-                          >
-                            Удалить
-                          </button>
+                    {activePolygon?.outer.map((point, pointIndex) => (
+                      <YMapMarker
+                        key={`polygon-point-${safeActivePolygonIndex}-${pointIndex}`}
+                        coordinates={point}
+                        draggable
+                        onDragMove={(event) => handleVertexDrag(pointIndex, event)}
+                        onDragEnd={(event) => handleVertexDrag(pointIndex, event)}
+                      >
+                        <div className={cn(MARKER_CLASS_NAME, pointIndex === 0 ? 'bg-destructive text-destructive-foreground' : '')}>
+                          {pointIndex + 1}
                         </div>
-                      ))
-                    ) : (
-                      <p className="catalog-empty-state">Добавьте точки кликом по карте.</p>
-                    )}
+                      </YMapMarker>
+                    ))}
+                  </YMap>
+                );
+              })()
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <aside className="grid gap-4">
+        <Card className={INFO_CARD_CLASS_NAME}>
+          <CardHeader className="gap-1 border-b border-border/70 py-5">
+            <p className="text-[0.72rem] font-semibold tracking-[0.18em] text-primary uppercase">Guide</p>
+            <CardTitle className="text-lg font-semibold tracking-tight">Как редактировать</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-4">
+            <p className="text-sm leading-6 text-muted-foreground">
+              Клик по карте добавляет вершину в активный контур. Перетаскивайте маркеры, чтобы править форму, и удаляйте лишние
+              точки или контуры в списке ниже.
+            </p>
+            <div className="rounded-[1.1rem] border border-border/70 bg-muted/25 px-4 py-3 text-sm leading-6 text-muted-foreground">
+              Первая вершина выделена красным. Кнопка «Вписать в экран» вручную возвращает камеру к текущей геометрии.
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className={INFO_CARD_CLASS_NAME}>
+          <CardHeader className="gap-1 border-b border-border/70 py-5">
+            <p className="text-[0.72rem] font-semibold tracking-[0.18em] text-primary uppercase">Geolocation</p>
+            <CardTitle className="text-lg font-semibold tracking-tight">Местоположение</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-4">
+            <p className="text-sm leading-6 text-muted-foreground">
+              {isUserLocationLoading
+                ? 'Запрашиваем доступ к местоположению браузера и переводим карту к текущей точке.'
+                : userLocation
+                  ? `Карта переведена к вашей точке: широта ${formatCoordinateValue(userLocation[1])}, долгота ${formatCoordinateValue(userLocation[0])}.`
+                  : userLocationError || 'Текущее местоположение пока не определено.'}
+            </p>
+            {userLocation ? (
+              <div className="rounded-[1.1rem] border border-border/70 bg-muted/25 px-4 py-3 font-mono text-xs text-foreground">
+                {formatCoordinateValue(userLocation[1])}, {formatCoordinateValue(userLocation[0])}
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card className={INFO_CARD_CLASS_NAME}>
+          <CardHeader className="gap-3 border-b border-border/70 py-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-[0.72rem] font-semibold tracking-[0.18em] text-primary uppercase">Contours</p>
+                <CardTitle className="text-lg font-semibold tracking-tight">Контуры</CardTitle>
+              </div>
+              <Badge variant="outline" className="h-auto rounded-full px-3 py-1 text-[0.72rem] font-medium">
+                {polygons.length}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-4">
+            {polygons.length ? (
+              polygons.map((polygon, polygonIndex) => (
+                <article
+                  key={`polygon-card-${polygonIndex}`}
+                  className={cn(
+                    'rounded-[1.25rem] border border-border/70 bg-background/70 p-4 transition',
+                    polygonIndex === safeActivePolygonIndex && 'border-primary/35 ring-1 ring-primary/10',
+                  )}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          variant={polygonIndex === safeActivePolygonIndex ? 'secondary' : 'outline'}
+                          size="sm"
+                          className="rounded-full px-3"
+                          onClick={() => onActivePolygonIndexChange(polygonIndex)}
+                        >
+                          Контур {polygonIndex + 1}
+                        </Button>
+                        {polygonIndex === safeActivePolygonIndex ? (
+                          <Badge variant="secondary" className="h-auto rounded-full px-2.5 py-1 text-[0.72rem] font-medium">
+                            Активный
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <p className="text-sm leading-6 text-muted-foreground">
+                        {polygon.outer.length} вершин{polygon.holes.length ? ` • ${polygon.holes.length} внутренних колец сохранено` : ''}
+                      </p>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="rounded-full px-3"
+                      onClick={() => handleDeletePolygon(polygonIndex)}
+                    >
+                      Удалить
+                    </Button>
                   </div>
-                ) : null}
-              </article>
-            ))
-          ) : (
-            <p className="catalog-empty-state">Контуры еще не добавлены. Нажмите на карту, чтобы начать рисовать.</p>
-          )}
-        </div>
+
+                  {polygonIndex === safeActivePolygonIndex ? (
+                    <div className="mt-4 space-y-2 border-t border-border/70 pt-4">
+                      {polygon.outer.length ? (
+                        polygon.outer.map((point, pointIndex) => (
+                          <div
+                            key={`vertex-${polygonIndex}-${pointIndex}`}
+                            className="flex items-center justify-between gap-3 rounded-[1rem] bg-muted/25 px-3 py-3"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground">Точка {pointIndex + 1}</p>
+                              <p className="mt-1 font-mono text-xs text-muted-foreground">
+                                {formatCoordinateValue(point[1])}, {formatCoordinateValue(point[0])}
+                              </p>
+                            </div>
+
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="rounded-full px-3"
+                              onClick={() => handleDeleteVertex(pointIndex)}
+                            >
+                              Удалить
+                            </Button>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="rounded-[1rem] border border-dashed border-border/80 bg-muted/25 px-4 py-5 text-sm leading-6 text-muted-foreground">
+                          Добавьте точки кликом по карте.
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </article>
+              ))
+            ) : (
+              <div className="rounded-[1.1rem] border border-dashed border-border/80 bg-muted/25 px-4 py-6 text-sm leading-6 text-muted-foreground">
+                Контуры еще не добавлены. Нажмите на карту, чтобы начать рисовать.
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </aside>
     </div>
   );
