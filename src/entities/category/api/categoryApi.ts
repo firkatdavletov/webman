@@ -11,6 +11,7 @@ import {
 import type { MediaImage } from '@/shared/model/media';
 
 type CategoryResponse = components['schemas']['AdminCategoryResponse'];
+type AdminCategoryDetailsResponse = components['schemas']['AdminCategoryDetailsResponse'];
 type UpsertCategoryRequest = components['schemas']['UpsertCategoryRequest'];
 type CreateUploadSessionResponse = components['schemas']['CreateUploadSessionResponse'];
 type MediaImageResponse = components['schemas']['MediaImageResponse'];
@@ -41,6 +42,11 @@ type AdminCategoryListResult = {
   error?: ApiError;
 };
 
+type AdminCategoryDetailsResult = {
+  data?: AdminCategoryDetailsResponse;
+  error?: ApiError;
+};
+
 const adminCategoriesApiClient = apiClient as unknown as {
   GET(
     path: '/api/v1/admin/catalog/categories',
@@ -53,6 +59,17 @@ const adminCategoriesApiClient = apiClient as unknown as {
       };
     },
   ): Promise<AdminCategoryListResult>;
+  GET(
+    path: '/api/v1/admin/catalog/categories/{categoryId}',
+    init: {
+      headers?: HeadersInit;
+      params: {
+        path: {
+          categoryId: string;
+        };
+      };
+    },
+  ): Promise<AdminCategoryDetailsResult>;
 };
 
 export type CategoryListResult = {
@@ -115,14 +132,36 @@ function getProtectedErrorMessage(error: ApiError | undefined, fallbackMessage: 
   return getApiErrorMessage(error, fallbackMessage);
 }
 
-function mapCategory(category: CategoryResponse): Category {
+function mapBaseCategory(
+  category: CategoryResponse | AdminCategoryDetailsResponse,
+): Omit<Category, 'products' | 'children'> {
+  const detailsCategory = category as Partial<AdminCategoryDetailsResponse>;
+  const imageIds = 'imageIds' in category ? category.imageIds : undefined;
+
   return {
     id: category.id,
-    parentCategory: null,
+    parentCategory: detailsCategory.parentId ?? null,
+    externalId: detailsCategory.externalId ?? null,
     title: category.name,
     slug: category.slug,
+    description: detailsCategory.description ?? null,
+    sortOrder: detailsCategory.sortOrder ?? null,
     isActive: category.isActive ?? true,
-    images: buildMediaImagesFromUrls(category.imageUrls, category.imageIds),
+    images: buildMediaImagesFromUrls(category.imageUrls, imageIds),
+  };
+}
+
+function mapCategory(category: CategoryResponse): Category {
+  return {
+    ...mapBaseCategory(category),
+    products: [],
+    children: [],
+  };
+}
+
+function mapCategoryDetails(category: AdminCategoryDetailsResponse): Category {
+  return {
+    ...mapBaseCategory(category),
     products: [],
     children: [],
   };
@@ -131,8 +170,11 @@ function mapCategory(category: CategoryResponse): Category {
 function mapSaveCategoryRequest(category: Category): UpsertCategoryRequest {
   return {
     id: category.id || null,
+    externalId: category.externalId,
     name: category.title,
     slug: category.slug || null,
+    description: category.description,
+    sortOrder: category.sortOrder,
     imageIds: getMediaImageIdsForSave(category.images),
     isActive: category.isActive,
   };
@@ -196,6 +238,26 @@ export async function getCategories(options: GetCategoriesOptions = {}): Promise
 }
 
 export async function getCategoryById(id: string): Promise<CategoryResult> {
+  try {
+    const result = await adminCategoriesApiClient.GET('/api/v1/admin/catalog/categories/{categoryId}', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: {
+          categoryId: id,
+        },
+      },
+    });
+
+    if (!result.error && result.data) {
+      return {
+        category: mapCategoryDetails(result.data),
+        error: null,
+      };
+    }
+  } catch {
+    // Fall back to the list endpoints below.
+  }
+
   const activeResult = await getCategories({
     isActive: true,
   });
@@ -264,8 +326,18 @@ export async function saveCategory(category: Category): Promise<SaveCategoryResu
       };
     }
 
+    const savedCategory = mapCategory(result.data);
+
     return {
-      category: mapCategory(result.data),
+      category: {
+        ...savedCategory,
+        parentCategory: category.parentCategory,
+        externalId: category.externalId,
+        description: category.description,
+        sortOrder: category.sortOrder,
+        products: category.products,
+        children: category.children,
+      },
       error: null,
     };
   } catch {

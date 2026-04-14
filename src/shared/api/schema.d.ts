@@ -73,6 +73,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/catalog/categories/{categoryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get full category by id */
+        get: operations["getAdminCategoryDetails"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/catalog/categories/{categoryId}/images/{imageId}": {
         parameters: {
             query?: never;
@@ -1006,6 +1023,21 @@ export interface components {
             imageUrls: string[];
             isActive: boolean;
         };
+        AdminCategoryDetailsResponse: {
+            /** Format: uuid */
+            id: string;
+            externalId?: string | null;
+            name: string;
+            slug: string;
+            /** Format: uuid */
+            parentId?: string | null;
+            description?: string | null;
+            /** Format: int32 */
+            sortOrder: number;
+            imageIds: string[];
+            imageUrls: string[];
+            isActive: boolean;
+        };
         ProductResponse: {
             /** Format: uuid */
             id: string;
@@ -1150,8 +1182,12 @@ export interface components {
         UpsertCategoryRequest: {
             /** Format: uuid */
             id?: string | null;
+            externalId?: string | null;
             name: string;
             slug?: string | null;
+            description?: string | null;
+            /** Format: int32 */
+            sortOrder?: number | null;
             imageIds?: string[];
             /** @default true */
             isActive: boolean;
@@ -2120,6 +2156,33 @@ export interface operations {
             400: components["responses"]["BadRequestError"];
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getAdminCategoryDetails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                categoryId: components["parameters"]["CategoryIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Category details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCategoryDetailsResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
             500: components["responses"]["InternalServerError"];
         };
     };
