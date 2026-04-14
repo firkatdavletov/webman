@@ -1,7 +1,13 @@
-import { Suspense, lazy, type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type ChangeEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { Link, useParams } from 'react-router-dom';
 import { type Category, buildCategoryLookup, getCategories } from '@/entities/category';
-import { type ModifierGroup, getAllModifierGroups } from '@/entities/modifier-group';
+import {
+  formatModifierConstraints,
+  type ModifierGroup,
+  type ProductModifierGroupLink,
+  getAllModifierGroups,
+} from '@/entities/modifier-group';
 import {
   completeProductImageUpload,
   deleteProductImage,
@@ -14,28 +20,148 @@ import {
   type Product,
   uploadProductImageToStorage,
 } from '@/entities/product';
-import {
-  buildProductEditorValues,
-  mapProductEditorValuesToProductStructures,
-  parseOptionalProductPrice,
-  parseProductPrice,
-  type ProductEditorValues,
-  validateProductModifierGroupsSection,
-  validateProductVariantsSection,
-} from '@/features/product-editor';
+import { cn } from '@/shared/lib/cn';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
+import {
+  AdminEmptyState,
+  AdminNotice,
+  AdminPage,
+  AdminPageHeader,
+  AdminPageStatus,
+  AdminSectionCard,
+  Badge,
+  Button,
+  FormField,
+  Input,
+  LazyDataTable,
+} from '@/shared/ui';
 
+type ProductModifierGroupFormValue = {
+  modifierGroupId: string;
+  sortOrder: string;
+  isActive: boolean;
+};
+
+type ProductDetailsFormValues = {
+  categoryId: string;
+  title: string;
+  description: string;
+  price: string;
+  oldPrice: string;
+  isActive: boolean;
+  unit: Product['unit'];
+  countStep: string;
+  sku: string;
+  modifierGroups: ProductModifierGroupFormValue[];
+};
+
+type UtilityStatProps = {
+  label: string;
+  value: ReactNode;
+  hint?: ReactNode;
+  className?: string;
+};
+
+const PRODUCT_UNIT_OPTIONS: Array<{ value: Product['unit']; label: string }> = [
+  { value: 'PIECE', label: 'шт' },
+  { value: 'KILOGRAM', label: 'кг' },
+  { value: 'GRAM', label: 'г' },
+  { value: 'LITER', label: 'л' },
+  { value: 'MILLILITER', label: 'мл' },
+];
 const SUPPORTED_PRODUCT_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
-const ProductEditor = lazy(() =>
-  import('@/features/product-editor/ui/ProductEditor').then((module) => ({
-    default: module.ProductEditor,
-  })),
-);
+const CONTROL_CLASSNAME =
+  'h-8 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50';
+
+function UtilityStat({ label, value, hint, className }: UtilityStatProps) {
+  return (
+    <div className={cn('rounded-[1.25rem] border border-border/70 bg-background/70 px-4 py-4', className)}>
+      <p className="text-[0.72rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">{label}</p>
+      <div className="mt-1 text-sm font-medium text-foreground">{value}</div>
+      {hint ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{hint}</p> : null}
+    </div>
+  );
+}
+
+function formatEditablePrice(minorValue: number): string {
+  const rawValue = (minorValue / 100).toFixed(2);
+
+  return rawValue.replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+}
+
+function parsePrice(value: string): number | null {
+  const normalizedValue = value.trim().replace(',', '.');
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  const numericValue = Number(normalizedValue);
+
+  if (Number.isNaN(numericValue) || numericValue < 0) {
+    return null;
+  }
+
+  return Math.round(numericValue * 100);
+}
+
+function parseOptionalPrice(value: string): number | null | undefined {
+  const normalizedValue = value.trim();
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  return parsePrice(normalizedValue) ?? undefined;
+}
+
+function parseInteger(value: string): number | null {
+  const normalizedValue = value.trim();
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  const numericValue = Number(normalizedValue);
+
+  if (!Number.isInteger(numericValue)) {
+    return null;
+  }
+
+  return numericValue;
+}
+
+function buildProductFormValues(product: Product): ProductDetailsFormValues {
+  return {
+    categoryId: product.categoryId,
+    title: product.title,
+    description: product.description ?? '',
+    price: formatEditablePrice(product.price),
+    oldPrice: product.oldPrice === null ? '' : formatEditablePrice(product.oldPrice),
+    isActive: product.isActive,
+    unit: product.unit,
+    countStep: String(product.countStep),
+    sku: product.sku ?? '',
+    modifierGroups: product.modifierGroups.map((group) => ({
+      modifierGroupId: group.modifierGroupId,
+      sortOrder: String(group.sortOrder),
+      isActive: group.isActive,
+    })),
+  };
+}
+
+function getImageKey(imageId: string | null, imageUrl: string, imageIndex: number): string {
+  return imageId?.trim() || `${imageUrl}-${imageIndex}`;
+}
+
+function getProductStatusClassName(isActive: boolean): string {
+  return isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-border bg-muted/40 text-muted-foreground';
+}
 
 export function ProductDetailsPage() {
   const { productId } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
-  const [formValues, setFormValues] = useState<ProductEditorValues | null>(null);
+  const [formValues, setFormValues] = useState<ProductDetailsFormValues | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
@@ -54,7 +180,9 @@ export function ProductDetailsPage() {
     const loadProductDetails = async () => {
       if (!isUuid(normalizedProductId)) {
         setProduct(null);
+        setFormValues(null);
         setCategories([]);
+        setModifierGroups([]);
         setErrorMessage('Некорректный идентификатор товара.');
         setPendingImageRemovalKey(null);
         setIsLoading(false);
@@ -72,7 +200,7 @@ export function ProductDetailsPage() {
       const nextErrors = [productResult.error, categoriesResult.error, modifierGroupsResult.error].filter(Boolean).join(' ');
 
       setProduct(productResult.product);
-      setFormValues(productResult.product ? buildProductEditorValues(productResult.product) : null);
+      setFormValues(productResult.product ? buildProductFormValues(productResult.product) : null);
       setCategories(categoriesResult.categories);
       setModifierGroups(modifierGroupsResult.modifierGroups);
       setErrorMessage(nextErrors);
@@ -87,6 +215,7 @@ export function ProductDetailsPage() {
     void loadProductDetails();
   }, [normalizedProductId]);
 
+  const isMutating = isSaving || isImageUploading || pendingImageRemovalKey !== null;
   const categoryLookup = useMemo(() => buildCategoryLookup(categories), [categories]);
   const categoryTitle = product ? categoryLookup.get(product.categoryId) ?? `#${product.categoryId}` : 'Не определена';
   const categoryOptions = useMemo(() => {
@@ -98,8 +227,9 @@ export function ProductDetailsPage() {
 
     return entries.sort((left, right) => left[1].localeCompare(right[1], 'ru'));
   }, [categoryLookup, product]);
+  const modifierGroupLookup = useMemo(() => new Map(modifierGroups.map((group) => [group.id, group])), [modifierGroups]);
 
-  const handleValuesChange = (updater: (currentValues: ProductEditorValues) => ProductEditorValues) => {
+  const handleFormChange = (updater: (currentValues: ProductDetailsFormValues) => ProductDetailsFormValues) => {
     setFormValues((currentValues) => (currentValues ? updater(currentValues) : currentValues));
 
     if (saveError) {
@@ -123,7 +253,7 @@ export function ProductDetailsPage() {
     const imageFiles = Array.from(event.target.files ?? []);
     event.target.value = '';
 
-    if (!imageFiles.length || !formValues || !product) {
+    if (!imageFiles.length || !product) {
       return;
     }
 
@@ -181,7 +311,7 @@ export function ProductDetailsPage() {
                   ...currentProduct.images,
                   {
                     id: completeResult.image?.id ?? null,
-                    url: previewDataUrl,
+                    url: completeResult.image?.url || previewDataUrl,
                   },
                 ],
               }
@@ -194,9 +324,6 @@ export function ProductDetailsPage() {
       setIsImageUploading(false);
     }
   };
-
-  const getImageKey = (imageId: string | null, imageUrl: string, imageIndex: number) =>
-    imageId?.trim() || `${imageUrl}-${imageIndex}`;
 
   const handleImageRemove = async (imageIndex: number) => {
     if (!product) {
@@ -249,6 +376,20 @@ export function ProductDetailsPage() {
     setPendingImageRemovalKey(null);
   };
 
+  const handleAddModifierGroup = () => {
+    handleFormChange((currentValues) => ({
+      ...currentValues,
+      modifierGroups: [...currentValues.modifierGroups, { modifierGroupId: '', sortOrder: '0', isActive: true }],
+    }));
+  };
+
+  const handleRemoveModifierGroup = (index: number) => {
+    handleFormChange((currentValues) => ({
+      ...currentValues,
+      modifierGroups: currentValues.modifierGroups.filter((_, currentIndex) => currentIndex !== index),
+    }));
+  };
+
   const handleSave = async () => {
     if (!product || !formValues) {
       return;
@@ -256,9 +397,11 @@ export function ProductDetailsPage() {
 
     const normalizedTitle = formValues.title.trim();
     const normalizedCategoryId = formValues.categoryId.trim();
-    const normalizedCountStep = Number(formValues.countStep);
-    const normalizedPrice = parseProductPrice(formValues.price);
-    const normalizedOldPrice = parseOptionalProductPrice(formValues.oldPrice);
+    const normalizedDescription = formValues.description.trim();
+    const normalizedSku = formValues.sku.trim();
+    const normalizedCountStep = parseInteger(formValues.countStep);
+    const normalizedPrice = parsePrice(formValues.price);
+    const normalizedOldPrice = parseOptionalPrice(formValues.oldPrice);
 
     if (!normalizedTitle) {
       setSaveError('Укажите название товара.');
@@ -280,250 +423,685 @@ export function ProductDetailsPage() {
       return;
     }
 
-    if (!Number.isInteger(normalizedCountStep) || normalizedCountStep <= 0) {
+    if (normalizedCountStep === null || normalizedCountStep <= 0) {
       setSaveError('Шаг продажи должен быть положительным целым числом.');
       return;
     }
 
-    if (!formValues.unit) {
-      setSaveError('Выберите единицу измерения.');
-      return;
-    }
+    const selectedModifierGroupIds = new Set<string>();
+    const nextModifierGroups: ProductModifierGroupLink[] = [];
 
-    const variantsValidationError = validateProductVariantsSection(formValues);
+    for (let index = 0; index < formValues.modifierGroups.length; index += 1) {
+      const modifierGroup = formValues.modifierGroups[index];
+      const normalizedModifierGroupId = modifierGroup.modifierGroupId.trim();
+      const parsedSortOrder = parseInteger(modifierGroup.sortOrder);
 
-    if (variantsValidationError) {
-      setSaveError(variantsValidationError);
-      return;
-    }
+      if (!normalizedModifierGroupId) {
+        setSaveError(`Выберите группу модификаторов в строке №${index + 1}.`);
+        return;
+      }
 
-    const modifierGroupsValidationError = validateProductModifierGroupsSection(formValues, modifierGroups);
+      if (selectedModifierGroupIds.has(normalizedModifierGroupId)) {
+        setSaveError('Одна и та же группа модификаторов не может быть привязана к товару несколько раз.');
+        return;
+      }
 
-    if (modifierGroupsValidationError) {
-      setSaveError(modifierGroupsValidationError);
-      return;
+      const modifierDefinition = modifierGroupLookup.get(normalizedModifierGroupId) ?? null;
+
+      if (!modifierDefinition) {
+        setSaveError('Одна из выбранных групп модификаторов отсутствует в справочнике.');
+        return;
+      }
+
+      if (parsedSortOrder === null) {
+        setSaveError(`Sort order у модификатора №${index + 1} должен быть целым числом.`);
+        return;
+      }
+
+      selectedModifierGroupIds.add(normalizedModifierGroupId);
+      nextModifierGroups.push({
+        modifierGroupId: normalizedModifierGroupId,
+        code: modifierDefinition.code,
+        name: modifierDefinition.name,
+        minSelected: modifierDefinition.minSelected,
+        maxSelected: modifierDefinition.maxSelected,
+        isRequired: modifierDefinition.isRequired,
+        isActive: modifierGroup.isActive,
+        sortOrder: parsedSortOrder,
+        options: modifierDefinition.options.map((option) => ({
+          ...option,
+        })),
+      });
     }
 
     setIsSaving(true);
     setSaveError('');
     setSaveSuccess('');
 
-    const { optionGroups, modifierGroups: productModifierGroups, variants } = mapProductEditorValuesToProductStructures(
-      formValues,
-      modifierGroups,
-    );
-
     const result = await saveProduct({
       ...product,
       categoryId: normalizedCategoryId,
       title: normalizedTitle,
-      isActive: formValues.isActive,
-      description: formValues.description.trim() || null,
+      description: normalizedDescription || null,
       price: normalizedPrice,
       oldPrice: normalizedOldPrice ?? null,
-      images: product.images,
-      unit: formValues.unit as Product['unit'],
-      displayWeight: formValues.displayWeight.trim() || null,
+      sku: normalizedSku || null,
+      unit: formValues.unit,
       countStep: normalizedCountStep,
-      sku: formValues.sku.trim() || null,
-      optionGroups,
-      modifierGroups: productModifierGroups,
-      variants,
+      isActive: formValues.isActive,
+      modifierGroups: nextModifierGroups,
+      images: product.images,
+      optionGroups: product.optionGroups,
+      variants: product.variants,
     });
 
-    if (result.product) {
-      setProduct(result.product);
-      setFormValues(buildProductEditorValues(result.product));
-      setSaveSuccess('Изменения сохранены.');
-    } else {
+    if (!result.product) {
       setSaveError(result.error ?? 'Не удалось сохранить изменения.');
+      setIsSaving(false);
+      return;
     }
 
+    setProduct(result.product);
+    setFormValues(buildProductFormValues(result.product));
+    setSaveSuccess('Изменения сохранены.');
     setIsSaving(false);
   };
 
-  return (
-    <main className="dashboard">
-        <nav className="breadcrumbs" aria-label="Хлебные крошки">
-          <Link className="breadcrumb-link" to="/categories">
-            Каталог
-          </Link>
-          <span className="breadcrumb-separator">/</span>
-          <Link className="breadcrumb-link" to="/products">
-            Продукты
-          </Link>
-          {product ? (
-            <>
-              <span className="breadcrumb-separator">/</span>
-              <Link className="breadcrumb-link" to={`/categories/${product.categoryId}`}>
-                {categoryTitle}
-              </Link>
-              <span className="breadcrumb-separator">/</span>
-              <span className="breadcrumb-current">{product.title}</span>
-            </>
-          ) : null}
-        </nav>
+  const optionGroupColumns = useMemo<ColumnDef<Product['optionGroups'][number]>[]>(
+    () => [
+      {
+        id: 'code',
+        header: 'Code',
+        cell: ({ row }) => {
+          const optionGroup = row.original;
 
-        <header className="dashboard-header">
-          <div>
-            <p className="page-kicker">Каталог</p>
-            <h2 className="page-title">Карточка товара</h2>
-          </div>
-          <div className="dashboard-actions">
-            <Link className="secondary-link" to="/products">
+          if (!optionGroup.id) {
+            return optionGroup.code || '—';
+          }
+
+          return (
+            <Link
+              className="font-medium text-primary transition-colors hover:text-primary/80 hover:underline"
+              to={`/products/${normalizedProductId}/option-groups/${optionGroup.id}`}
+            >
+              {optionGroup.code || `Группа #${row.index + 1}`}
+            </Link>
+          );
+        },
+      },
+      {
+        id: 'title',
+        header: 'Название',
+        cell: ({ row }) => row.original.title || '—',
+      },
+      {
+        id: 'valuesCount',
+        header: 'Значений',
+        cell: ({ row }) => row.original.values.length,
+      },
+      {
+        id: 'sortOrder',
+        header: 'Sort order',
+        cell: ({ row }) => row.original.sortOrder,
+      },
+    ],
+    [normalizedProductId],
+  );
+
+  const variantColumns = useMemo<ColumnDef<Product['variants'][number]>[]>(
+    () => [
+      {
+        id: 'sku',
+        header: 'SKU',
+        cell: ({ row }) => {
+          const variant = row.original;
+
+          if (!variant.id) {
+            return variant.sku || '—';
+          }
+
+          return (
+            <Link
+              className="font-medium text-primary transition-colors hover:text-primary/80 hover:underline"
+              to={`/products/${normalizedProductId}/variants/${variant.id}`}
+            >
+              {variant.sku || `Вариант #${row.index + 1}`}
+            </Link>
+          );
+        },
+      },
+      {
+        id: 'title',
+        header: 'Название',
+        cell: ({ row }) => row.original.title || '—',
+      },
+      {
+        id: 'price',
+        header: 'Цена',
+        cell: ({ row }) => (row.original.price === null ? '—' : formatPrice(row.original.price)),
+      },
+      {
+        id: 'options',
+        header: 'Опции',
+        cell: ({ row }) => {
+          if (!row.original.options.length) {
+            return '—';
+          }
+
+          return row.original.options.map((option) => `${option.optionGroupCode}:${option.optionValueCode}`).join(', ');
+        },
+      },
+      {
+        id: 'status',
+        header: 'Статус',
+        cell: ({ row }) => (
+          <Badge className={cn('border', getProductStatusClassName(row.original.isActive))}>
+            {row.original.isActive ? 'Активен' : 'Выключен'}
+          </Badge>
+        ),
+      },
+    ],
+    [normalizedProductId],
+  );
+
+  const modifierColumns = useMemo<ColumnDef<ProductModifierGroupFormValue>[]>(
+    () => [
+      {
+        id: 'modifierGroupId',
+        header: 'Группа',
+        cell: ({ row }) => {
+          const currentValue = formValues?.modifierGroups[row.index];
+
+          if (!currentValue) {
+            return null;
+          }
+
+          return (
+            <select
+              className={CONTROL_CLASSNAME}
+              value={currentValue.modifierGroupId}
+              disabled={isMutating}
+              onChange={(event) =>
+                handleFormChange((currentValues) => ({
+                  ...currentValues,
+                  modifierGroups: currentValues.modifierGroups.map((item, itemIndex) =>
+                    itemIndex === row.index
+                      ? {
+                          ...item,
+                          modifierGroupId: event.target.value,
+                        }
+                      : item,
+                  ),
+                }))
+              }
+            >
+              <option value="">Выберите группу</option>
+              {modifierGroups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name} ({group.code})
+                </option>
+              ))}
+            </select>
+          );
+        },
+      },
+      {
+        id: 'constraints',
+        header: 'Ограничения',
+        cell: ({ row }) => {
+          const currentValue = formValues?.modifierGroups[row.index];
+
+          if (!currentValue) {
+            return '—';
+          }
+
+          const selectedModifierGroup = modifierGroupLookup.get(currentValue.modifierGroupId);
+
+          return selectedModifierGroup ? formatModifierConstraints(selectedModifierGroup) : '—';
+        },
+      },
+      {
+        id: 'sortOrder',
+        header: 'Sort order',
+        cell: ({ row }) => {
+          const currentValue = formValues?.modifierGroups[row.index];
+
+          if (!currentValue) {
+            return null;
+          }
+
+          return (
+            <Input
+              value={currentValue.sortOrder}
+              disabled={isMutating}
+              onChange={(event) =>
+                handleFormChange((currentValues) => ({
+                  ...currentValues,
+                  modifierGroups: currentValues.modifierGroups.map((item, itemIndex) =>
+                    itemIndex === row.index
+                      ? {
+                          ...item,
+                          sortOrder: event.target.value,
+                        }
+                      : item,
+                  ),
+                }))
+              }
+            />
+          );
+        },
+      },
+      {
+        id: 'isActive',
+        header: 'Активна',
+        cell: ({ row }) => {
+          const currentValue = formValues?.modifierGroups[row.index];
+
+          if (!currentValue) {
+            return null;
+          }
+
+          return (
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="size-4 rounded border-border text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                checked={currentValue.isActive}
+                disabled={isMutating}
+                onChange={(event) =>
+                  handleFormChange((currentValues) => ({
+                    ...currentValues,
+                    modifierGroups: currentValues.modifierGroups.map((item, itemIndex) =>
+                      itemIndex === row.index
+                        ? {
+                            ...item,
+                            isActive: event.target.checked,
+                          }
+                        : item,
+                    ),
+                  }))
+                }
+              />
+              {currentValue.isActive ? 'Да' : 'Нет'}
+            </label>
+          );
+        },
+      },
+      {
+        id: 'actions',
+        header: '',
+        cell: ({ row }) => (
+          <Button variant="ghost" size="sm" disabled={isMutating} onClick={() => handleRemoveModifierGroup(row.index)}>
+            Удалить
+          </Button>
+        ),
+      },
+    ],
+    [formValues?.modifierGroups, isMutating, modifierGroupLookup, modifierGroups],
+  );
+
+  if (isLoading) {
+    return (
+      <AdminPage>
+        <AdminPageHeader kicker="Каталог" title="Карточка товара" description="Загрузка данных карточки товара." />
+        <AdminSectionCard>
+          <AdminEmptyState title="Загрузка" description="Подготавливаем информацию о товаре и связанных сущностях." />
+        </AdminSectionCard>
+      </AdminPage>
+    );
+  }
+
+  if (!product || !formValues) {
+    return (
+      <AdminPage>
+        <AdminPageHeader
+          kicker="Каталог"
+          title="Карточка товара"
+          description="Товар не найден или недоступен."
+          actions={
+            <Link
+              className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              to="/products"
+            >
               К списку товаров
             </Link>
-          </div>
-        </header>
+          }
+        />
+        <AdminSectionCard>
+          <AdminEmptyState tone="destructive" title="Ошибка загрузки" description={errorMessage || 'Товар не найден.'} />
+        </AdminSectionCard>
+      </AdminPage>
+    );
+  }
 
-        {isLoading ? (
-          <section className="catalog-card product-detail-card">
-            <p className="catalog-empty-state">Загрузка карточки товара...</p>
-          </section>
-        ) : product ? (
-          <section className="catalog-card product-detail-card" aria-label="Информация о товаре">
-            <div className="product-detail-hero">
-              <div className="product-detail-media" aria-label="Фотографии товара">
-                {product.images.length ? (
-                  <div className="product-detail-image-list">
-                    {product.images.map((image, imageIndex) => (
-                      <div key={getImageKey(image.id, image.url, imageIndex)} className="media-image-card">
-                        <img
-                          className="product-detail-image"
-                          src={image.url}
-                          alt={`${formValues?.title || product.title} • фото ${imageIndex + 1}`}
-                        />
-                        <button
-                          type="button"
-                          className="media-image-remove-button"
-                          onClick={() => void handleImageRemove(imageIndex)}
-                          disabled={
-                            isSaving ||
-                            isImageUploading ||
-                            pendingImageRemovalKey !== null
-                          }
-                          aria-label={`Удалить фото ${imageIndex + 1}`}
-                          title="Удалить фото"
-                        >
-                          <span aria-hidden="true">×</span>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="product-image-placeholder">Фотографии отсутствуют</div>
-                )}
+  return (
+    <AdminPage>
+      <nav className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground" aria-label="Хлебные крошки">
+        <Link className="transition-colors hover:text-foreground" to="/categories">
+          Каталог
+        </Link>
+        <span>/</span>
+        <Link className="transition-colors hover:text-foreground" to="/products">
+          Продукты
+        </Link>
+        <span>/</span>
+        <Link className="transition-colors hover:text-foreground" to={`/categories/${product.categoryId}`}>
+          {categoryTitle}
+        </Link>
+        <span>/</span>
+        <span className="text-foreground">{product.title}</span>
+      </nav>
 
-                <div className="product-media-actions">
-                  <button
-                    type="button"
-                    className="secondary-button image-upload-button"
-                    onClick={handleImageUploadClick}
-                    disabled={isSaving || isImageUploading || pendingImageRemovalKey !== null || !formValues}
-                  >
-                    {isImageUploading ? 'Загрузка...' : 'Загрузить фото'}
-                  </button>
-                  <input
-                    ref={imageUploadInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    multiple
-                    className="file-picker-input"
-                    onChange={(event) => void handleImageUpload(event)}
-                    disabled={isSaving || isImageUploading || pendingImageRemovalKey !== null || !formValues}
-                    tabIndex={-1}
-                  />
-                  {imageUploadError ? (
-                    <p className="field-error" role="alert">
-                      {imageUploadError}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="catalog-card-copy product-detail-summary">
-                <p className="placeholder-eyebrow">Товар</p>
-                <h3 className="product-detail-title">{product.title}</h3>
-                <p className="product-detail-price">{formatPrice(product.price)}</p>
-              </div>
-            </div>
-
-            {errorMessage ? (
-              <p className="form-error" role="alert">
-                {errorMessage}
-              </p>
-            ) : null}
-
-            <div className="product-detail-grid">
-              <div className="detail-block">
-                <h4 className="detail-title">Идентификаторы</h4>
-                <p className="detail-copy">ID: {product.id}</p>
-                <p className="detail-copy">SKU: {product.sku ?? 'Не указан'}</p>
-              </div>
-
-              <div className="detail-block">
-                <h4 className="detail-title">Категория и единица</h4>
-                <p className="detail-copy">
-                  Категория:{' '}
-                  <Link className="inline-link" to={`/categories/${product.categoryId}`}>
-                    {categoryTitle}
-                  </Link>
-                </p>
-                <p className="detail-copy">Единица: {formatUnitLabel(product.unit)}</p>
-              </div>
-
-              <div className="detail-block">
-                <h4 className="detail-title">Параметры продажи</h4>
-                <p className="detail-copy">Шаг: {product.countStep}</p>
-                <p className="detail-copy">Вес на витрине: {product.displayWeight ?? 'Не указан'}</p>
-              </div>
-
-              <div className="detail-block">
-                <h4 className="detail-title">Модификаторы</h4>
-                <p className="detail-copy">
-                  Привязано групп: {product.modifierGroups.length} • В справочнике: {modifierGroups.length}
-                </p>
-              </div>
-
-              <div className="detail-block">
-                <h4 className="detail-title">Описание</h4>
-                <p className="detail-copy">{product.description ?? 'Описание отсутствует.'}</p>
-              </div>
-            </div>
-
-            {formValues ? (
-              <Suspense fallback={<p className="catalog-empty-state">Загрузка редактора товара...</p>}>
-                <ProductEditor
-                  idPrefix="product-edit"
-                  ariaLabel="Редактирование товара"
-                  eyebrow="Редактирование"
-                  title="Изменить товар"
-                  categoryOptions={categoryOptions}
-                  availableModifierGroups={modifierGroups}
-                  formValues={formValues}
-                  isSaving={isSaving || isImageUploading || pendingImageRemovalKey !== null}
-                  optionGroupEditorMode="drawer"
-                  variantEditorMode="drawer"
-                  saveError={saveError}
-                  saveSuccess={saveSuccess}
-                  submitLabel="Сохранить изменения"
-                  savingLabel="Сохранение..."
-                  onValuesChange={handleValuesChange}
-                  onSubmit={() => void handleSave()}
-                />
-              </Suspense>
-            ) : null}
-          </section>
-        ) : (
-          <section className="catalog-card product-detail-card">
-            <p className="form-error" role="alert">
-              {errorMessage || 'Товар не найден.'}
-            </p>
-            <Link className="secondary-link" to="/products">
-              Вернуться к списку товаров
+      <AdminPageHeader
+        kicker="Каталог"
+        title="Детали продукта"
+        description="Редактирование продукта вынесено отдельно от групп опций и вариантов."
+        actions={
+          <>
+            <AdminPageStatus>
+              <span className="font-medium">ID:</span> {product.id}
+            </AdminPageStatus>
+            <Link
+              className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              to="/products"
+            >
+              К списку товаров
             </Link>
-          </section>
+          </>
+        }
+      />
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <UtilityStat label="Статус" value={<Badge className={cn('border', getProductStatusClassName(formValues.isActive))}>{formValues.isActive ? 'Активен' : 'Выключен'}</Badge>} hint={`Категория: ${categoryTitle}`} />
+        <UtilityStat label="Цена" value={formatPrice(product.price)} hint={`Единица: ${formatUnitLabel(product.unit)}`} />
+        <UtilityStat label="Связанные группы" value={product.optionGroups.length} hint="Группы опций продукта" />
+        <UtilityStat label="Варианты" value={product.variants.length} hint="Варианты продукта" />
+      </section>
+
+      <AdminSectionCard
+        eyebrow="Медиа"
+        title="Фотографии продукта"
+        description="Загрузите или удалите фотографии карточки товара."
+        action={
+          <Button variant="outline" onClick={handleImageUploadClick} disabled={isMutating}>
+            {isImageUploading ? 'Загрузка...' : 'Загрузить фото'}
+          </Button>
+        }
+      >
+        <input
+          ref={imageUploadInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          className="hidden"
+          onChange={(event) => void handleImageUpload(event)}
+          disabled={isMutating}
+          tabIndex={-1}
+        />
+
+        {product.images.length ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {product.images.map((image, imageIndex) => {
+              const imageKey = getImageKey(image.id, image.url, imageIndex);
+              const isRemovingCurrentImage = pendingImageRemovalKey === imageKey;
+
+              return (
+                <article key={imageKey} className="overflow-hidden rounded-2xl border border-border/70 bg-background/70">
+                  <img className="aspect-square w-full object-cover" src={image.url} alt={`${product.title} • фото ${imageIndex + 1}`} />
+                  <div className="flex items-center justify-between gap-2 border-t border-border/60 px-3 py-2">
+                    <span className="text-xs text-muted-foreground">Фото #{imageIndex + 1}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void handleImageRemove(imageIndex)}
+                      disabled={isMutating}
+                    >
+                      {isRemovingCurrentImage ? 'Удаление...' : 'Удалить'}
+                    </Button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <AdminEmptyState description="У товара пока нет загруженных фотографий." />
         )}
-    </main>
+
+        {imageUploadError ? <AdminNotice tone="destructive">{imageUploadError}</AdminNotice> : null}
+      </AdminSectionCard>
+
+      <AdminSectionCard eyebrow="Продукт" title="Редактирование продукта" description="Сохраняются только поля продукта и связи модификаторов.">
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField htmlFor="product-title" label="Название">
+            <Input
+              id="product-title"
+              value={formValues.title}
+              disabled={isMutating}
+              onChange={(event) => handleFormChange((currentValues) => ({ ...currentValues, title: event.target.value }))}
+            />
+          </FormField>
+
+          <FormField htmlFor="product-category" label="Категория">
+            <select
+              id="product-category"
+              className={CONTROL_CLASSNAME}
+              value={formValues.categoryId}
+              disabled={isMutating}
+              onChange={(event) =>
+                handleFormChange((currentValues) => ({
+                  ...currentValues,
+                  categoryId: event.target.value,
+                }))
+              }
+            >
+              <option value="">Выберите категорию</option>
+              {categoryOptions.map(([id, title]) => (
+                <option key={id} value={id}>
+                  {title}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField htmlFor="product-price" label="Цена (руб.)">
+            <Input
+              id="product-price"
+              value={formValues.price}
+              disabled={isMutating}
+              inputMode="decimal"
+              onChange={(event) => handleFormChange((currentValues) => ({ ...currentValues, price: event.target.value }))}
+            />
+          </FormField>
+
+          <FormField htmlFor="product-old-price" label="Старая цена (руб.)">
+            <Input
+              id="product-old-price"
+              value={formValues.oldPrice}
+              disabled={isMutating}
+              inputMode="decimal"
+              onChange={(event) =>
+                handleFormChange((currentValues) => ({
+                  ...currentValues,
+                  oldPrice: event.target.value,
+                }))
+              }
+            />
+          </FormField>
+
+          <FormField htmlFor="product-unit" label="Единица измерения">
+            <select
+              id="product-unit"
+              className={CONTROL_CLASSNAME}
+              value={formValues.unit}
+              disabled={isMutating}
+              onChange={(event) =>
+                handleFormChange((currentValues) => ({
+                  ...currentValues,
+                  unit: event.target.value as Product['unit'],
+                }))
+              }
+            >
+              {PRODUCT_UNIT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField htmlFor="product-count-step" label="Шаг продажи">
+            <Input
+              id="product-count-step"
+              value={formValues.countStep}
+              disabled={isMutating}
+              onChange={(event) =>
+                handleFormChange((currentValues) => ({
+                  ...currentValues,
+                  countStep: event.target.value,
+                }))
+              }
+            />
+          </FormField>
+
+          <FormField htmlFor="product-sku" label="SKU">
+            <Input
+              id="product-sku"
+              value={formValues.sku}
+              disabled={isMutating}
+              onChange={(event) => handleFormChange((currentValues) => ({ ...currentValues, sku: event.target.value }))}
+            />
+          </FormField>
+
+          <FormField htmlFor="product-active" label="Статус">
+            <label className="inline-flex h-8 items-center gap-2 rounded-lg border border-input px-2.5 text-sm">
+              <input
+                id="product-active"
+                type="checkbox"
+                checked={formValues.isActive}
+                disabled={isMutating}
+                onChange={(event) =>
+                  handleFormChange((currentValues) => ({
+                    ...currentValues,
+                    isActive: event.target.checked,
+                  }))
+                }
+              />
+              {formValues.isActive ? 'Активен' : 'Выключен'}
+            </label>
+          </FormField>
+        </div>
+
+        <FormField htmlFor="product-description" label="Описание">
+          <textarea
+            id="product-description"
+            className="min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+            value={formValues.description}
+            disabled={isMutating}
+            onChange={(event) =>
+              handleFormChange((currentValues) => ({
+                ...currentValues,
+                description: event.target.value,
+              }))
+            }
+          />
+        </FormField>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={() => void handleSave()} disabled={isMutating}>
+            {isSaving ? 'Сохранение...' : 'Сохранить продукт'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (!product) {
+                return;
+              }
+
+              setFormValues(buildProductFormValues(product));
+              setSaveError('');
+              setSaveSuccess('');
+            }}
+            disabled={isMutating}
+          >
+            Сбросить изменения
+          </Button>
+        </div>
+
+        {saveError ? <AdminNotice tone="destructive">{saveError}</AdminNotice> : null}
+        {saveSuccess ? <AdminNotice>{saveSuccess}</AdminNotice> : null}
+      </AdminSectionCard>
+
+      <AdminSectionCard
+        eyebrow="Связи"
+        title="Связанные группы модификаторов"
+        description="Утилитарный список связей. Эти данные сохраняются вместе с продуктом."
+        action={
+          <Button variant="outline" onClick={handleAddModifierGroup} disabled={isMutating}>
+            Добавить группу
+          </Button>
+        }
+      >
+        {formValues.modifierGroups.length ? (
+          <LazyDataTable
+            columns={modifierColumns}
+            data={formValues.modifierGroups}
+            tableClassName="min-w-full border-separate border-spacing-0 text-sm"
+            wrapperClassName="overflow-x-auto rounded-2xl border border-border/70 bg-background/70"
+            headerRowClassName="bg-muted/50"
+            bodyRowClassName="border-t border-border/60"
+            getHeaderClassName={() => 'px-3 py-2 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase'}
+            getCellClassName={() => 'px-3 py-2 align-middle'}
+          />
+        ) : (
+          <AdminEmptyState description="Для продукта пока не выбраны группы модификаторов." />
+        )}
+      </AdminSectionCard>
+
+      <AdminSectionCard
+        eyebrow="Связи"
+        title="Связанные группы опций"
+        description="Список групп опций продукта. Для редактирования откройте нужную группу."
+      >
+        {product.optionGroups.length ? (
+          <LazyDataTable
+            columns={optionGroupColumns}
+            data={product.optionGroups}
+            getRowId={(row, index) => row.id ?? `${row.code}-${index}`}
+            tableClassName="min-w-full border-separate border-spacing-0 text-sm"
+            wrapperClassName="overflow-x-auto rounded-2xl border border-border/70 bg-background/70"
+            headerRowClassName="bg-muted/50"
+            bodyRowClassName="border-t border-border/60"
+            getHeaderClassName={() => 'px-3 py-2 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase'}
+            getCellClassName={() => 'px-3 py-2 align-middle'}
+          />
+        ) : (
+          <AdminEmptyState description="У продукта нет связанных групп опций." />
+        )}
+      </AdminSectionCard>
+
+      <AdminSectionCard
+        eyebrow="Связи"
+        title="Связанные варианты"
+        description="Список вариантов продукта. Для редактирования откройте нужный вариант."
+      >
+        {product.variants.length ? (
+          <LazyDataTable
+            columns={variantColumns}
+            data={product.variants}
+            getRowId={(row, index) => row.id ?? `${row.sku}-${index}`}
+            tableClassName="min-w-full border-separate border-spacing-0 text-sm"
+            wrapperClassName="overflow-x-auto rounded-2xl border border-border/70 bg-background/70"
+            headerRowClassName="bg-muted/50"
+            bodyRowClassName="border-t border-border/60"
+            getHeaderClassName={() => 'px-3 py-2 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase'}
+            getCellClassName={() => 'px-3 py-2 align-middle'}
+          />
+        ) : (
+          <AdminEmptyState description="У продукта нет вариантов." />
+        )}
+      </AdminSectionCard>
+
+      {errorMessage ? <AdminNotice tone="destructive">{errorMessage}</AdminNotice> : null}
+    </AdminPage>
   );
 }

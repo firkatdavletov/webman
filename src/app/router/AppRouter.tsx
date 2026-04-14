@@ -24,6 +24,16 @@ const ProductCreatePage = lazy(() =>
 const ProductDetailsPage = lazy(() =>
   import('@/pages/catalog/product-details/ui/ProductDetailsPage').then((module) => ({ default: module.ProductDetailsPage })),
 );
+const ProductOptionGroupDetailsPage = lazy(() =>
+  import('@/pages/catalog/product-option-group-details/ui/ProductOptionGroupDetailsPage').then((module) => ({
+    default: module.ProductOptionGroupDetailsPage,
+  })),
+);
+const ProductVariantDetailsPage = lazy(() =>
+  import('@/pages/catalog/product-variant-details/ui/ProductVariantDetailsPage').then((module) => ({
+    default: module.ProductVariantDetailsPage,
+  })),
+);
 const ModifierGroupsPage = lazy(() =>
   import('@/pages/catalog/modifier-groups/ui/ModifierGroupsPage').then((module) => ({ default: module.ModifierGroupsPage })),
 );
@@ -167,6 +177,8 @@ export function AppRouter() {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/new" element={<ProductCreatePage />} />
         <Route path="/products/:productId" element={<ProductDetailsPage />} />
+        <Route path="/products/:productId/option-groups/:optionGroupId" element={<ProductOptionGroupDetailsPage />} />
+        <Route path="/products/:productId/variants/:variantId" element={<ProductVariantDetailsPage />} />
         <Route path="/modifier-groups" element={<ModifierGroupsPage />} />
         <Route path="/modifier-groups/new" element={<ModifierGroupCreatePage />} />
         <Route path="/modifier-groups/:modifierGroupId" element={<ModifierGroupDetailsPage />} />

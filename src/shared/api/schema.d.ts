@@ -160,6 +160,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/catalog/modifier-groups/{groupId}/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List modifier options for group */
+        get: operations["getAdminModifierGroupOptions"];
+        put?: never;
+        /** Create or update modifier option in group */
+        post: operations["upsertAdminModifierGroupOption"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/catalog/modifier-groups/{groupId}/options/{optionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get modifier option by id */
+        get: operations["getAdminModifierGroupOptionById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/products/{productId}": {
         parameters: {
             query?: never;
@@ -171,6 +206,91 @@ export interface paths {
         get: operations["getAdminProductById"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/products/{productId}/option-groups/{optionGroupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one product option group by id */
+        get: operations["getAdminProductOptionGroupById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/products/{productId}/option-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create or update a product option group */
+        post: operations["upsertProductOptionGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/products/{productId}/option-groups/{optionGroupId}/values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create or update a product option value */
+        post: operations["upsertProductOptionValue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/products/{productId}/variants/{variantId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one product variant by id */
+        get: operations["getAdminProductVariantById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/products/{productId}/variants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create or update a product variant */
+        post: operations["upsertProductVariant"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1137,7 +1257,6 @@ export interface components {
             isActive: boolean;
             /** Format: int32 */
             sortOrder: number;
-            options: components["schemas"]["ModifierOptionResponse"][];
         };
         ModifierOptionResponse: {
             /** Format: uuid */
@@ -1211,9 +1330,7 @@ export interface components {
             countStep: number;
             /** @default true */
             isActive: boolean;
-            optionGroups?: components["schemas"]["UpsertProductOptionGroupRequest"][];
             modifierGroups?: components["schemas"]["UpsertProductModifierGroupLinkRequest"][];
-            variants?: components["schemas"]["UpsertProductVariantRequest"][];
         };
         UpsertModifierGroupRequest: {
             /** Format: uuid */
@@ -1233,15 +1350,16 @@ export interface components {
              * @default 0
              */
             sortOrder: number;
-            options?: components["schemas"]["UpsertModifierOptionRequest"][];
         };
         UpsertModifierOptionRequest: {
+            /** Format: uuid */
+            id?: string | null;
             code: string;
             name: string;
             description?: string | null;
             priceType: components["schemas"]["ModifierPriceType"];
             /** Format: int64 */
-            price?: number;
+            price: number;
             applicationScope: components["schemas"]["ModifierApplicationScope"];
             /** @default false */
             isDefault: boolean;
@@ -1265,6 +1383,8 @@ export interface components {
             isActive: boolean;
         };
         UpsertProductOptionGroupRequest: {
+            /** Format: uuid */
+            id?: string | null;
             code: string;
             title: string;
             /**
@@ -1272,9 +1392,10 @@ export interface components {
              * @default 0
              */
             sortOrder: number;
-            values?: components["schemas"]["UpsertProductOptionValueRequest"][];
         };
         UpsertProductOptionValueRequest: {
+            /** Format: uuid */
+            id?: string | null;
             code: string;
             title: string;
             /**
@@ -1284,6 +1405,8 @@ export interface components {
             sortOrder: number;
         };
         UpsertProductVariantRequest: {
+            /** Format: uuid */
+            id?: string | null;
             externalId?: string | null;
             sku: string;
             title?: string | null;
@@ -1299,11 +1422,7 @@ export interface components {
             sortOrder: number;
             /** @default true */
             isActive: boolean;
-            options?: components["schemas"]["UpsertProductVariantOptionRequest"][];
-        };
-        UpsertProductVariantOptionRequest: {
-            optionGroupCode: string;
-            optionValueCode: string;
+            optionValueIds?: string[];
         };
         CatalogImportMultipartRequest: {
             /**
@@ -2011,6 +2130,10 @@ export interface components {
     parameters: {
         CategoryIdPathParam: string;
         ProductIdPathParam: string;
+        ModifierGroupIdPathParam: string;
+        ModifierOptionIdPathParam: string;
+        OptionGroupIdPathParam: string;
+        VariantIdPathParam: string;
         ImageIdPathParam: string;
         OrderIdPathParam: string;
         UploadIdPathParam: string;
@@ -2348,6 +2471,93 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    getAdminModifierGroupOptions: {
+        parameters: {
+            query?: {
+                /** @description When provided, filters modifier options by activity flag. */
+                isActive?: boolean;
+            };
+            header?: never;
+            path: {
+                groupId: components["parameters"]["ModifierGroupIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Modifier options */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModifierOptionResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    upsertAdminModifierGroupOption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: components["parameters"]["ModifierGroupIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertModifierOptionRequest"];
+            };
+        };
+        responses: {
+            /** @description Saved modifier option */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModifierOptionResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getAdminModifierGroupOptionById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: components["parameters"]["ModifierGroupIdPathParam"];
+                optionId: components["parameters"]["ModifierOptionIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Modifier option */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModifierOptionResponse"];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     getAdminProductById: {
         parameters: {
             query?: never;
@@ -2366,6 +2576,156 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminProductDetailsResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getAdminProductOptionGroupById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: components["parameters"]["ProductIdPathParam"];
+                optionGroupId: components["parameters"]["OptionGroupIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Product option group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductOptionGroupResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    upsertProductOptionGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: components["parameters"]["ProductIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertProductOptionGroupRequest"];
+            };
+        };
+        responses: {
+            /** @description Saved option group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductOptionGroupResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    upsertProductOptionValue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: components["parameters"]["ProductIdPathParam"];
+                optionGroupId: components["parameters"]["OptionGroupIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertProductOptionValueRequest"];
+            };
+        };
+        responses: {
+            /** @description Saved option value */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductOptionValueResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getAdminProductVariantById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: components["parameters"]["ProductIdPathParam"];
+                variantId: components["parameters"]["VariantIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Product variant */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminProductVariantResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    upsertProductVariant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: components["parameters"]["ProductIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertProductVariantRequest"];
+            };
+        };
+        responses: {
+            /** @description Saved product variant */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminProductVariantResponse"];
                 };
             };
             400: components["responses"]["BadRequestError"];
