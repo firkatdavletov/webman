@@ -450,7 +450,7 @@ export async function initBannerImageUpload({
     const result = await apiClient.POST('/api/v1/admin/media/uploads', {
       headers: buildAuthHeaders(),
       body: {
-        targetType: 'BANNER' as components['schemas']['MediaTargetType'],
+        targetType: 'HERO_BANNER' as components['schemas']['MediaTargetType'],
         targetId: bannerId,
         originalFilename: fileName ?? 'image',
         contentType,
