@@ -1,11 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Link, useParams } from 'react-router-dom';
 import {
+  completeProductImageUpload,
+  deleteProductVariantImage,
   formatPrice,
   getProductById,
   getProductVariantById,
+  initProductImageUpload,
+  readFileAsDataUrl,
   saveProductVariant,
+  uploadProductImageToStorage,
   type Product,
   type ProductOptionGroup,
   type ProductVariantDetails,
@@ -25,6 +30,12 @@ import {
   Input,
   LazyDataTable,
 } from '@/shared/ui';
+
+const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+function getImageKey(imageId: string | null, imageUrl: string, imageIndex: number): string {
+  return imageId?.trim() || `${imageUrl}-${imageIndex}`;
+}
 
 type VariantFormValues = {
   id: string;
@@ -137,6 +148,12 @@ export function ProductVariantDetailsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
+  const [isImageUploading, setIsImageUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState('');
+  const [pendingImageRemovalKey, setPendingImageRemovalKey] = useState<string | null>(null);
+  const imageUploadInputRef = useRef<HTMLInputElement>(null);
+
+  const isMutating = isSaving || isImageUploading || pendingImageRemovalKey !== null;
 
   const normalizedProductId = useMemo(() => (productId ?? '').trim(), [productId]);
   const normalizedVariantId = useMemo(() => (variantId ?? '').trim(), [variantId]);
@@ -194,7 +211,7 @@ export function ProductVariantDetailsPage() {
             <select
               className={SELECT_CLASSNAME}
               value={selectedValue}
-              disabled={isSaving}
+              disabled={isMutating}
               onChange={(event) =>
                 setFormValues((currentValues) => {
                   if (!currentValues || !row.original.id) {
@@ -224,6 +241,137 @@ export function ProductVariantDetailsPage() {
     ],
     [formValues, isSaving],
   );
+
+  const handleImageUploadClick = () => {
+    imageUploadInputRef.current?.click();
+  };
+
+  const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const imageFiles = Array.from(event.target.files ?? []);
+    event.target.value = '';
+
+    if (!imageFiles.length || !variant) {
+      return;
+    }
+
+    if (imageFiles.some((imageFile) => !SUPPORTED_IMAGE_TYPES.has(imageFile.type))) {
+      setImageUploadError('Выберите изображение в формате JPG, PNG или WEBP.');
+      return;
+    }
+
+    setImageUploadError('');
+    setIsImageUploading(true);
+
+    try {
+      for (const imageFile of imageFiles) {
+        const initResult = await initProductImageUpload({
+          targetType: 'VARIANT',
+          targetId: normalizedVariantId,
+          contentType: imageFile.type,
+          sizeBytes: imageFile.size,
+          fileName: imageFile.name || null,
+        });
+
+        if (!initResult.upload) {
+          setImageUploadError(initResult.error ?? 'Не удалось получить данные для загрузки изображения.');
+          return;
+        }
+
+        const uploadData = initResult.upload;
+        const storageUploadResult = await uploadProductImageToStorage({
+          uploadUrl: uploadData.uploadUrl,
+          requiredHeaders: uploadData.requiredHeaders,
+          file: imageFile,
+        });
+
+        if (storageUploadResult.error) {
+          setImageUploadError(storageUploadResult.error);
+          return;
+        }
+
+        const completeResult = await completeProductImageUpload({
+          uploadId: uploadData.uploadId,
+        });
+
+        if (completeResult.error) {
+          setImageUploadError(completeResult.error);
+          return;
+        }
+
+        const previewDataUrl = await readFileAsDataUrl(imageFile);
+
+        setVariant((currentVariant) =>
+          currentVariant
+            ? {
+                ...currentVariant,
+                images: [
+                  ...currentVariant.images,
+                  {
+                    id: completeResult.image?.id ?? null,
+                    url: completeResult.image?.url || previewDataUrl,
+                  },
+                ],
+              }
+            : currentVariant,
+        );
+      }
+    } catch {
+      setImageUploadError('Не удалось обработать выбранный файл.');
+    } finally {
+      setIsImageUploading(false);
+    }
+  };
+
+  const handleImageRemove = async (imageIndex: number) => {
+    if (!variant) {
+      return;
+    }
+
+    const image = variant.images[imageIndex];
+
+    if (!image) {
+      return;
+    }
+
+    const imageKey = getImageKey(image.id, image.url, imageIndex);
+    const normalizedImageId = image.id?.trim() ?? '';
+
+    setImageUploadError('');
+    setSaveError('');
+    setSaveSuccess('');
+
+    if (!normalizedImageId) {
+      setVariant((currentVariant) =>
+        currentVariant
+          ? {
+              ...currentVariant,
+              images: currentVariant.images.filter((_, currentImageIndex) => currentImageIndex !== imageIndex),
+            }
+          : currentVariant,
+      );
+      return;
+    }
+
+    setPendingImageRemovalKey(imageKey);
+
+    const result = await deleteProductVariantImage(normalizedProductId, normalizedVariantId, normalizedImageId);
+
+    if (result.error) {
+      setImageUploadError(result.error);
+      setPendingImageRemovalKey(null);
+      return;
+    }
+
+    setVariant((currentVariant) =>
+      currentVariant
+        ? {
+            ...currentVariant,
+            images: currentVariant.images.filter((_, currentImageIndex) => currentImageIndex !== imageIndex),
+          }
+        : currentVariant,
+    );
+    setPendingImageRemovalKey(null);
+  };
 
   const handleSave = async () => {
     if (!product || !variant || !formValues) {
@@ -409,7 +557,7 @@ export function ProductVariantDetailsPage() {
             <Input
               id="variant-sku"
               value={formValues.sku}
-              disabled={isSaving}
+              disabled={isMutating}
               onChange={(event) => {
                 setFormValues((currentValues) =>
                   currentValues
@@ -430,7 +578,7 @@ export function ProductVariantDetailsPage() {
             <Input
               id="variant-title"
               value={formValues.title}
-              disabled={isSaving}
+              disabled={isMutating}
               onChange={(event) => {
                 setFormValues((currentValues) =>
                   currentValues
@@ -452,7 +600,7 @@ export function ProductVariantDetailsPage() {
               id="variant-price"
               value={formValues.price}
               inputMode="decimal"
-              disabled={isSaving}
+              disabled={isMutating}
               onChange={(event) => {
                 setFormValues((currentValues) =>
                   currentValues
@@ -474,7 +622,7 @@ export function ProductVariantDetailsPage() {
               id="variant-old-price"
               value={formValues.oldPrice}
               inputMode="decimal"
-              disabled={isSaving}
+              disabled={isMutating}
               onChange={(event) => {
                 setFormValues((currentValues) =>
                   currentValues
@@ -495,7 +643,7 @@ export function ProductVariantDetailsPage() {
             <Input
               id="variant-sort-order"
               value={formValues.sortOrder}
-              disabled={isSaving}
+              disabled={isMutating}
               onChange={(event) => {
                 setFormValues((currentValues) =>
                   currentValues
@@ -516,7 +664,7 @@ export function ProductVariantDetailsPage() {
             <Input
               id="variant-external-id"
               value={formValues.externalId}
-              disabled={isSaving}
+              disabled={isMutating}
               onChange={(event) => {
                 setFormValues((currentValues) =>
                   currentValues
@@ -539,7 +687,7 @@ export function ProductVariantDetailsPage() {
                 id="variant-active"
                 type="checkbox"
                 checked={formValues.isActive}
-                disabled={isSaving}
+                disabled={isMutating}
                 onChange={(event) => {
                   setFormValues((currentValues) =>
                     currentValues
@@ -582,29 +730,66 @@ export function ProductVariantDetailsPage() {
         )}
       </AdminSectionCard>
 
-      <AdminSectionCard eyebrow="Медиа" title="Фотографии варианта" description="Пока доступен только просмотр. Список передается без изменений при сохранении.">
+      <AdminSectionCard
+        eyebrow="Медиа"
+        title="Фотографии варианта"
+        description="Загрузите или удалите фотографии варианта товара."
+        action={
+          <Button variant="outline" onClick={handleImageUploadClick} disabled={isMutating}>
+            {isImageUploading ? 'Загрузка...' : 'Загрузить фото'}
+          </Button>
+        }
+      >
+        <input
+          ref={imageUploadInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          className="hidden"
+          onChange={(event) => void handleImageUpload(event)}
+          disabled={isMutating}
+          tabIndex={-1}
+        />
+
         {variant.images.length ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {variant.images.map((image, imageIndex) => (
-              <article key={image.id ?? `${image.url}-${imageIndex}`} className="overflow-hidden rounded-2xl border border-border/70 bg-background/70">
-                <img className="aspect-square w-full object-cover" src={image.url} alt={`${formValues.sku || 'Вариант'} • фото ${imageIndex + 1}`} />
-                <div className="border-t border-border/60 px-3 py-2 text-xs text-muted-foreground">Фото #{imageIndex + 1}</div>
-              </article>
-            ))}
+            {variant.images.map((image, imageIndex) => {
+              const imageKey = getImageKey(image.id, image.url, imageIndex);
+              const isRemovingCurrentImage = pendingImageRemovalKey === imageKey;
+
+              return (
+                <article key={imageKey} className="overflow-hidden rounded-2xl border border-border/70 bg-background/70">
+                  <img className="aspect-square w-full object-cover" src={image.url} alt={`${formValues.sku || 'Вариант'} • фото ${imageIndex + 1}`} />
+                  <div className="flex items-center justify-between gap-2 border-t border-border/60 px-3 py-2">
+                    <span className="text-xs text-muted-foreground">Фото #{imageIndex + 1}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void handleImageRemove(imageIndex)}
+                      disabled={isMutating}
+                    >
+                      {isRemovingCurrentImage ? 'Удаление...' : 'Удалить'}
+                    </Button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         ) : (
           <AdminEmptyState description="У варианта нет фотографий." />
         )}
+
+        {imageUploadError ? <AdminNotice tone="destructive">{imageUploadError}</AdminNotice> : null}
       </AdminSectionCard>
 
       <AdminSectionCard>
         <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => void handleSave()} disabled={isSaving}>
+          <Button onClick={() => void handleSave()} disabled={isMutating}>
             {isSaving ? 'Сохранение...' : 'Сохранить вариант'}
           </Button>
           <Button
             variant="outline"
-            disabled={isSaving}
+            disabled={isMutating}
             onClick={() => {
               setFormValues(buildVariantFormValues(product, variant));
               setSaveError('');

@@ -10,6 +10,7 @@ export type {
 export {
   completeProductImageUpload,
   deleteProductImage,
+  deleteProductVariantImage,
   getAllProducts,
   getProductOptionGroupById,
   getProductVariantById,
@@ -23,6 +24,7 @@ export {
 } from './api/productApi';
 export type {
   DeleteProductImageResult,
+  DeleteProductVariantImageResult,
   ProductOptionGroupResult,
   ProductOptionValueResult,
   ProductImageUploadInitData,

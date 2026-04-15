@@ -841,6 +841,39 @@ export async function saveProduct(product: Product): Promise<SaveProductResult> 
   }
 }
 
+export type DeleteProductVariantImageResult = {
+  error: string | null;
+};
+
+export async function deleteProductVariantImage(productId: string, variantId: string, imageId: string): Promise<DeleteProductVariantImageResult> {
+  try {
+    const result = await apiClient.DELETE('/api/v1/admin/products/{productId}/variants/{variantId}/images/{imageId}', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: {
+          productId,
+          variantId,
+          imageId,
+        },
+      },
+    });
+
+    if (result.error) {
+      return {
+        error: getProtectedErrorMessage(result.error, 'Не удалось удалить изображение варианта.'),
+      };
+    }
+
+    return {
+      error: null,
+    };
+  } catch {
+    return {
+      error: 'Не удалось связаться с сервисом удаления изображения варианта.',
+    };
+  }
+}
+
 export async function deleteProductImage(productId: string, imageId: string): Promise<DeleteProductImageResult> {
   try {
     const result = await apiClient.DELETE('/api/v1/admin/catalog/products/{productId}/images/{imageId}', {

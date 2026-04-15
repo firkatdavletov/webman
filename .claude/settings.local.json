@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(find /Users/firkatdavletov/WebProjects/webman/src/pages -type d -name *product* -o -type d -name *variant*)"
     ]
   }
 }
