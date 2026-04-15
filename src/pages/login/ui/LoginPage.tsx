@@ -99,7 +99,7 @@ export function LoginPage() {
     const result = await login(values.login.trim(), values.password);
 
     if (result.token) {
-      navigate('/categories', { replace: true });
+      navigate('/dashboard', { replace: true });
       return;
     }
 
