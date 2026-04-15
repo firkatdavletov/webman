@@ -985,6 +985,23 @@ export interface paths {
         patch: operations["reorderHeroBanners"];
         trace?: never;
     };
+    "/api/v1/admin/hero-banners/{bannerId}/images/{imageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete hero banner image */
+        delete: operations["deleteHeroBannerImage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1970,7 +1987,7 @@ export interface components {
         /** @enum {string} */
         OrderStatusChangeSourceType: "SYSTEM" | "ADMIN" | "CUSTOMER";
         /** @enum {string} */
-        MediaTargetType: "PRODUCT" | "CATEGORY" | "VARIANT";
+        MediaTargetType: "PRODUCT" | "CATEGORY" | "VARIANT" | "BANNER";
         /** @enum {string} */
         MediaImageStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED" | "DELETED";
         /** @enum {string} */
@@ -1995,6 +2012,11 @@ export interface components {
             primaryActionLabel?: string | null;
             secondaryActionLabel?: string | null;
         };
+        HeroBannerImageResponse: {
+            /** Format: uuid */
+            id: string;
+            url: string;
+        };
         HeroBannerAdminResponse: {
             /** Format: uuid */
             id: string;
@@ -2005,6 +2027,7 @@ export interface components {
             sortOrder: number;
             desktopImageUrl: string;
             mobileImageUrl?: string | null;
+            images: components["schemas"]["HeroBannerImageResponse"][];
             primaryActionUrl?: string | null;
             secondaryActionUrl?: string | null;
             themeVariant: components["schemas"]["BannerThemeVariant"];
@@ -4175,6 +4198,31 @@ export interface operations {
             400: components["responses"]["BadRequestError"];
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    deleteHeroBannerImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bannerId: string;
+                imageId: components["parameters"]["ImageIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Hero banner image deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
             500: components["responses"]["InternalServerError"];
         };
     };

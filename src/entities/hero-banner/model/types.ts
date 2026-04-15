@@ -3,6 +3,11 @@ export type BannerStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 export type BannerThemeVariant = 'LIGHT' | 'DARK' | 'ACCENT';
 export type BannerTextAlignment = 'LEFT' | 'CENTER' | 'RIGHT';
 
+export type HeroBannerImage = {
+  id: string;
+  url: string;
+};
+
 export type HeroBannerTranslation = {
   id: string;
   locale: string;
@@ -24,6 +29,7 @@ export type HeroBanner = {
   sortOrder: number;
   desktopImageUrl: string;
   mobileImageUrl: string | null;
+  images: HeroBannerImage[];
   primaryActionUrl: string | null;
   secondaryActionUrl: string | null;
   themeVariant: BannerThemeVariant;

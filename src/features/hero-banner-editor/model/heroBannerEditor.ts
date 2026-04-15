@@ -126,6 +126,7 @@ export function buildHeroBannerFromEditorValues(
     textAlignment: values.textAlignment,
     startsAt: values.startsAt ? new Date(values.startsAt).toISOString() : null,
     endsAt: values.endsAt ? new Date(values.endsAt).toISOString() : null,
+    images: existingBanner?.images ?? [],
     publishedAt: existingBanner?.publishedAt ?? null,
     version: existingBanner?.version ?? 0,
     createdAt: existingBanner?.createdAt ?? '',

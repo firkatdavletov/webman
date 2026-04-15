@@ -1,6 +1,7 @@
 import type {
   BannerStatus,
   HeroBanner,
+  HeroBannerImage,
   HeroBannerPage,
   HeroBannerTranslation,
 } from '@/entities/hero-banner/model/types';
@@ -12,6 +13,7 @@ import type { components } from '@/shared/api/schema';
 type HeroBannerAdminResponse = components['schemas']['HeroBannerAdminResponse'];
 type HeroBannerAdminPageResponse = components['schemas']['HeroBannerAdminPageResponse'];
 type HeroBannerTranslationResponse = components['schemas']['HeroBannerTranslationResponse'];
+type HeroBannerImageResponse = components['schemas']['HeroBannerImageResponse'];
 type CreateHeroBannerRequest = components['schemas']['CreateHeroBannerRequest'];
 type UpdateHeroBannerRequest = components['schemas']['UpdateHeroBannerRequest'];
 
@@ -76,6 +78,30 @@ export type ReorderResult = {
   error: string | null;
 };
 
+export type BannerImageUploadInitData = {
+  uploadId: string;
+  uploadUrl: string;
+  requiredHeaders: Record<string, string>;
+};
+
+export type BannerImageUploadInitResult = {
+  upload: BannerImageUploadInitData | null;
+  error: string | null;
+};
+
+export type BannerImageUploadStepResult = {
+  error: string | null;
+};
+
+export type BannerImageUploadCompleteResult = {
+  image: HeroBannerImage | null;
+  error: string | null;
+};
+
+export type DeleteBannerImageResult = {
+  error: string | null;
+};
+
 function buildAuthHeaders(): HeadersInit | undefined {
   const accessToken = getAccessToken();
 
@@ -98,6 +124,10 @@ function getProtectedErrorMessage(error: ApiError | undefined, fallbackMessage: 
   }
 
   return getApiErrorMessage(error, fallbackMessage);
+}
+
+function mapBannerImage(img: HeroBannerImageResponse): HeroBannerImage {
+  return { id: img.id, url: img.url };
 }
 
 function mapTranslation(t: HeroBannerTranslationResponse): HeroBannerTranslation {
@@ -124,6 +154,7 @@ function mapHeroBanner(response: HeroBannerAdminResponse): HeroBanner {
     sortOrder: response.sortOrder,
     desktopImageUrl: response.desktopImageUrl,
     mobileImageUrl: response.mobileImageUrl ?? null,
+    images: (response.images ?? []).map(mapBannerImage),
     primaryActionUrl: response.primaryActionUrl ?? null,
     secondaryActionUrl: response.secondaryActionUrl ?? null,
     themeVariant: response.themeVariant,
@@ -400,6 +431,151 @@ export async function reorderHeroBanners(items: { id: string; sortOrder: number 
   } catch {
     return {
       error: 'Не удалось связаться с сервисом сортировки баннеров.',
+    };
+  }
+}
+
+export async function initBannerImageUpload({
+  bannerId,
+  contentType,
+  sizeBytes,
+  fileName,
+}: {
+  bannerId: string | null;
+  contentType: string;
+  sizeBytes: number;
+  fileName?: string | null;
+}): Promise<BannerImageUploadInitResult> {
+  try {
+    const result = await apiClient.POST('/api/v1/admin/media/uploads', {
+      headers: buildAuthHeaders(),
+      body: {
+        targetType: 'BANNER',
+        targetId: bannerId,
+        originalFilename: fileName ?? 'image',
+        contentType,
+        fileSize: sizeBytes,
+      },
+    });
+
+    if (result.error) {
+      return {
+        upload: null,
+        error: getProtectedErrorMessage(result.error, 'Не удалось получить данные для загрузки изображения.'),
+      };
+    }
+
+    if (!result.data) {
+      return {
+        upload: null,
+        error: 'Сервис инициализации загрузки изображения вернул некорректный ответ.',
+      };
+    }
+
+    return {
+      upload: {
+        uploadId: result.data.id,
+        uploadUrl: result.data.uploadUrl,
+        requiredHeaders: result.data.requiredHeaders,
+      },
+      error: null,
+    };
+  } catch {
+    return {
+      upload: null,
+      error: 'Не удалось связаться с сервисом инициализации загрузки изображения.',
+    };
+  }
+}
+
+export async function uploadBannerImageToStorage({
+  uploadUrl,
+  requiredHeaders,
+  file,
+}: {
+  uploadUrl: string;
+  requiredHeaders: Record<string, string>;
+  file: File;
+}): Promise<BannerImageUploadStepResult> {
+  const headers = new Headers();
+  Object.entries(requiredHeaders).forEach(([name, value]) => {
+    headers.set(name, value);
+  });
+
+  try {
+    const response = await window.fetch(uploadUrl, {
+      method: 'PUT',
+      headers,
+      body: file,
+    });
+
+    if (!response.ok) {
+      return { error: 'Не удалось загрузить изображение в хранилище.' };
+    }
+
+    return { error: null };
+  } catch {
+    return { error: 'Не удалось связаться с хранилищем при загрузке изображения.' };
+  }
+}
+
+export async function completeBannerImageUpload(uploadId: string): Promise<BannerImageUploadCompleteResult> {
+  try {
+    const result = await apiClient.POST('/api/v1/admin/media/uploads/{uploadId}/complete', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: { uploadId },
+      },
+    });
+
+    if (result.error) {
+      return {
+        image: null,
+        error: getProtectedErrorMessage(result.error, 'Не удалось завершить загрузку изображения.'),
+      };
+    }
+
+    if (!result.data) {
+      return {
+        image: null,
+        error: 'Сервис завершения загрузки изображения вернул некорректный ответ.',
+      };
+    }
+
+    return {
+      image: {
+        id: result.data.id,
+        url: result.data.publicUrl ?? '',
+      },
+      error: null,
+    };
+  } catch {
+    return {
+      image: null,
+      error: 'Не удалось связаться с сервисом завершения загрузки изображения.',
+    };
+  }
+}
+
+export async function deleteHeroBannerImage(bannerId: string, imageId: string): Promise<DeleteBannerImageResult> {
+  try {
+    const result = await apiClient.DELETE('/api/v1/admin/hero-banners/{bannerId}/images/{imageId}', {
+      headers: buildAuthHeaders(),
+      params: {
+        path: { bannerId, imageId },
+      },
+    });
+
+    if (result.error) {
+      return {
+        error: getProtectedErrorMessage(result.error, 'Не удалось удалить изображение баннера.'),
+      };
+    }
+
+    return { error: null };
+  } catch {
+    return {
+      error: 'Не удалось связаться с сервисом удаления изображения баннера.',
     };
   }
 }

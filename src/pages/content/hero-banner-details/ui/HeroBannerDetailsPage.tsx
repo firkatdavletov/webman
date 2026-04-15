@@ -1,15 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { XIcon } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { BannerStatus, HeroBanner } from '@/entities/hero-banner';
 import {
   changeHeroBannerStatus,
+  completeBannerImageUpload,
   deleteHeroBanner,
+  deleteHeroBannerImage,
   formatBannerDate,
   formatBannerStatus,
   formatBannerTextAlignment,
   formatBannerTheme,
   getHeroBannerById,
+  initBannerImageUpload,
   updateHeroBanner,
+  uploadBannerImageToStorage,
 } from '@/entities/hero-banner';
 import {
   buildHeroBannerEditorValues,
@@ -31,6 +36,8 @@ import {
   Button,
 } from '@/shared/ui';
 
+const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
 function getStatusBadgeClassName(status: BannerStatus): string {
   if (status === 'PUBLISHED') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   return 'border-border bg-muted/40 text-muted-foreground';
@@ -47,6 +54,10 @@ export function HeroBannerDetailsPage() {
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
   const [statusActionError, setStatusActionError] = useState('');
+  const [isImageUploading, setIsImageUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState('');
+  const [pendingImageRemovalId, setPendingImageRemovalId] = useState<string | null>(null);
+  const galleryUploadInputRef = useRef<HTMLInputElement | null>(null);
 
   const normalizedBannerId = useMemo(() => (bannerId ?? '').trim(), [bannerId]);
 
@@ -115,6 +126,104 @@ export function HeroBannerDetailsPage() {
         translations: current.translations.filter((_, i) => i !== index),
       };
     });
+  };
+
+  const doUploadImage = async (
+    file: File,
+    fillField?: 'desktopImageUrl' | 'mobileImageUrl',
+  ) => {
+    if (!banner) return;
+
+    if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
+      setImageUploadError('Выберите изображение в формате JPG, PNG или WEBP.');
+      return;
+    }
+
+    setImageUploadError('');
+    setIsImageUploading(true);
+
+    try {
+      const initResult = await initBannerImageUpload({
+        bannerId: banner.id,
+        contentType: file.type,
+        sizeBytes: file.size,
+        fileName: file.name || null,
+      });
+
+      if (!initResult.upload) {
+        setImageUploadError(initResult.error ?? 'Не удалось получить данные для загрузки изображения.');
+        return;
+      }
+
+      const storageResult = await uploadBannerImageToStorage({
+        uploadUrl: initResult.upload.uploadUrl,
+        requiredHeaders: initResult.upload.requiredHeaders,
+        file,
+      });
+
+      if (storageResult.error) {
+        setImageUploadError(storageResult.error);
+        return;
+      }
+
+      const completeResult = await completeBannerImageUpload(initResult.upload.uploadId);
+
+      if (completeResult.error) {
+        setImageUploadError(completeResult.error);
+        return;
+      }
+
+      if (completeResult.image) {
+        const image = completeResult.image;
+        setBanner((current) =>
+          current ? { ...current, images: [...current.images, image] } : current,
+        );
+        if (fillField) {
+          setFormValues((current) =>
+            current ? { ...current, [fillField]: image.url } : current,
+          );
+        }
+      }
+    } catch {
+      setImageUploadError('Не удалось обработать выбранный файл.');
+    } finally {
+      setIsImageUploading(false);
+    }
+  };
+
+  const handleGalleryUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    await doUploadImage(file);
+  };
+
+  const handleDesktopImageUpload = async (file: File) => {
+    await doUploadImage(file, 'desktopImageUrl');
+  };
+
+  const handleMobileImageUpload = async (file: File) => {
+    await doUploadImage(file, 'mobileImageUrl');
+  };
+
+  const handleImageRemove = async (imageId: string) => {
+    if (!banner) return;
+
+    setImageUploadError('');
+    setPendingImageRemovalId(imageId);
+
+    const result = await deleteHeroBannerImage(banner.id, imageId);
+
+    if (result.error) {
+      setImageUploadError(result.error);
+      setPendingImageRemovalId(null);
+      return;
+    }
+
+    setBanner((current) =>
+      current ? { ...current, images: current.images.filter((img) => img.id !== imageId) } : current,
+    );
+    setPendingImageRemovalId(null);
   };
 
   const handleSave = async () => {
@@ -274,25 +383,54 @@ export function HeroBannerDetailsPage() {
             </div>
           </section>
 
-          {/* Preview */}
-          {banner.desktopImageUrl ? (
-            <AdminSectionCard eyebrow="Медиа" title="Изображения баннера">
+          {/* Media */}
+          <AdminSectionCard eyebrow="Медиа" title="Фотографии баннера">
+            {banner.images.length > 0 ? (
               <div className="flex flex-wrap gap-4">
-                <img
-                  className="max-h-48 rounded-xl object-contain"
-                  src={banner.desktopImageUrl}
-                  alt={banner.code}
-                />
-                {banner.mobileImageUrl ? (
-                  <img
-                    className="max-h-32 rounded-xl object-contain"
-                    src={banner.mobileImageUrl}
-                    alt={`${banner.code} (мобильная версия)`}
-                  />
-                ) : null}
+                {banner.images.map((image) => (
+                  <div key={image.id} className="group relative">
+                    <img
+                      className="max-h-36 rounded-xl object-contain"
+                      src={image.url}
+                      alt=""
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-full bg-background/80 text-foreground opacity-0 shadow-sm transition-opacity hover:bg-destructive hover:text-destructive-foreground group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-50"
+                      disabled={pendingImageRemovalId === image.id || isImageUploading}
+                      onClick={() => void handleImageRemove(image.id)}
+                      aria-label="Удалить фото"
+                    >
+                      <XIcon className="size-3.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
-            </AdminSectionCard>
-          ) : null}
+            ) : (
+              <p className="text-sm text-muted-foreground">Фотографии не загружены.</p>
+            )}
+
+            <div className="flex items-center gap-3">
+              <input
+                ref={galleryUploadInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => void handleGalleryUpload(e)}
+              />
+              <Button
+                variant="outline"
+                disabled={isImageUploading || isSaving}
+                onClick={() => galleryUploadInputRef.current?.click()}
+              >
+                {isImageUploading ? 'Загрузка…' : 'Загрузить фото'}
+              </Button>
+            </div>
+
+            {imageUploadError ? (
+              <AdminNotice tone="destructive" role="alert">{imageUploadError}</AdminNotice>
+            ) : null}
+          </AdminSectionCard>
 
           {/* Details */}
           <AdminSectionCard eyebrow="Сведения" title="Идентификаторы и расписание">
@@ -374,6 +512,7 @@ export function HeroBannerDetailsPage() {
               title="Изменить баннер"
               formValues={formValues}
               isSaving={isSaving}
+              isImageUploading={isImageUploading}
               saveError={saveError}
               saveSuccess={saveSuccess}
               submitLabel="Сохранить изменения"
@@ -383,6 +522,8 @@ export function HeroBannerDetailsPage() {
               onAddTranslation={handleAddTranslation}
               onRemoveTranslation={handleRemoveTranslation}
               onSubmit={() => void handleSave()}
+              onDesktopImageUpload={(file) => void handleDesktopImageUpload(file)}
+              onMobileImageUpload={(file) => void handleMobileImageUpload(file)}
             />
           ) : null}
         </>

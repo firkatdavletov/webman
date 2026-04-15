@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createHeroBanner } from '@/entities/hero-banner';
+import {
+  completeBannerImageUpload,
+  createHeroBanner,
+  initBannerImageUpload,
+  uploadBannerImageToStorage,
+} from '@/entities/hero-banner';
 import {
   buildHeroBannerFromEditorValues,
   EMPTY_HERO_BANNER_EDITOR_VALUES,
@@ -19,6 +24,8 @@ export function HeroBannerCreatePage() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [isImageUploading, setIsImageUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState('');
 
   const handleFieldChange = (field: string, value: string) => {
     setFormValues((current) => ({ ...current, [field]: value }));
@@ -46,6 +53,51 @@ export function HeroBannerCreatePage() {
       ...current,
       translations: current.translations.filter((_, i) => i !== index),
     }));
+  };
+
+  const doUploadImage = async (file: File, fillField: 'desktopImageUrl' | 'mobileImageUrl') => {
+    setImageUploadError('');
+    setIsImageUploading(true);
+
+    try {
+      const initResult = await initBannerImageUpload({
+        bannerId: null,
+        contentType: file.type,
+        sizeBytes: file.size,
+        fileName: file.name || null,
+      });
+
+      if (!initResult.upload) {
+        setImageUploadError(initResult.error ?? 'Не удалось получить данные для загрузки изображения.');
+        return;
+      }
+
+      const storageResult = await uploadBannerImageToStorage({
+        uploadUrl: initResult.upload.uploadUrl,
+        requiredHeaders: initResult.upload.requiredHeaders,
+        file,
+      });
+
+      if (storageResult.error) {
+        setImageUploadError(storageResult.error);
+        return;
+      }
+
+      const completeResult = await completeBannerImageUpload(initResult.upload.uploadId);
+
+      if (completeResult.error) {
+        setImageUploadError(completeResult.error);
+        return;
+      }
+
+      if (completeResult.image) {
+        setFormValues((current) => ({ ...current, [fillField]: completeResult.image!.url }));
+      }
+    } catch {
+      setImageUploadError('Не удалось обработать выбранный файл.');
+    } finally {
+      setIsImageUploading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -114,7 +166,8 @@ export function HeroBannerCreatePage() {
         description="Заполните поля и нажмите «Создать баннер». После создания можно изменить статус на «Опубликован»."
         formValues={formValues}
         isSaving={isSaving}
-        saveError={saveError}
+        isImageUploading={isImageUploading}
+        saveError={saveError || imageUploadError}
         submitLabel="Создать баннер"
         savingLabel="Создание..."
         onFieldChange={handleFieldChange}
@@ -122,6 +175,8 @@ export function HeroBannerCreatePage() {
         onAddTranslation={handleAddTranslation}
         onRemoveTranslation={handleRemoveTranslation}
         onSubmit={() => void handleSave()}
+        onDesktopImageUpload={(file) => void doUploadImage(file, 'desktopImageUrl')}
+        onMobileImageUpload={(file) => void doUploadImage(file, 'mobileImageUrl')}
       />
     </AdminPage>
   );

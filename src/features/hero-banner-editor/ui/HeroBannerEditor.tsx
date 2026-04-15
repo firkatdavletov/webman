@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import type { BannerStatus, BannerTextAlignment, BannerThemeVariant } from '@/entities/hero-banner';
 import type {
   HeroBannerEditorValues,
@@ -11,6 +12,8 @@ import {
   Input,
 } from '@/shared/ui';
 
+const SUPPORTED_IMAGE_TYPES = 'image/jpeg,image/png,image/webp';
+
 type HeroBannerEditorProps = {
   idPrefix: string;
   ariaLabel: string;
@@ -19,6 +22,7 @@ type HeroBannerEditorProps = {
   description?: string;
   formValues: HeroBannerEditorValues;
   isSaving: boolean;
+  isImageUploading?: boolean;
   saveError?: string;
   saveSuccess?: string;
   submitLabel: string;
@@ -28,6 +32,8 @@ type HeroBannerEditorProps = {
   onAddTranslation: () => void;
   onRemoveTranslation: (index: number) => void;
   onSubmit: () => void;
+  onDesktopImageUpload?: (file: File) => void;
+  onMobileImageUpload?: (file: File) => void;
 };
 
 const STATUS_OPTIONS: { value: BannerStatus; label: string }[] = [
@@ -62,6 +68,7 @@ export function HeroBannerEditor({
   description,
   formValues,
   isSaving,
+  isImageUploading,
   saveError,
   saveSuccess,
   submitLabel,
@@ -71,7 +78,12 @@ export function HeroBannerEditor({
   onAddTranslation,
   onRemoveTranslation,
   onSubmit,
+  onDesktopImageUpload,
+  onMobileImageUpload,
 }: HeroBannerEditorProps) {
+  const desktopImageInputRef = useRef<HTMLInputElement>(null);
+  const mobileImageInputRef = useRef<HTMLInputElement>(null);
+
   return (
     <>
       <AdminSectionCard eyebrow={eyebrow} title={title} description={description} aria-label={ariaLabel}>
@@ -132,34 +144,94 @@ export function HeroBannerEditor({
           <div className="space-y-4">
             <p className={SUBSECTION_LABEL_CLASSNAME}>Изображения</p>
             <div className="grid gap-4 md:grid-cols-2">
-              <FormField htmlFor={`${idPrefix}-desktop-image`} label="URL десктоп-изображения">
-                <Input
-                  id={`${idPrefix}-desktop-image`}
-                  value={formValues.desktopImageUrl}
-                  disabled={isSaving}
-                  placeholder="https://..."
-                  onChange={(e) => onFieldChange('desktopImageUrl', e.target.value)}
-                />
-              </FormField>
+              <div className="space-y-2">
+                {formValues.desktopImageUrl ? (
+                  <img
+                    className="max-h-40 w-full rounded-xl object-cover"
+                    src={formValues.desktopImageUrl}
+                    alt="Превью десктоп-баннера"
+                  />
+                ) : null}
+                <FormField htmlFor={`${idPrefix}-desktop-image`} label="URL десктоп-изображения">
+                  <div className="flex gap-2">
+                    <Input
+                      id={`${idPrefix}-desktop-image`}
+                      value={formValues.desktopImageUrl}
+                      disabled={isSaving}
+                      placeholder="https://..."
+                      onChange={(e) => onFieldChange('desktopImageUrl', e.target.value)}
+                    />
+                    {onDesktopImageUpload ? (
+                      <>
+                        <input
+                          ref={desktopImageInputRef}
+                          type="file"
+                          accept={SUPPORTED_IMAGE_TYPES}
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (file) onDesktopImageUpload(file);
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={isSaving || isImageUploading}
+                          onClick={() => desktopImageInputRef.current?.click()}
+                        >
+                          {isImageUploading ? 'Загрузка…' : 'Загрузить'}
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
+                </FormField>
+              </div>
 
-              <FormField htmlFor={`${idPrefix}-mobile-image`} label="URL мобильного изображения">
-                <Input
-                  id={`${idPrefix}-mobile-image`}
-                  value={formValues.mobileImageUrl}
-                  disabled={isSaving}
-                  placeholder="https://..."
-                  onChange={(e) => onFieldChange('mobileImageUrl', e.target.value)}
-                />
-              </FormField>
+              <div className="space-y-2">
+                {formValues.mobileImageUrl ? (
+                  <img
+                    className="max-h-40 w-full rounded-xl object-cover"
+                    src={formValues.mobileImageUrl}
+                    alt="Превью мобильного баннера"
+                  />
+                ) : null}
+                <FormField htmlFor={`${idPrefix}-mobile-image`} label="URL мобильного изображения">
+                  <div className="flex gap-2">
+                    <Input
+                      id={`${idPrefix}-mobile-image`}
+                      value={formValues.mobileImageUrl}
+                      disabled={isSaving}
+                      placeholder="https://..."
+                      onChange={(e) => onFieldChange('mobileImageUrl', e.target.value)}
+                    />
+                    {onMobileImageUpload ? (
+                      <>
+                        <input
+                          ref={mobileImageInputRef}
+                          type="file"
+                          accept={SUPPORTED_IMAGE_TYPES}
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (file) onMobileImageUpload(file);
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={isSaving || isImageUploading}
+                          onClick={() => mobileImageInputRef.current?.click()}
+                        >
+                          {isImageUploading ? 'Загрузка…' : 'Загрузить'}
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
+                </FormField>
+              </div>
             </div>
-
-            {formValues.desktopImageUrl ? (
-              <img
-                className="max-h-48 rounded-xl object-contain"
-                src={formValues.desktopImageUrl}
-                alt="Превью десктоп-баннера"
-              />
-            ) : null}
           </div>
 
           <hr className="border-border/60" />
