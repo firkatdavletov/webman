@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { loadYandexMapsReactApi, type YandexMapCoordinate, type YandexMapLocation, type YandexMapsReactApi } from '@/shared/lib/yandex-maps/api';
 import { requestCurrentBrowserLocation } from '@/shared/lib/yandex-maps/geolocation';
+import { AdminNotice, Badge, Button } from '@/shared/ui';
 
 type PickupPointMapEditorProps = {
   coordinates: YandexMapCoordinate | null;
@@ -174,58 +175,62 @@ export function PickupPointMapEditor({ coordinates, title, addressSummary, onCoo
 
   if (mapError) {
     return (
-      <div className="delivery-zone-map-shell">
-        <div className="delivery-zone-map-canvas delivery-zone-map-fallback">
-          <p className="form-error" role="alert">
-            {mapError}
-          </p>
-        </div>
+      <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-border/70 bg-muted/30 p-4">
+        <AdminNotice tone="destructive" role="alert">{mapError}</AdminNotice>
       </div>
     );
   }
 
   return (
-    <div className="delivery-zone-map-shell">
-      <div className="delivery-zone-map-stage">
-        <div className="delivery-zone-map-toolbar">
-          <span className="status-chip">{coordinates ? 'Точка выбрана' : 'Точка не выбрана'}</span>
-          <div className="delivery-zone-map-toolbar-actions">
-            <button type="button" className="secondary-button" onClick={handleFocusUserLocation} disabled={isUserLocationLoading}>
-              {isUserLocationLoading ? 'Определяем местоположение...' : 'Мое местоположение'}
-            </button>
-            <button type="button" className="secondary-button" onClick={handleFit}>
+    <div className="flex flex-col gap-4 md:flex-row">
+      <div className="flex min-h-[440px] flex-1 flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge
+            className={`border ${coordinates ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-border bg-muted/40 text-muted-foreground'}`}
+          >
+            {coordinates ? 'Точка выбрана' : 'Точка не выбрана'}
+          </Badge>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleFocusUserLocation} disabled={isUserLocationLoading}>
+              {isUserLocationLoading ? 'Определяем...' : 'Моё местоположение'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleFit}>
               Показать точку
-            </button>
-            <button type="button" className="secondary-button secondary-button-danger" onClick={handleClear}>
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleClear}>
               Очистить координаты
-            </button>
+            </Button>
           </div>
         </div>
 
-        <div className="delivery-zone-map-canvas">
+        <div className="relative flex-1 overflow-hidden rounded-xl bg-muted/30">
           {isMapLoading || !mapApi ? (
-            <div className="delivery-zone-map-placeholder">
-              <p className="catalog-empty-state">Загрузка карты...</p>
+            <div className="flex h-full items-center justify-center">
+              <p className="text-sm text-muted-foreground">Загрузка карты...</p>
             </div>
           ) : (
             (() => {
               const { YMap, YMapDefaultFeaturesLayer, YMapDefaultSchemeLayer, YMapListener, YMapMarker } = mapApi;
 
               return (
-                <YMap location={mapLocation} mode="vector" className="delivery-zone-map-instance">
+                <YMap location={mapLocation} mode="vector" className="absolute inset-0">
                   <YMapDefaultSchemeLayer />
                   <YMapDefaultFeaturesLayer />
                   <YMapListener layer="any" onClick={handleMapClick} />
 
                   {userLocation ? (
                     <YMapMarker coordinates={userLocation}>
-                      <div className="delivery-zone-map-marker delivery-point-map-marker delivery-zone-map-marker-current">Вы</div>
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow">
+                        Вы
+                      </div>
                     </YMapMarker>
                   ) : null}
 
                   {coordinates ? (
                     <YMapMarker coordinates={coordinates} draggable onDragMove={handleMarkerDrag} onDragEnd={handleMarkerDrag}>
-                      <div className="delivery-zone-map-marker delivery-point-map-marker">ПВ</div>
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white shadow">
+                        ПВ
+                      </div>
                     </YMapMarker>
                   ) : null}
                 </YMap>
@@ -235,20 +240,22 @@ export function PickupPointMapEditor({ coordinates, title, addressSummary, onCoo
         </div>
       </div>
 
-      <aside className="delivery-zone-map-sidebar">
-        <div className="catalog-card-copy">
-          <h4 className="delivery-subtitle">{title}</h4>
-          <p className="catalog-meta">{addressSummary}</p>
+      <aside className="shrink-0 space-y-4 md:w-64">
+        <div className="space-y-0.5">
+          <p className="text-sm font-semibold text-foreground">{title}</p>
+          <p className="text-sm text-muted-foreground">{addressSummary}</p>
         </div>
 
-        <div className="delivery-zone-preview-item">
-          <h5 className="delivery-zone-preview-title">Как работать с картой</h5>
-          <p className="catalog-meta">Кликните по карте, чтобы поставить точку пункта самовывоза. Маркер можно перетащить мышью.</p>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">Как работать с картой</p>
+          <p className="text-sm text-muted-foreground">
+            Кликните по карте, чтобы поставить точку пункта самовывоза. Маркер можно перетащить мышью.
+          </p>
         </div>
 
-        <div className="delivery-zone-preview-item">
-          <h5 className="delivery-zone-preview-title">Местоположение</h5>
-          <p className="catalog-meta">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">Местоположение</p>
+          <p className="text-sm text-muted-foreground">
             {isUserLocationLoading
               ? 'Запрашиваем доступ к местоположению браузера и переводим карту к текущей точке.'
               : userLocation
@@ -257,9 +264,9 @@ export function PickupPointMapEditor({ coordinates, title, addressSummary, onCoo
           </p>
         </div>
 
-        <div className="delivery-zone-preview-item">
-          <h5 className="delivery-zone-preview-title">Текущие координаты</h5>
-          <p className="catalog-meta">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">Текущие координаты</p>
+          <p className="text-sm text-muted-foreground">
             {coordinates
               ? `Широта ${formatCoordinateValue(coordinates[1])}, долгота ${formatCoordinateValue(coordinates[0])}`
               : 'Координаты пока не выбраны.'}

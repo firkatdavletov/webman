@@ -20,6 +20,7 @@ import {
   type ProductEditorOptionGroupValues,
   type ProductEditorValues,
 } from '@/features/product-editor/model/productEditor';
+import { AdminNotice, AdminSectionCard, Button, FormField, Input } from '@/shared/ui';
 import { LazyDataTable } from '@/shared/ui/data-table';
 
 type EditableProductField = Exclude<
@@ -68,6 +69,12 @@ type ProductEditorProps = {
 };
 
 const SUPPORTED_PRODUCT_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+const SELECT_CLASSNAME =
+  'h-8 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50';
+
+const SUBSECTION_LABEL_CLASSNAME =
+  'text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase';
 
 function updateOptionGroups(
   currentValues: ProductEditorValues,
@@ -212,7 +219,7 @@ export function ProductEditor({
         cell: ({ row }) => (
           <button
             type="button"
-            className="product-option-row-button"
+            className="text-sm font-medium underline-offset-2 hover:underline disabled:pointer-events-none disabled:opacity-50"
             onClick={() => handleOpenOptionGroupEdit(row.index)}
             disabled={isSaving}
           >
@@ -230,7 +237,7 @@ export function ProductEditor({
         header: 'Значений',
         cell: ({ row }) => row.original.values.length,
         meta: {
-          cellClassName: 'product-options-cell-numeric',
+          cellClassName: 'tabular-nums text-right',
         },
       },
       {
@@ -238,7 +245,7 @@ export function ProductEditor({
         header: 'Sort order',
         cell: ({ row }) => row.original.sortOrder.trim() || '0',
         meta: {
-          cellClassName: 'product-options-cell-numeric',
+          cellClassName: 'tabular-nums text-right',
         },
       },
     ],
@@ -252,7 +259,7 @@ export function ProductEditor({
         cell: ({ row }) => (
           <button
             type="button"
-            className="product-variant-row-button"
+            className="text-sm font-medium underline-offset-2 hover:underline disabled:pointer-events-none disabled:opacity-50"
             onClick={() => handleOpenVariantEdit(row.index)}
             disabled={isSaving || isVariantImageUploading}
           >
@@ -270,7 +277,7 @@ export function ProductEditor({
         header: 'Размер',
         cell: ({ row }) => getVariantOptionLabel(row.original, sizeOptionGroup),
         meta: {
-          cellClassName: 'product-variants-cell-numeric',
+          cellClassName: 'tabular-nums text-right',
         },
       },
       {
@@ -278,7 +285,7 @@ export function ProductEditor({
         header: 'Цена',
         cell: ({ row }) => getVariantPriceLabel(row.original.price),
         meta: {
-          cellClassName: 'product-variants-cell-numeric',
+          cellClassName: 'tabular-nums text-right',
         },
       },
       {
@@ -852,151 +859,121 @@ export function ProductEditor({
   const optionGroupEditorTitleId = `${idPrefix}-option-editor-title-${optionGroupEditorKey}`;
 
   const optionGroupEditorContent = optionGroupEditorState ? (
-    <div
-      className={`product-option-editor${optionGroupEditorMode === 'drawer' ? ' product-option-editor-drawer' : ''}`}
-      aria-label="Редактирование опции товара"
-    >
+    <div className="space-y-4" aria-label="Редактирование опции товара">
       {optionGroupEditorMode === 'inline' ? (
-        <div className="product-editor-card-header">
-          <p className="product-editor-card-title">{optionGroupEditorTitle}</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold">{optionGroupEditorTitle}</p>
         </div>
       ) : null}
 
-      <div className="product-editor-inline-grid product-editor-inline-grid-3">
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-code`}>
-            Code
-          </label>
-          <input
+      <div className="grid gap-3 md:grid-cols-3">
+        <FormField htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-code`} label="Code">
+          <Input
             id={`${idPrefix}-option-editor-${optionGroupEditorKey}-code`}
-            className="field-input"
             value={optionGroupEditorState.draft.code}
             onChange={(event) => handleOptionGroupDraftFieldChange('code', event.target.value)}
             disabled={isOptionGroupEditorBusy}
           />
-        </div>
+        </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-title`}>
-            Название
-          </label>
-          <input
+        <FormField htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-title`} label="Название">
+          <Input
             id={`${idPrefix}-option-editor-${optionGroupEditorKey}-title`}
-            className="field-input"
             value={optionGroupEditorState.draft.title}
             onChange={(event) => handleOptionGroupDraftFieldChange('title', event.target.value)}
             disabled={isOptionGroupEditorBusy}
           />
-        </div>
+        </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-sort-order`}>
-            Sort order
-          </label>
-          <input
+        <FormField htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-sort-order`} label="Sort order">
+          <Input
             id={`${idPrefix}-option-editor-${optionGroupEditorKey}-sort-order`}
-            className="field-input"
             inputMode="numeric"
             value={optionGroupEditorState.draft.sortOrder}
             onChange={(event) => handleOptionGroupDraftFieldChange('sortOrder', event.target.value)}
             disabled={isOptionGroupEditorBusy}
           />
-        </div>
+        </FormField>
       </div>
 
-      <div className="product-editor-subsection-header">
-        <p className="product-editor-card-title">Значения опции</p>
-        <button type="button" className="secondary-button" onClick={handleAddOptionValueDraft} disabled={isOptionGroupEditorBusy}>
+      <div className="flex items-center justify-between gap-2">
+        <p className={SUBSECTION_LABEL_CLASSNAME}>Значения опции</p>
+        <Button type="button" variant="outline" size="sm" onClick={handleAddOptionValueDraft} disabled={isOptionGroupEditorBusy}>
           Добавить значение
-        </button>
+        </Button>
       </div>
 
       {optionGroupEditorState.draft.values.length ? (
-        <div className="product-editor-list product-editor-list-compact">
+        <div className="space-y-2">
           {optionGroupEditorState.draft.values.map((value, valueIndex) => (
-            <div key={`option-editor-value-${valueIndex}`} className="product-editor-row">
-              <div className="product-editor-inline-grid product-editor-inline-grid-3">
-                <div className="field">
-                  <label className="field-label" htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-code`}>
-                    Code
-                  </label>
-                  <input
+            <div key={`option-editor-value-${valueIndex}`} className="space-y-3 rounded-xl border border-border/60 p-3">
+              <div className="grid gap-3 md:grid-cols-3">
+                <FormField htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-code`} label="Code">
+                  <Input
                     id={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-code`}
-                    className="field-input"
                     value={value.code}
                     onChange={(event) => handleOptionValueDraftFieldChange(valueIndex, 'code', event.target.value)}
                     disabled={isOptionGroupEditorBusy}
                   />
-                </div>
+                </FormField>
 
-                <div className="field">
-                  <label className="field-label" htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-title`}>
-                    Название
-                  </label>
-                  <input
+                <FormField htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-title`} label="Название">
+                  <Input
                     id={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-title`}
-                    className="field-input"
                     value={value.title}
                     onChange={(event) => handleOptionValueDraftFieldChange(valueIndex, 'title', event.target.value)}
                     disabled={isOptionGroupEditorBusy}
                   />
-                </div>
+                </FormField>
 
-                <div className="field">
-                  <label
-                    className="field-label"
-                    htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-sort-order`}
-                  >
-                    Sort order
-                  </label>
-                  <input
+                <FormField htmlFor={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-sort-order`} label="Sort order">
+                  <Input
                     id={`${idPrefix}-option-editor-${optionGroupEditorKey}-value-${valueIndex}-sort-order`}
-                    className="field-input"
                     inputMode="numeric"
                     value={value.sortOrder}
                     onChange={(event) => handleOptionValueDraftFieldChange(valueIndex, 'sortOrder', event.target.value)}
                     disabled={isOptionGroupEditorBusy}
                   />
-                </div>
+                </FormField>
               </div>
 
-              <button
+              <Button
                 type="button"
-                className="secondary-button secondary-button-danger"
+                variant="ghost"
+                size="sm"
                 onClick={() => handleRemoveOptionValueDraft(valueIndex)}
                 disabled={isOptionGroupEditorBusy}
               >
                 Удалить
-              </button>
+              </Button>
             </div>
           ))}
         </div>
       ) : (
-        <p className="catalog-meta">Значения опции пока не добавлены.</p>
+        <p className="text-sm text-muted-foreground">Значения опции пока не добавлены.</p>
       )}
 
-      <div className="product-option-editor-actions">
+      <div className="flex flex-wrap items-center gap-2">
         {optionGroupEditorState.mode === 'edit' ? (
-          <button
+          <Button
             type="button"
-            className="secondary-button secondary-button-danger"
+            variant="destructive"
             onClick={handleDeleteOptionGroupFromEditor}
             disabled={isOptionGroupEditorBusy}
           >
             Удалить опцию
-          </button>
+          </Button>
         ) : null}
-        <button type="button" className="secondary-button" onClick={handleCloseOptionGroupEditor} disabled={isOptionGroupEditorBusy}>
+        <Button type="button" variant="outline" onClick={handleCloseOptionGroupEditor} disabled={isOptionGroupEditorBusy}>
           Отменить
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="submit-button product-option-editor-submit"
           onClick={handleConfirmOptionGroupEditor}
           disabled={isOptionGroupEditorBusy}
         >
           {optionGroupEditorState.mode === 'create' ? 'Добавить опцию' : 'Сохранить опцию'}
-        </button>
+        </Button>
       </div>
     </div>
   ) : null;
@@ -1049,183 +1026,155 @@ export function ProductEditor({
   ]);
 
   const variantEditorContent = variantEditorState ? (
-    <div
-      className={`product-variant-editor${variantEditorMode === 'drawer' ? ' product-variant-editor-drawer' : ''}`}
-      aria-label="Редактирование варианта товара"
-    >
+    <div className="space-y-4" aria-label="Редактирование варианта товара">
       {variantEditorMode === 'inline' ? (
-        <div className="product-editor-card-header">
-          <p className="product-editor-card-title">{variantEditorTitle}</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold">{variantEditorTitle}</p>
         </div>
       ) : null}
 
-      <div className="product-variant-image-field">
+      <div className="space-y-3">
         {variantEditorState.draft.images.length ? (
-          <div className="product-variant-image-list">
+          <div className="flex flex-wrap gap-2">
             {variantEditorState.draft.images.map((image, imageIndex) => (
-              <div key={`${image.id ?? image.url}-${imageIndex}`} className="media-image-card">
+              <div key={`${image.id ?? image.url}-${imageIndex}`} className="relative">
                 <img
-                  className="product-variant-image-preview"
+                  className="h-24 w-24 rounded-lg object-cover"
                   src={image.url}
                   alt={`${variantImageAltBase} • фото ${imageIndex + 1}`}
                 />
                 <button
                   type="button"
-                  className="media-image-remove-button"
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[11px] font-bold leading-none text-white"
                   onClick={() => handleRemoveVariantDraftImage(imageIndex)}
                   disabled={isVariantEditorBusy}
                   aria-label={`Удалить фото варианта ${imageIndex + 1}`}
                   title="Удалить фото"
                 >
-                  <span aria-hidden="true">×</span>
+                  ×
                 </button>
               </div>
             ))}
           </div>
         ) : (
-          <div className="product-variant-image-placeholder">Фотографии варианта не загружены</div>
+          <p className="text-sm text-muted-foreground">Фотографии варианта не загружены</p>
         )}
 
-        <div className="product-media-actions product-variant-image-actions">
-          <button
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
             type="button"
-            className="secondary-button image-upload-button"
+            variant="outline"
+            size="sm"
             onClick={handleVariantImageUploadClick}
             disabled={isVariantEditorBusy}
           >
             {isVariantImageUploading ? 'Загрузка...' : 'Загрузить фото'}
-          </button>
+          </Button>
           <input
             ref={variantImageUploadInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"
             multiple
-            className="file-picker-input"
+            className="sr-only"
             onChange={(event) => void handleVariantImageUpload(event)}
             disabled={isVariantEditorBusy}
             tabIndex={-1}
           />
           {variantImageUploadError ? (
-            <p className="field-error" role="alert">
+            <p className="text-sm text-destructive" role="alert">
               {variantImageUploadError}
             </p>
-          ) : (
-            null
-          )}
+          ) : null}
         </div>
       </div>
 
-      <div className="product-editor-inline-grid">
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-external-id`}>
-            External ID
-          </label>
-          <input
+      <div className="grid gap-3 md:grid-cols-2">
+        <FormField htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-external-id`} label="External ID">
+          <Input
             id={`${idPrefix}-variant-editor-${variantEditorKey}-external-id`}
-            className="field-input"
             value={variantEditorState.draft.externalId}
             onChange={(event) => handleVariantDraftFieldChange('externalId', event.target.value)}
             disabled={isVariantEditorBusy}
           />
-        </div>
+        </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-sku`}>
-            SKU
-          </label>
-          <input
+        <FormField htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-sku`} label="SKU">
+          <Input
             id={`${idPrefix}-variant-editor-${variantEditorKey}-sku`}
-            className="field-input"
             value={variantEditorState.draft.sku}
             onChange={(event) => handleVariantDraftFieldChange('sku', event.target.value)}
             disabled={isVariantEditorBusy}
           />
-        </div>
+        </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-title`}>
-            Название
-          </label>
-          <input
+        <FormField htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-title`} label="Название">
+          <Input
             id={`${idPrefix}-variant-editor-${variantEditorKey}-title`}
-            className="field-input"
             value={variantEditorState.draft.title}
             onChange={(event) => handleVariantDraftFieldChange('title', event.target.value)}
             disabled={isVariantEditorBusy}
           />
-        </div>
+        </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-price`}>
-            Цена, руб.
-          </label>
-          <input
+        <FormField htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-price`} label="Цена, руб.">
+          <Input
             id={`${idPrefix}-variant-editor-${variantEditorKey}-price`}
-            className="field-input"
             inputMode="decimal"
             value={variantEditorState.draft.price}
             onChange={(event) => handleVariantDraftFieldChange('price', event.target.value)}
             disabled={isVariantEditorBusy}
           />
-        </div>
+        </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-old-price`}>
-            Старая цена, руб.
-          </label>
-          <input
+        <FormField htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-old-price`} label="Старая цена, руб.">
+          <Input
             id={`${idPrefix}-variant-editor-${variantEditorKey}-old-price`}
-            className="field-input"
             inputMode="decimal"
             value={variantEditorState.draft.oldPrice}
             onChange={(event) => handleVariantDraftFieldChange('oldPrice', event.target.value)}
             disabled={isVariantEditorBusy}
           />
-        </div>
+        </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-sort-order`}>
-            Sort order
-          </label>
-          <input
+        <FormField htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-sort-order`} label="Sort order">
+          <Input
             id={`${idPrefix}-variant-editor-${variantEditorKey}-sort-order`}
-            className="field-input"
             inputMode="numeric"
             value={variantEditorState.draft.sortOrder}
             onChange={(event) => handleVariantDraftFieldChange('sortOrder', event.target.value)}
             disabled={isVariantEditorBusy}
           />
-        </div>
+        </FormField>
       </div>
 
-      <div className="field">
-        <label className="field-checkbox">
-          <input
-            id={`${idPrefix}-variant-editor-${variantEditorKey}-active`}
-            type="checkbox"
-            checked={variantEditorState.draft.isActive}
-            onChange={(event) => handleVariantDraftIsActiveChange(event.target.checked)}
-            disabled={isVariantEditorBusy}
-          />
-          <span className="field-label">Активен</span>
-        </label>
-      </div>
+      <label className="flex cursor-pointer items-center gap-2">
+        <input
+          id={`${idPrefix}-variant-editor-${variantEditorKey}-active`}
+          type="checkbox"
+          className="h-4 w-4 rounded border-input"
+          checked={variantEditorState.draft.isActive}
+          onChange={(event) => handleVariantDraftIsActiveChange(event.target.checked)}
+          disabled={isVariantEditorBusy}
+        />
+        <span className="text-sm font-medium">Активен</span>
+      </label>
 
       {formValues.optionGroups.length ? (
-        <div className="product-editor-list product-editor-list-compact">
+        <div className="space-y-2">
           {formValues.optionGroups.map((group, groupIndex) => {
             const normalizedGroupCode = group.code.trim();
             const selectedOption =
               variantEditorState.draft.options.find((option) => option.optionGroupCode === normalizedGroupCode) ?? null;
 
             return (
-              <div key={`variant-editor-option-${groupIndex}`} className="field">
-                <label className="field-label" htmlFor={`${idPrefix}-variant-editor-option-${variantEditorKey}-${groupIndex}`}>
-                  {group.title.trim() || `Группа #${groupIndex + 1}`}
-                </label>
+              <FormField
+                key={`variant-editor-option-${groupIndex}`}
+                htmlFor={`${idPrefix}-variant-editor-option-${variantEditorKey}-${groupIndex}`}
+                label={group.title.trim() || `Группа #${groupIndex + 1}`}
+              >
                 <select
                   id={`${idPrefix}-variant-editor-option-${variantEditorKey}-${groupIndex}`}
-                  className="field-input"
+                  className={SELECT_CLASSNAME}
                   value={selectedOption?.optionValueCode ?? ''}
                   onChange={(event) => handleVariantDraftOptionValueChange(normalizedGroupCode, event.target.value)}
                   disabled={isVariantEditorBusy || !normalizedGroupCode}
@@ -1245,294 +1194,267 @@ export function ProductEditor({
                     );
                   })}
                 </select>
-              </div>
+              </FormField>
             );
           })}
         </div>
       ) : (
-        <p className="catalog-meta">Добавьте группы опций, чтобы выбрать значения для варианта.</p>
+        <p className="text-sm text-muted-foreground">Добавьте группы опций, чтобы выбрать значения для варианта.</p>
       )}
 
-      <div className="product-variant-editor-actions">
+      <div className="flex flex-wrap items-center gap-2">
         {variantEditorState.mode === 'edit' ? (
-          <button
+          <Button
             type="button"
-            className="secondary-button secondary-button-danger"
+            variant="destructive"
             onClick={handleDeleteVariantFromEditor}
             disabled={isVariantEditorBusy}
           >
             Удалить вариант
-          </button>
+          </Button>
         ) : null}
-        <button type="button" className="secondary-button" onClick={handleCloseVariantEditor} disabled={isVariantEditorBusy}>
+        <Button type="button" variant="outline" onClick={handleCloseVariantEditor} disabled={isVariantEditorBusy}>
           Отменить
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="submit-button product-variant-editor-submit"
           onClick={handleConfirmVariantEditor}
           disabled={isVariantEditorBusy}
         >
           {variantEditorState.mode === 'create' ? 'Добавить вариант' : 'Сохранить вариант'}
-        </button>
+        </Button>
       </div>
     </div>
   ) : null;
 
   return (
-    <section className="product-edit-section" aria-label={ariaLabel}>
-      <div className="catalog-card-copy">
-        <p className="placeholder-eyebrow">{eyebrow}</p>
-        <h4 className="catalog-card-title">{title}</h4>
-        {description ? <p className="catalog-meta">{description}</p> : null}
-      </div>
+    <>
+      {/* Основные поля */}
+      <AdminSectionCard eyebrow={eyebrow} title={title} description={description} aria-label={ariaLabel}>
+        <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormField htmlFor={`${idPrefix}-title`} label="Название">
+              <Input
+                id={`${idPrefix}-title`}
+                value={formValues.title}
+                onChange={(event) => handleFieldChange('title', event.target.value)}
+                disabled={isSaving}
+              />
+            </FormField>
 
-      <div className="product-edit-grid">
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-title`}>
-            Название
-          </label>
-          <input
-            id={`${idPrefix}-title`}
-            className="field-input"
-            value={formValues.title}
-            onChange={(event) => handleFieldChange('title', event.target.value)}
-            disabled={isSaving}
-          />
+            <FormField htmlFor={`${idPrefix}-category`} label="Категория">
+              <select
+                id={`${idPrefix}-category`}
+                className={SELECT_CLASSNAME}
+                value={formValues.categoryId}
+                onChange={(event) => handleFieldChange('categoryId', event.target.value)}
+                disabled={isSaving || disableCategorySelect}
+              >
+                {!categoryOptions.length ? <option value="">{emptyCategoryLabel}</option> : null}
+                {categoryOptions.map(([id, categoryTitle]) => (
+                  <option key={id} value={id}>
+                    {categoryTitle}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+
+            <FormField htmlFor={`${idPrefix}-price`} label="Цена, руб.">
+              <Input
+                id={`${idPrefix}-price`}
+                inputMode="decimal"
+                value={formValues.price}
+                onChange={(event) => handleFieldChange('price', event.target.value)}
+                disabled={isSaving}
+              />
+            </FormField>
+
+            <FormField htmlFor={`${idPrefix}-old-price`} label="Старая цена, руб.">
+              <Input
+                id={`${idPrefix}-old-price`}
+                inputMode="decimal"
+                value={formValues.oldPrice}
+                onChange={(event) => handleFieldChange('oldPrice', event.target.value)}
+                disabled={isSaving}
+              />
+            </FormField>
+
+            <FormField htmlFor={`${idPrefix}-unit`} label="Единица измерения">
+              <select
+                id={`${idPrefix}-unit`}
+                className={SELECT_CLASSNAME}
+                value={formValues.unit}
+                onChange={(event) => handleFieldChange('unit', event.target.value)}
+                disabled={isSaving}
+              >
+                {PRODUCT_UNIT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+
+            <FormField htmlFor={`${idPrefix}-step`} label="Шаг продажи">
+              <Input
+                id={`${idPrefix}-step`}
+                inputMode="numeric"
+                value={formValues.countStep}
+                onChange={(event) => handleFieldChange('countStep', event.target.value)}
+                disabled={isSaving}
+              />
+            </FormField>
+
+            <FormField htmlFor={`${idPrefix}-weight`} label="Вес на витрине">
+              <Input
+                id={`${idPrefix}-weight`}
+                value={formValues.displayWeight}
+                onChange={(event) => handleFieldChange('displayWeight', event.target.value)}
+                disabled={isSaving}
+              />
+            </FormField>
+
+            <FormField htmlFor={`${idPrefix}-sku`} label="SKU">
+              <Input
+                id={`${idPrefix}-sku`}
+                value={formValues.sku}
+                onChange={(event) => handleFieldChange('sku', event.target.value)}
+                disabled={isSaving}
+              />
+            </FormField>
+          </div>
+
+          <hr className="border-border/60" />
+
+          <div className="space-y-2">
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                id={`${idPrefix}-active`}
+                type="checkbox"
+                className="h-4 w-4 rounded border-input"
+                checked={formValues.isActive}
+                onChange={(event) => handleIsActiveChange(event.target.checked)}
+                disabled={isSaving}
+              />
+              <span className="text-sm font-medium">Отображать на витрине</span>
+            </label>
+
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                id={`${idPrefix}-has-variants`}
+                type="checkbox"
+                className="h-4 w-4 rounded border-input"
+                checked={formValues.hasVariants}
+                onChange={(event) => handleHasVariantsChange(event.target.checked)}
+                disabled={isSaving}
+              />
+              <span className="text-sm font-medium">Товар с вариантами</span>
+            </label>
+
+            {!formValues.hasVariants ? (
+              <p className="text-sm text-muted-foreground">
+                Режим вариантов выключен. Товар сохранится как обычный (simple product).
+              </p>
+            ) : null}
+          </div>
         </div>
+      </AdminSectionCard>
 
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-category`}>
-            Категория
-          </label>
-          <select
-            id={`${idPrefix}-category`}
-            className="field-input"
-            value={formValues.categoryId}
-            onChange={(event) => handleFieldChange('categoryId', event.target.value)}
-            disabled={isSaving || disableCategorySelect}
-          >
-            {!categoryOptions.length ? <option value="">{emptyCategoryLabel}</option> : null}
-            {categoryOptions.map(([id, categoryTitle]) => (
-              <option key={id} value={id}>
-                {categoryTitle}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-price`}>
-            Цена, руб.
-          </label>
-          <input
-            id={`${idPrefix}-price`}
-            className="field-input"
-            inputMode="decimal"
-            value={formValues.price}
-            onChange={(event) => handleFieldChange('price', event.target.value)}
-            disabled={isSaving}
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-old-price`}>
-            Старая цена, руб.
-          </label>
-          <input
-            id={`${idPrefix}-old-price`}
-            className="field-input"
-            inputMode="decimal"
-            value={formValues.oldPrice}
-            onChange={(event) => handleFieldChange('oldPrice', event.target.value)}
-            disabled={isSaving}
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-unit`}>
-            Единица измерения
-          </label>
-          <select
-            id={`${idPrefix}-unit`}
-            className="field-input"
-            value={formValues.unit}
-            onChange={(event) => handleFieldChange('unit', event.target.value)}
-            disabled={isSaving}
-          >
-            {PRODUCT_UNIT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-step`}>
-            Шаг продажи
-          </label>
-          <input
-            id={`${idPrefix}-step`}
-            className="field-input"
-            inputMode="numeric"
-            value={formValues.countStep}
-            onChange={(event) => handleFieldChange('countStep', event.target.value)}
-            disabled={isSaving}
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-weight`}>
-            Вес на витрине
-          </label>
-          <input
-            id={`${idPrefix}-weight`}
-            className="field-input"
-            value={formValues.displayWeight}
-            onChange={(event) => handleFieldChange('displayWeight', event.target.value)}
-            disabled={isSaving}
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-sku`}>
-            SKU
-          </label>
-          <input
-            id={`${idPrefix}-sku`}
-            className="field-input"
-            value={formValues.sku}
-            onChange={(event) => handleFieldChange('sku', event.target.value)}
-            disabled={isSaving}
-          />
-        </div>
-      </div>
-
-      <div className="field">
-        <label className="field-checkbox">
-          <input
-            id={`${idPrefix}-active`}
-            type="checkbox"
-            checked={formValues.isActive}
-            onChange={(event) => handleIsActiveChange(event.target.checked)}
-            disabled={isSaving}
-          />
-          <span className="field-label">Отображать на витрине</span>
-        </label>
-      </div>
-
-      <div className="field">
-        <label className="field-checkbox">
-          <input
-            id={`${idPrefix}-has-variants`}
-            type="checkbox"
-            checked={formValues.hasVariants}
-            onChange={(event) => handleHasVariantsChange(event.target.checked)}
-            disabled={isSaving}
-          />
-          <span className="field-label">Товар с вариантами</span>
-        </label>
-      </div>
-
+      {/* Опции товара */}
       {formValues.hasVariants ? (
         <>
-          <section className="product-editor-subsection product-editor-subsection-borderless" aria-label="Опции товара">
-            <div className="product-editor-subsection-header">
-              <h5 className="product-editor-subsection-title">Опции товара</h5>
-              <button type="button" className="secondary-button" onClick={handleOpenOptionGroupCreate} disabled={isSaving}>
+          <AdminSectionCard
+            eyebrow="Варианты"
+            title="Опции товара"
+            action={
+              <Button variant="outline" onClick={handleOpenOptionGroupCreate} disabled={isSaving}>
                 Добавить опцию
-              </button>
-            </div>
-
-	            {formValues.optionGroups.length ? (
-	              <LazyDataTable
-	                columns={optionGroupColumns}
-	                data={formValues.optionGroups}
-	                fallback={<p className="catalog-meta">Загрузка таблицы опций...</p>}
-	                getRowId={(_, index) => `option-group-${index}`}
-	                getRowClassName={(row) =>
-	                  optionGroupEditorState?.mode === 'edit' && optionGroupEditorState.optionGroupIndex === row.index
-	                    ? 'product-options-row-selected'
-	                    : undefined
-	                }
-	                wrapperClassName="product-options-table-wrap"
-	                tableClassName="product-options-table"
-	              />
-	            ) : (
-	              <p className="catalog-meta">Группы опций пока не добавлены.</p>
-	            )}
+              </Button>
+            }
+          >
+            {formValues.optionGroups.length ? (
+              <LazyDataTable
+                columns={optionGroupColumns}
+                data={formValues.optionGroups}
+                fallback={<p className="text-sm text-muted-foreground">Загрузка таблицы опций...</p>}
+                getRowId={(_, index) => `option-group-${index}`}
+                getRowClassName={(row) =>
+                  optionGroupEditorState?.mode === 'edit' && optionGroupEditorState.optionGroupIndex === row.index
+                    ? 'bg-accent/50'
+                    : undefined
+                }
+                wrapperClassName="overflow-auto rounded-xl border border-border/60"
+                tableClassName="w-full text-sm"
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">Группы опций пока не добавлены.</p>
+            )}
 
             {optionGroupEditorMode === 'inline' ? optionGroupEditorContent : null}
-          </section>
+          </AdminSectionCard>
 
-          <section className="product-editor-subsection product-editor-subsection-borderless" aria-label="Варианты товара">
-            <div className="product-editor-subsection-header">
-              <h5 className="product-editor-subsection-title">Варианты товара</h5>
-              <button type="button" className="secondary-button" onClick={handleOpenVariantCreate} disabled={isVariantEditorBusy}>
+          <AdminSectionCard
+            eyebrow="Варианты"
+            title="Варианты товара"
+            action={
+              <Button variant="outline" onClick={handleOpenVariantCreate} disabled={isVariantEditorBusy}>
                 Добавить вариант
-              </button>
-            </div>
-
-	            {formValues.variants.length ? (
-	              <LazyDataTable
-	                columns={variantColumns}
-	                data={formValues.variants}
-	                fallback={<p className="catalog-meta">Загрузка таблицы вариантов...</p>}
-	                getRowId={(_, index) => `variant-${index}`}
-	                getRowClassName={(row) =>
-	                  variantEditorState?.mode === 'edit' && variantEditorState.variantIndex === row.index
-	                    ? 'product-variants-row-selected'
-	                    : undefined
-	                }
-	                wrapperClassName="product-variants-table-wrap"
-	                tableClassName="product-variants-table"
-	              />
-	            ) : (
-	              <p className="catalog-meta">Варианты пока не добавлены.</p>
-	            )}
+              </Button>
+            }
+          >
+            {formValues.variants.length ? (
+              <LazyDataTable
+                columns={variantColumns}
+                data={formValues.variants}
+                fallback={<p className="text-sm text-muted-foreground">Загрузка таблицы вариантов...</p>}
+                getRowId={(_, index) => `variant-${index}`}
+                getRowClassName={(row) =>
+                  variantEditorState?.mode === 'edit' && variantEditorState.variantIndex === row.index
+                    ? 'bg-accent/50'
+                    : undefined
+                }
+                wrapperClassName="overflow-auto rounded-xl border border-border/60"
+                tableClassName="w-full text-sm"
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">Варианты пока не добавлены.</p>
+            )}
 
             {variantEditorMode === 'inline' ? variantEditorContent : null}
-          </section>
+          </AdminSectionCard>
         </>
-      ) : (
-        <p className="catalog-meta">Режим вариантов выключен. Товар сохранится как обычный (simple product).</p>
-      )}
+      ) : null}
 
-      <section className="product-editor-subsection" aria-label="Модификаторы товара">
-        <div className="product-editor-subsection-header">
-          <div className="catalog-card-copy">
-            <h5 className="product-editor-subsection-title">Модификаторы товара</h5>
-            <p className="catalog-meta">Привяжите к товару готовые группы модификаторов из административного справочника.</p>
-          </div>
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={handleAddModifierGroup}
-            disabled={isSaving || !availableModifierGroups.length}
-          >
-            Добавить модификатор
-          </button>
-        </div>
-
+      {/* Модификаторы */}
+      <AdminSectionCard
+        eyebrow="Модификаторы"
+        title="Привязки к группам"
+        description="Привяжите к товару готовые группы модификаторов из административного справочника."
+        action={
+          availableModifierGroups.length ? (
+            <Button variant="outline" onClick={handleAddModifierGroup} disabled={isSaving}>
+              Добавить модификатор
+            </Button>
+          ) : undefined
+        }
+      >
         {!availableModifierGroups.length ? (
-          <p className="catalog-meta">Сначала создайте хотя бы одну группу модификаторов в соответствующем разделе каталога.</p>
+          <p className="text-sm text-muted-foreground">
+            Сначала создайте хотя бы одну группу модификаторов в соответствующем разделе каталога.
+          </p>
         ) : formValues.modifierGroups.length ? (
-          <div className="product-editor-list">
+          <div className="space-y-3">
             {formValues.modifierGroups.map((modifierGroup, modifierGroupIndex) => {
               const selectedModifierGroupId = modifierGroup.modifierGroupId.trim();
               const selectedModifierGroup = modifierGroupLookup.get(selectedModifierGroupId) ?? null;
 
               return (
-                <div key={`modifier-group-${modifierGroupIndex}`} className="product-editor-row">
-                  <div className="product-editor-inline-grid product-editor-inline-grid-3">
-                    <div className="field">
-                      <label className="field-label" htmlFor={`${idPrefix}-modifier-group-${modifierGroupIndex}-id`}>
-                        Группа
-                      </label>
+                <div key={`modifier-group-${modifierGroupIndex}`} className="space-y-3 rounded-xl border border-border/60 p-3">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <FormField htmlFor={`${idPrefix}-modifier-group-${modifierGroupIndex}-id`} label="Группа">
                       <select
                         id={`${idPrefix}-modifier-group-${modifierGroupIndex}-id`}
-                        className="field-input"
+                        className={SELECT_CLASSNAME}
                         value={modifierGroup.modifierGroupId}
                         onChange={(event) =>
                           handleModifierGroupFieldChange(modifierGroupIndex, 'modifierGroupId', event.target.value)
@@ -1554,155 +1476,169 @@ export function ProductEditor({
                           );
                         })}
                       </select>
-                    </div>
+                    </FormField>
 
-                    <div className="field">
-                      <label className="field-label" htmlFor={`${idPrefix}-modifier-group-${modifierGroupIndex}-sort-order`}>
-                        Sort order
-                      </label>
-                      <input
+                    <FormField htmlFor={`${idPrefix}-modifier-group-${modifierGroupIndex}-sort-order`} label="Sort order">
+                      <Input
                         id={`${idPrefix}-modifier-group-${modifierGroupIndex}-sort-order`}
-                        className="field-input"
                         inputMode="numeric"
                         value={modifierGroup.sortOrder}
                         onChange={(event) => handleModifierGroupFieldChange(modifierGroupIndex, 'sortOrder', event.target.value)}
                         disabled={isSaving}
                       />
-                    </div>
+                    </FormField>
 
-                    <div className="field">
-                      <label className="field-checkbox">
+                    <div className="flex items-end pb-1">
+                      <label className="flex cursor-pointer items-center gap-2">
                         <input
                           type="checkbox"
+                          className="h-4 w-4 rounded border-input"
                           checked={modifierGroup.isActive}
                           onChange={(event) => handleModifierGroupIsActiveChange(modifierGroupIndex, event.target.checked)}
                           disabled={isSaving}
                         />
-                        <span className="field-label">Привязка активна</span>
+                        <span className="text-sm font-medium">Привязка активна</span>
                       </label>
                     </div>
                   </div>
 
                   {selectedModifierGroup ? (
-                    <div className="product-editor-helper-list">
-                      <p className="catalog-meta">
+                    <div className="space-y-0.5">
+                      <p className="text-sm text-muted-foreground">
                         {selectedModifierGroup.code} • {formatModifierConstraints(selectedModifierGroup)}
                       </p>
-                      <p className="catalog-meta">
+                      <p className="text-sm text-muted-foreground">
                         Справочник: {selectedModifierGroup.isActive ? 'активен' : 'выключен'}
                       </p>
                     </div>
                   ) : selectedModifierGroupId ? (
-                    <p className="form-error">Выбранная группа модификаторов не найдена в справочнике.</p>
+                    <p className="text-sm text-destructive">Выбранная группа модификаторов не найдена в справочнике.</p>
                   ) : (
-                    <p className="catalog-meta">Выберите группу, чтобы увидеть ограничения и состав опций.</p>
+                    <p className="text-sm text-muted-foreground">Выберите группу, чтобы увидеть ограничения и состав опций.</p>
                   )}
 
-                  <div className="product-option-editor-actions">
-                    <button
+                  <div>
+                    <Button
                       type="button"
-                      className="secondary-button secondary-button-danger"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleRemoveModifierGroup(modifierGroupIndex)}
                       disabled={isSaving}
                     >
                       Удалить модификатор
-                    </button>
+                    </Button>
                   </div>
                 </div>
               );
             })}
           </div>
         ) : (
-          <p className="catalog-meta">Модификаторы пока не привязаны.</p>
+          <p className="text-sm text-muted-foreground">Модификаторы пока не привязаны.</p>
         )}
-      </section>
+      </AdminSectionCard>
 
-      <div className="field">
-        <label className="field-label" htmlFor={`${idPrefix}-description`}>
-          Описание
-        </label>
-        <textarea
-          id={`${idPrefix}-description`}
-          className="field-input field-textarea"
-          value={formValues.description}
-          onChange={(event) => handleFieldChange('description', event.target.value)}
-          disabled={isSaving}
-        />
-      </div>
+      {/* Описание */}
+      <AdminSectionCard eyebrow="Описание" title="Текстовое описание">
+        <FormField htmlFor={`${idPrefix}-description`} label="Описание">
+          <textarea
+            id={`${idPrefix}-description`}
+            className="w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm text-foreground transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+            rows={6}
+            value={formValues.description}
+            onChange={(event) => handleFieldChange('description', event.target.value)}
+            disabled={isSaving}
+          />
+        </FormField>
+      </AdminSectionCard>
 
-      {saveError ? (
-        <p className="form-error" role="alert">
-          {saveError}
-        </p>
-      ) : null}
+      {/* Сохранение */}
+      <AdminSectionCard>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={onSubmit} disabled={isVariantEditorBusy}>
+            {isSaving ? savingLabel : submitLabel}
+          </Button>
+        </div>
 
-      {saveSuccess ? (
-        <p className="form-success" role="status">
-          {saveSuccess}
-        </p>
-      ) : null}
+        {saveError ? (
+          <AdminNotice tone="destructive" role="alert">{saveError}</AdminNotice>
+        ) : null}
 
-      <div className="product-edit-actions">
-        <button type="button" className="submit-button" onClick={onSubmit} disabled={isVariantEditorBusy}>
-          {isSaving ? savingLabel : submitLabel}
-        </button>
-      </div>
+        {saveSuccess ? (
+          <AdminNotice>{saveSuccess}</AdminNotice>
+        ) : null}
+      </AdminSectionCard>
 
+      {/* Drawer: опция товара */}
       {optionGroupEditorState && optionGroupEditorMode === 'drawer' ? (
-        <div className="product-editor-drawer-root" role="presentation">
+        <div className="fixed inset-0 z-50" role="presentation">
           <button
             type="button"
-            className="product-editor-drawer-backdrop"
+            className="absolute inset-0 bg-black/40"
             aria-label="Закрыть панель опции товара"
             onClick={handleCloseOptionGroupEditor}
             disabled={isOptionGroupEditorBusy}
           />
 
-          <aside className="product-editor-drawer" role="dialog" aria-modal="true" aria-labelledby={optionGroupEditorTitleId}>
-            <header className="product-editor-drawer-header">
+          <aside
+            className="absolute inset-y-0 right-0 flex w-full max-w-lg flex-col overflow-hidden bg-background shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={optionGroupEditorTitleId}
+          >
+            <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-6 py-4">
               <div>
-                <p className="placeholder-eyebrow">Опция товара</p>
-                <h3 id={optionGroupEditorTitleId} className="product-editor-drawer-title">
+                <p className={SUBSECTION_LABEL_CLASSNAME}>Опция товара</p>
+                <h3 id={optionGroupEditorTitleId} className="text-lg font-semibold">
                   {optionGroupEditorTitle}
                 </h3>
               </div>
-              <button type="button" className="secondary-button" onClick={handleCloseOptionGroupEditor} disabled={isOptionGroupEditorBusy}>
+              <Button variant="outline" onClick={handleCloseOptionGroupEditor} disabled={isOptionGroupEditorBusy}>
                 Закрыть
-              </button>
+              </Button>
             </header>
 
-            <div className="product-editor-drawer-content">{optionGroupEditorContent}</div>
+            <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+              {optionGroupEditorContent}
+            </div>
           </aside>
         </div>
       ) : null}
 
+      {/* Drawer: вариант товара */}
       {variantEditorState && variantEditorMode === 'drawer' ? (
-        <div className="product-editor-drawer-root" role="presentation">
+        <div className="fixed inset-0 z-50" role="presentation">
           <button
             type="button"
-            className="product-editor-drawer-backdrop"
+            className="absolute inset-0 bg-black/40"
             aria-label="Закрыть панель варианта товара"
             onClick={handleCloseVariantEditor}
             disabled={isVariantEditorBusy}
           />
 
-          <aside className="product-editor-drawer" role="dialog" aria-modal="true" aria-labelledby={variantEditorTitleId}>
-            <header className="product-editor-drawer-header">
+          <aside
+            className="absolute inset-y-0 right-0 flex w-full max-w-lg flex-col overflow-hidden bg-background shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={variantEditorTitleId}
+          >
+            <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-6 py-4">
               <div>
-                <p className="placeholder-eyebrow">Вариант товара</p>
-                <h3 id={variantEditorTitleId} className="product-editor-drawer-title">
+                <p className={SUBSECTION_LABEL_CLASSNAME}>Вариант товара</p>
+                <h3 id={variantEditorTitleId} className="text-lg font-semibold">
                   {variantEditorTitle}
                 </h3>
               </div>
-              <button type="button" className="secondary-button" onClick={handleCloseVariantEditor} disabled={isVariantEditorBusy}>
+              <Button variant="outline" onClick={handleCloseVariantEditor} disabled={isVariantEditorBusy}>
                 Закрыть
-              </button>
+              </Button>
             </header>
 
-            <div className="product-editor-drawer-content">{variantEditorContent}</div>
+            <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+              {variantEditorContent}
+            </div>
           </aside>
         </div>
       ) : null}
-    </section>
+    </>
   );
 }

@@ -18,6 +18,13 @@ import {
   validateProductVariantsSection,
 } from '@/features/product-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
+import {
+  AdminEmptyState,
+  AdminNotice,
+  AdminPage,
+  AdminPageHeader,
+  AdminSectionCard,
+} from '@/shared/ui';
 
 const ProductEditor = lazy(() =>
   import('@/features/product-editor/ui/ProductEditor').then((module) => ({
@@ -173,108 +180,101 @@ export function ProductCreatePage() {
   };
 
   return (
-    <main className="dashboard">
-        <nav className="breadcrumbs" aria-label="Хлебные крошки">
-          <Link className="breadcrumb-link" to="/categories">
-            Каталог
+    <AdminPage>
+      <nav className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground" aria-label="Хлебные крошки">
+        <Link className="transition-colors hover:text-foreground" to="/categories">
+          Каталог
+        </Link>
+        <span>/</span>
+        <Link className="transition-colors hover:text-foreground" to="/products">
+          Продукты
+        </Link>
+        <span>/</span>
+        <span className="text-foreground">Новый товар</span>
+      </nav>
+
+      <AdminPageHeader
+        kicker="Каталог"
+        title="Новый товар"
+        actions={
+          <Link
+            className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            to="/products"
+          >
+            К списку товаров
           </Link>
-          <span className="breadcrumb-separator">/</span>
-          <Link className="breadcrumb-link" to="/products">
-            Продукты
-          </Link>
-          <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-current">Новый товар</span>
-        </nav>
+        }
+      />
 
-        <header className="dashboard-header">
-          <div>
-            <p className="page-kicker">Каталог</p>
-            <h2 className="page-title">Новый товар</h2>
-          </div>
-          <div className="dashboard-actions">
-            <Link className="secondary-link" to="/products">
-              К списку товаров
-            </Link>
-          </div>
-        </header>
-
-        {isLoading ? (
-          <section className="catalog-card product-detail-card">
-            <p className="catalog-empty-state">Загрузка списка категорий...</p>
-          </section>
-        ) : (
-          <section className="catalog-card product-detail-card" aria-label="Создание товара">
-            <div className="catalog-card-copy">
-              <p className="placeholder-eyebrow">Создание</p>
-              <h3 className="product-detail-title">Новый товар</h3>
-              <p className="product-detail-price">{parsedPrice === null ? 'Цена не указана' : formatPrice(parsedPrice)}</p>
-            </div>
-
-            {errorMessage ? (
-              <p className="form-error" role="alert">
-                {errorMessage}
+      {isLoading ? (
+        <AdminSectionCard>
+          <AdminEmptyState title="Загрузка" description="Загружаем список категорий..." />
+        </AdminSectionCard>
+      ) : (
+        <>
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-[1.25rem] border border-border/70 bg-background/70 px-4 py-4">
+              <p className="text-[0.72rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">Цена</p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                {parsedPrice === null ? 'Не указана' : formatPrice(parsedPrice)}
               </p>
-            ) : null}
-
-            <div className="product-detail-grid">
-              <div className="detail-block">
-                <h4 className="detail-title">Идентификатор</h4>
-                <p className="detail-copy">ID будет назначен после сохранения.</p>
-              </div>
-
-              <div className="detail-block">
-                <h4 className="detail-title">Категория и единица</h4>
+            </div>
+            <div className="rounded-[1.25rem] border border-border/70 bg-background/70 px-4 py-4">
+              <p className="text-[0.72rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">Категория</p>
+              <p className="mt-1 text-sm font-medium text-foreground">
                 {selectedCategoryId ? (
-                  <p className="detail-copy">
-                    Категория:{' '}
-                    <Link className="inline-link" to={`/categories/${selectedCategoryId}`}>
-                      {selectedCategoryTitle}
-                    </Link>
-                  </p>
+                  <Link className="hover:underline" to={`/categories/${selectedCategoryId}`}>
+                    {selectedCategoryTitle}
+                  </Link>
                 ) : (
-                  <p className="detail-copy">Категория: не выбрана</p>
+                  'Не выбрана'
                 )}
-              <p className="detail-copy">Единица: {formatUnitLabel(formValues.unit)}</p>
-            </div>
-
-            <div className="detail-block">
-              <h4 className="detail-title">Параметры продажи</h4>
-              <p className="detail-copy">Шаг: {formValues.countStep || 'Не указан'}</p>
-              <p className="detail-copy">Вес на витрине: {formValues.displayWeight.trim() || 'Не указан'}</p>
-            </div>
-
-            <div className="detail-block">
-              <h4 className="detail-title">Модификаторы</h4>
-              <p className="detail-copy">
-                Доступно групп: {modifierGroups.length} • Привязано к товару: {formValues.modifierGroups.length}
               </p>
             </div>
-
-            <div className="detail-block">
-              <h4 className="detail-title">API</h4>
-              <p className="detail-copy">POST /api/v1/admin/catalog/products</p>
-              </div>
+            <div className="rounded-[1.25rem] border border-border/70 bg-background/70 px-4 py-4">
+              <p className="text-[0.72rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">Единица</p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                {formatUnitLabel(formValues.unit) || 'Не выбрана'}
+              </p>
             </div>
-            <Suspense fallback={<p className="catalog-empty-state">Загрузка редактора товара...</p>}>
-              <ProductEditor
-                idPrefix="product-create"
-                ariaLabel="Форма создания товара"
-                eyebrow="Создание"
-                title="Новый товар"
-                categoryOptions={categoryOptions}
-                availableModifierGroups={modifierGroups}
-                formValues={formValues}
-                isSaving={isSaving}
-                disableCategorySelect={!categoryOptions.length}
-                saveError={saveError}
-                submitLabel="Создать товар"
-                savingLabel="Создание..."
-                onValuesChange={handleValuesChange}
-                onSubmit={() => void handleSave()}
-              />
-            </Suspense>
+            <div className="rounded-[1.25rem] border border-border/70 bg-background/70 px-4 py-4">
+              <p className="text-[0.72rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">Модификаторы</p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                Привязано: {formValues.modifierGroups.length} из {modifierGroups.length}
+              </p>
+            </div>
           </section>
-        )}
-    </main>
+
+          {errorMessage ? (
+            <AdminNotice tone="destructive" role="alert">{errorMessage}</AdminNotice>
+          ) : null}
+
+          <Suspense
+            fallback={
+              <AdminSectionCard>
+                <AdminEmptyState description="Загрузка редактора товара..." />
+              </AdminSectionCard>
+            }
+          >
+            <ProductEditor
+              idPrefix="product-create"
+              ariaLabel="Форма создания товара"
+              eyebrow="Создание"
+              title="Новый товар"
+              categoryOptions={categoryOptions}
+              availableModifierGroups={modifierGroups}
+              formValues={formValues}
+              isSaving={isSaving}
+              disableCategorySelect={!categoryOptions.length}
+              saveError={saveError}
+              submitLabel="Создать товар"
+              savingLabel="Создание..."
+              onValuesChange={handleValuesChange}
+              onSubmit={() => void handleSave()}
+            />
+          </Suspense>
+        </>
+      )}
+    </AdminPage>
   );
 }

@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "./shared/styles/global.css";
 
 @theme inline {
   --font-sans: "Avenir Next", "Trebuchet MS", sans-serif;
