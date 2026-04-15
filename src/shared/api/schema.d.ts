@@ -1987,7 +1987,7 @@ export interface components {
         /** @enum {string} */
         OrderStatusChangeSourceType: "SYSTEM" | "ADMIN" | "CUSTOMER";
         /** @enum {string} */
-        MediaTargetType: "PRODUCT" | "CATEGORY" | "VARIANT" | "BANNER";
+        MediaTargetType: "PRODUCT" | "CATEGORY" | "VARIANT";
         /** @enum {string} */
         MediaImageStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED" | "DELETED";
         /** @enum {string} */
