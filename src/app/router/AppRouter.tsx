@@ -76,6 +76,11 @@ const LegalDocumentsPage = lazy(() =>
     default: module.LegalDocumentsPage,
   })),
 );
+const LegalDocumentDetailsPage = lazy(() =>
+  import('@/pages/content/legal-document-details/ui/LegalDocumentDetailsPage').then((module) => ({
+    default: module.LegalDocumentDetailsPage,
+  })),
+);
 const DeliveryConditionsPage = lazy(() =>
   import('@/pages/delivery/ui/DeliveryConditionsPage').then((module) => ({ default: module.DeliveryConditionsPage })),
 );
@@ -195,6 +200,7 @@ export function AppRouter() {
         <Route path="/hero-banners/new" element={<HeroBannerCreatePage />} />
         <Route path="/hero-banners/:bannerId" element={<HeroBannerDetailsPage />} />
         <Route path="/legal-documents" element={<LegalDocumentsPage />} />
+        <Route path="/legal-documents/:documentType" element={<LegalDocumentDetailsPage />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/orders/:orderId" element={<OrdersPage />} />
         <Route path="/order-statuses" element={<OrderStatusesPage />} />

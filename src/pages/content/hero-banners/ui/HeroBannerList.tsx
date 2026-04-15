@@ -1,69 +1,67 @@
 import { Link } from 'react-router-dom';
 import type { HeroBanner } from '@/entities/hero-banner';
 import { formatBannerDate, formatBannerStatus, formatBannerTheme } from '@/entities/hero-banner';
+import { Badge } from '@/shared/ui';
 
 type HeroBannerListProps = {
   items: HeroBanner[];
 };
 
-function getStatusBadgeClass(status: string): string {
-  switch (status) {
-    case 'PUBLISHED':
-      return 'nav-badge nav-badge-live';
-    case 'DRAFT':
-      return 'nav-badge';
-    case 'ARCHIVED':
-      return 'nav-badge';
-    default:
-      return 'nav-badge';
+function getStatusBadgeClassName(status: string): string {
+  if (status === 'PUBLISHED') {
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   }
+  return 'border-border bg-muted/40 text-muted-foreground';
 }
 
 export function HeroBannerList({ items }: HeroBannerListProps) {
   return (
-    <div className="catalog-list">
+    <ul className="divide-y divide-border/60">
       {items.map((banner) => (
-        <Link key={banner.id} className="catalog-list-item" to={`/hero-banners/${banner.id}`}>
-          <div className="catalog-list-item-media">
-            {banner.desktopImageUrl ? (
-              <img
-                className="catalog-list-item-image"
-                src={banner.desktopImageUrl}
-                alt={banner.code}
-                style={{ width: '120px', height: '68px', objectFit: 'cover', borderRadius: '6px' }}
-              />
-            ) : (
-              <div
-                className="product-image-placeholder"
-                style={{ width: '120px', height: '68px', borderRadius: '6px', fontSize: '0.75rem' }}
-              >
-                Нет фото
+        <li key={banner.id}>
+          <Link
+            to={`/hero-banners/${banner.id}`}
+            className="flex items-center gap-4 py-3 transition-colors hover:text-foreground first:pt-0 last:pb-0"
+          >
+            <div className="shrink-0">
+              {banner.desktopImageUrl ? (
+                <img
+                  className="h-16 w-28 rounded-lg object-cover"
+                  src={banner.desktopImageUrl}
+                  alt={banner.code}
+                />
+              ) : (
+                <div className="flex h-16 w-28 items-center justify-center rounded-lg border border-dashed border-border/70 bg-muted/40 text-xs text-muted-foreground">
+                  Нет фото
+                </div>
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">{banner.code}</span>
+                <Badge className={`border ${getStatusBadgeClassName(banner.status)}`}>
+                  {formatBannerStatus(banner.status)}
+                </Badge>
               </div>
-            )}
-          </div>
-
-          <div className="catalog-list-item-content">
-            <div className="catalog-list-item-header">
-              <span className="catalog-list-item-title">{banner.code}</span>
-              <span className={getStatusBadgeClass(banner.status)}>{formatBannerStatus(banner.status)}</span>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                {banner.translations.length > 0 ? banner.translations[0].title : '—'}
+                {' · '}
+                Тема: {formatBannerTheme(banner.themeVariant)}
+                {' · '}
+                Порядок: {banner.sortOrder}
+              </p>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                Создан: {formatBannerDate(banner.createdAt)}
+                {banner.startsAt ? ` · Начало: ${formatBannerDate(banner.startsAt)}` : ''}
+                {banner.endsAt ? ` · Конец: ${formatBannerDate(banner.endsAt)}` : ''}
+              </p>
             </div>
 
-            <div className="catalog-meta">
-              {banner.translations.length > 0 ? banner.translations[0].title : '—'}
-              {' · '}
-              Тема: {formatBannerTheme(banner.themeVariant)}
-              {' · '}
-              Порядок: {banner.sortOrder}
-            </div>
-
-            <div className="catalog-meta">
-              Создан: {formatBannerDate(banner.createdAt)}
-              {banner.startsAt ? ` · Начало: ${formatBannerDate(banner.startsAt)}` : ''}
-              {banner.endsAt ? ` · Конец: ${formatBannerDate(banner.endsAt)}` : ''}
-            </div>
-          </div>
-        </Link>
+            <span className="shrink-0 text-xs text-muted-foreground">Открыть →</span>
+          </Link>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

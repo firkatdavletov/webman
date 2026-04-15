@@ -20,6 +20,21 @@ import {
   type HeroBannerTranslationValues,
 } from '@/features/hero-banner-editor';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
+import {
+  AdminEmptyState,
+  AdminNotice,
+  AdminPage,
+  AdminPageHeader,
+  AdminPageStatus,
+  AdminSectionCard,
+  Badge,
+  Button,
+} from '@/shared/ui';
+
+function getStatusBadgeClassName(status: BannerStatus): string {
+  if (status === 'PUBLISHED') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  return 'border-border bg-muted/40 text-muted-foreground';
+}
 
 export function HeroBannerDetailsPage() {
   const { bannerId } = useParams();
@@ -65,10 +80,8 @@ export function HeroBannerDetailsPage() {
   const handleFieldChange = (field: string, value: string) => {
     setFormValues((current) => {
       if (!current) return current;
-
       return { ...current, [field]: value };
     });
-
     if (saveError) setSaveError('');
     if (saveSuccess) setSaveSuccess('');
   };
@@ -76,13 +89,10 @@ export function HeroBannerDetailsPage() {
   const handleTranslationChange = (index: number, field: keyof HeroBannerTranslationValues, value: string) => {
     setFormValues((current) => {
       if (!current) return current;
-
       const translations = [...current.translations];
       translations[index] = { ...translations[index], [field]: value };
-
       return { ...current, translations };
     });
-
     if (saveError) setSaveError('');
     if (saveSuccess) setSaveSuccess('');
   };
@@ -90,7 +100,6 @@ export function HeroBannerDetailsPage() {
   const handleAddTranslation = () => {
     setFormValues((current) => {
       if (!current) return current;
-
       return {
         ...current,
         translations: [...current.translations, { ...EMPTY_TRANSLATION_VALUES, locale: '' }],
@@ -101,7 +110,6 @@ export function HeroBannerDetailsPage() {
   const handleRemoveTranslation = (index: number) => {
     setFormValues((current) => {
       if (!current) return current;
-
       return {
         ...current,
         translations: current.translations.filter((_, i) => i !== index),
@@ -166,7 +174,6 @@ export function HeroBannerDetailsPage() {
 
   const handleDelete = async () => {
     if (!banner) return;
-
     if (!window.confirm('Вы уверены, что хотите удалить этот баннер?')) return;
 
     setIsSaving(true);
@@ -183,188 +190,203 @@ export function HeroBannerDetailsPage() {
   };
 
   return (
-    <main className="dashboard">
-        <nav className="breadcrumbs" aria-label="Хлебные крошки">
-          <Link className="breadcrumb-link" to="/hero-banners">
-            Контент
-          </Link>
-          <span className="breadcrumb-separator">/</span>
-          <Link className="breadcrumb-link" to="/hero-banners">
-            Hero-баннеры
-          </Link>
-          {banner ? (
-            <>
-              <span className="breadcrumb-separator">/</span>
-              <span className="breadcrumb-current">{banner.code}</span>
-            </>
-          ) : null}
-        </nav>
+    <AdminPage>
+      <nav className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground" aria-label="Хлебные крошки">
+        <Link className="transition-colors hover:text-foreground" to="/hero-banners">
+          Контент
+        </Link>
+        <span>/</span>
+        <Link className="transition-colors hover:text-foreground" to="/hero-banners">
+          Hero-баннеры
+        </Link>
+        {banner ? (
+          <>
+            <span>/</span>
+            <span className="text-foreground">{banner.code}</span>
+          </>
+        ) : null}
+      </nav>
 
-        <header className="dashboard-header">
-          <div>
-            <p className="page-kicker">Контент</p>
-            <h2 className="page-title">Карточка баннера</h2>
-          </div>
-          <div className="dashboard-actions">
-            <Link className="secondary-link" to="/hero-banners">
+      <AdminPageHeader
+        kicker="Контент"
+        title="Карточка баннера"
+        description="Редактирование и управление статусом hero-баннера."
+        actions={
+          <>
+            {banner ? (
+              <AdminPageStatus>
+                <span className="font-medium">ID:</span> {banner.id}
+              </AdminPageStatus>
+            ) : null}
+            <Link
+              className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              to="/hero-banners"
+            >
               К списку баннеров
             </Link>
-          </div>
-        </header>
+          </>
+        }
+      />
 
-        {isLoading ? (
-          <section className="catalog-card product-detail-card">
-            <p className="catalog-empty-state">Загрузка карточки баннера...</p>
-          </section>
-        ) : banner ? (
-          <section className="catalog-card product-detail-card" aria-label="Информация о баннере">
-            <div className="product-detail-hero">
-              <div className="product-detail-media" aria-label="Изображение баннера">
-                {banner.desktopImageUrl ? (
-                  <div className="product-detail-image-list">
-                    <img
-                      className="product-detail-image"
-                      src={banner.desktopImageUrl}
-                      alt={banner.code}
-                      style={{ maxHeight: '250px', objectFit: 'contain' }}
-                    />
-                    {banner.mobileImageUrl ? (
-                      <img
-                        className="product-detail-image"
-                        src={banner.mobileImageUrl}
-                        alt={`${banner.code} (мобильная версия)`}
-                        style={{ maxHeight: '150px', objectFit: 'contain' }}
-                      />
-                    ) : null}
-                  </div>
-                ) : (
-                  <div className="product-image-placeholder">Изображение отсутствует</div>
-                )}
-              </div>
-
-              <div className="catalog-card-copy product-detail-summary">
-                <p className="placeholder-eyebrow">Hero-баннер</p>
-                <h3 className="product-detail-title">{banner.code}</h3>
-                <p className="catalog-meta">
-                  Статус: {formatBannerStatus(banner.status)} · Тема: {formatBannerTheme(banner.themeVariant)} · Текст:{' '}
-                  {formatBannerTextAlignment(banner.textAlignment)}
-                </p>
-              </div>
-            </div>
-
-            {errorMessage ? (
-              <p className="form-error" role="alert">
-                {errorMessage}
-              </p>
-            ) : null}
-
-            <div className="product-detail-grid">
-              <div className="detail-block">
-                <h4 className="detail-title">Идентификаторы</h4>
-                <p className="detail-copy">ID: {banner.id}</p>
-                <p className="detail-copy">Код: {banner.code}</p>
-                <p className="detail-copy">Витрина: {banner.storefrontCode}</p>
-                <p className="detail-copy">Версия: {banner.version}</p>
-              </div>
-
-              <div className="detail-block">
-                <h4 className="detail-title">Расписание</h4>
-                <p className="detail-copy">Создан: {formatBannerDate(banner.createdAt)}</p>
-                <p className="detail-copy">Обновлён: {formatBannerDate(banner.updatedAt)}</p>
-                <p className="detail-copy">Опубликован: {formatBannerDate(banner.publishedAt)}</p>
-                <p className="detail-copy">Начало: {formatBannerDate(banner.startsAt)}</p>
-                <p className="detail-copy">Конец: {formatBannerDate(banner.endsAt)}</p>
-              </div>
-            </div>
-
-            <div className="product-edit-section" aria-label="Действия со статусом">
-              <div className="catalog-card-copy">
-                <p className="placeholder-eyebrow">Управление</p>
-                <h4 className="catalog-card-title">Действия</h4>
-              </div>
-
-              <div className="product-edit-actions" style={{ gap: '0.5rem' }}>
-                {banner.status !== 'PUBLISHED' ? (
-                  <button
-                    type="button"
-                    className="submit-button"
-                    onClick={() => void handleStatusChange('PUBLISHED')}
-                    disabled={isSaving}
-                  >
-                    Опубликовать
-                  </button>
-                ) : null}
-
-                {banner.status !== 'ARCHIVED' ? (
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={() => void handleStatusChange('ARCHIVED')}
-                    disabled={isSaving}
-                  >
-                    В архив
-                  </button>
-                ) : null}
-
-                {banner.status !== 'DRAFT' ? (
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={() => void handleStatusChange('DRAFT')}
-                    disabled={isSaving}
-                  >
-                    В черновик
-                  </button>
-                ) : null}
-
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => void handleDelete()}
-                  disabled={isSaving}
-                  style={{ color: 'var(--danger, #d32f2f)' }}
-                >
-                  Удалить
-                </button>
-              </div>
-
-              {statusActionError ? (
-                <p className="form-error" role="alert">
-                  {statusActionError}
-                </p>
-              ) : null}
-            </div>
-
-            {formValues ? (
-              <HeroBannerEditor
-                idPrefix="banner-edit"
-                ariaLabel="Редактирование баннера"
-                eyebrow="Редактирование"
-                title="Изменить баннер"
-                formValues={formValues}
-                isSaving={isSaving}
-                saveError={saveError}
-                saveSuccess={saveSuccess}
-                submitLabel="Сохранить изменения"
-                savingLabel="Сохранение..."
-                onFieldChange={handleFieldChange}
-                onTranslationChange={handleTranslationChange}
-                onAddTranslation={handleAddTranslation}
-                onRemoveTranslation={handleRemoveTranslation}
-                onSubmit={() => void handleSave()}
-              />
-            ) : null}
-          </section>
-        ) : (
-          <section className="catalog-card product-detail-card">
-            <p className="form-error" role="alert">
-              {errorMessage || 'Баннер не найден.'}
-            </p>
-            <Link className="secondary-link" to="/hero-banners">
+      {isLoading ? (
+        <AdminSectionCard>
+          <AdminEmptyState title="Загрузка" description="Загружаем карточку баннера." />
+        </AdminSectionCard>
+      ) : !banner ? (
+        <AdminSectionCard>
+          <AdminEmptyState
+            tone="destructive"
+            title="Ошибка загрузки"
+            description={errorMessage || 'Баннер не найден.'}
+          />
+          <div>
+            <Link
+              className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              to="/hero-banners"
+            >
               Вернуться к списку баннеров
             </Link>
+          </div>
+        </AdminSectionCard>
+      ) : (
+        <>
+          {/* Stats */}
+          <section className="grid gap-4 md:grid-cols-4">
+            <div className="rounded-[1.25rem] border border-border/70 bg-background/70 px-4 py-4">
+              <p className="text-[0.72rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">Статус</p>
+              <div className="mt-1">
+                <Badge className={`border ${getStatusBadgeClassName(banner.status)}`}>
+                  {formatBannerStatus(banner.status)}
+                </Badge>
+              </div>
+            </div>
+            <div className="rounded-[1.25rem] border border-border/70 bg-background/70 px-4 py-4">
+              <p className="text-[0.72rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">Тема</p>
+              <p className="mt-1 text-sm font-medium text-foreground">{formatBannerTheme(banner.themeVariant)}</p>
+            </div>
+            <div className="rounded-[1.25rem] border border-border/70 bg-background/70 px-4 py-4">
+              <p className="text-[0.72rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">Текст</p>
+              <p className="mt-1 text-sm font-medium text-foreground">{formatBannerTextAlignment(banner.textAlignment)}</p>
+            </div>
+            <div className="rounded-[1.25rem] border border-border/70 bg-background/70 px-4 py-4">
+              <p className="text-[0.72rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">Порядок</p>
+              <p className="mt-1 text-sm font-medium text-foreground">{banner.sortOrder}</p>
+            </div>
           </section>
-        )}
-    </main>
+
+          {/* Preview */}
+          {banner.desktopImageUrl ? (
+            <AdminSectionCard eyebrow="Медиа" title="Изображения баннера">
+              <div className="flex flex-wrap gap-4">
+                <img
+                  className="max-h-48 rounded-xl object-contain"
+                  src={banner.desktopImageUrl}
+                  alt={banner.code}
+                />
+                {banner.mobileImageUrl ? (
+                  <img
+                    className="max-h-32 rounded-xl object-contain"
+                    src={banner.mobileImageUrl}
+                    alt={`${banner.code} (мобильная версия)`}
+                  />
+                ) : null}
+              </div>
+            </AdminSectionCard>
+          ) : null}
+
+          {/* Details */}
+          <AdminSectionCard eyebrow="Сведения" title="Идентификаторы и расписание">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <p className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">Идентификаторы</p>
+                <dl className="space-y-1">
+                  {[
+                    { label: 'ID', value: banner.id },
+                    { label: 'Код', value: banner.code },
+                    { label: 'Витрина', value: banner.storefrontCode },
+                    { label: 'Версия', value: banner.version },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex gap-2 text-sm">
+                      <dt className="shrink-0 text-muted-foreground">{label}:</dt>
+                      <dd className="min-w-0 truncate font-medium">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">Расписание</p>
+                <dl className="space-y-1">
+                  {[
+                    { label: 'Создан', value: formatBannerDate(banner.createdAt) },
+                    { label: 'Обновлён', value: formatBannerDate(banner.updatedAt) },
+                    { label: 'Опубликован', value: formatBannerDate(banner.publishedAt) },
+                    { label: 'Начало', value: formatBannerDate(banner.startsAt) },
+                    { label: 'Конец', value: formatBannerDate(banner.endsAt) },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex gap-2 text-sm">
+                      <dt className="shrink-0 text-muted-foreground">{label}:</dt>
+                      <dd className="font-medium">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            </div>
+          </AdminSectionCard>
+
+          {errorMessage ? (
+            <AdminNotice tone="destructive" role="alert">{errorMessage}</AdminNotice>
+          ) : null}
+
+          {/* Actions */}
+          <AdminSectionCard eyebrow="Управление" title="Действия">
+            <div className="flex flex-wrap items-center gap-2">
+              {banner.status !== 'PUBLISHED' ? (
+                <Button onClick={() => void handleStatusChange('PUBLISHED')} disabled={isSaving}>
+                  Опубликовать
+                </Button>
+              ) : null}
+              {banner.status !== 'ARCHIVED' ? (
+                <Button variant="outline" onClick={() => void handleStatusChange('ARCHIVED')} disabled={isSaving}>
+                  В архив
+                </Button>
+              ) : null}
+              {banner.status !== 'DRAFT' ? (
+                <Button variant="outline" onClick={() => void handleStatusChange('DRAFT')} disabled={isSaving}>
+                  В черновик
+                </Button>
+              ) : null}
+              <Button variant="destructive" onClick={() => void handleDelete()} disabled={isSaving}>
+                Удалить
+              </Button>
+            </div>
+
+            {statusActionError ? (
+              <AdminNotice tone="destructive" role="alert">{statusActionError}</AdminNotice>
+            ) : null}
+          </AdminSectionCard>
+
+          {/* Editor */}
+          {formValues ? (
+            <HeroBannerEditor
+              idPrefix="banner-edit"
+              ariaLabel="Редактирование баннера"
+              eyebrow="Редактирование"
+              title="Изменить баннер"
+              formValues={formValues}
+              isSaving={isSaving}
+              saveError={saveError}
+              saveSuccess={saveSuccess}
+              submitLabel="Сохранить изменения"
+              savingLabel="Сохранение..."
+              onFieldChange={handleFieldChange}
+              onTranslationChange={handleTranslationChange}
+              onAddTranslation={handleAddTranslation}
+              onRemoveTranslation={handleRemoveTranslation}
+              onSubmit={() => void handleSave()}
+            />
+          ) : null}
+        </>
+      )}
+    </AdminPage>
   );
 }

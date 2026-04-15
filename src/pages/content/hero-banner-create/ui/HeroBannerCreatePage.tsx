@@ -9,6 +9,7 @@ import {
   type HeroBannerEditorValues,
   type HeroBannerTranslationValues,
 } from '@/features/hero-banner-editor';
+import { AdminPage, AdminPageHeader } from '@/shared/ui';
 
 export function HeroBannerCreatePage() {
   const navigate = useNavigate();
@@ -20,27 +21,17 @@ export function HeroBannerCreatePage() {
   const [saveError, setSaveError] = useState('');
 
   const handleFieldChange = (field: string, value: string) => {
-    setFormValues((current) => ({
-      ...current,
-      [field]: value,
-    }));
-
-    if (saveError) {
-      setSaveError('');
-    }
+    setFormValues((current) => ({ ...current, [field]: value }));
+    if (saveError) setSaveError('');
   };
 
   const handleTranslationChange = (index: number, field: keyof HeroBannerTranslationValues, value: string) => {
     setFormValues((current) => {
       const translations = [...current.translations];
       translations[index] = { ...translations[index], [field]: value };
-
       return { ...current, translations };
     });
-
-    if (saveError) {
-      setSaveError('');
-    }
+    if (saveError) setSaveError('');
   };
 
   const handleAddTranslation = () => {
@@ -89,55 +80,49 @@ export function HeroBannerCreatePage() {
   };
 
   return (
-    <main className="dashboard">
-        <nav className="breadcrumbs" aria-label="Хлебные крошки">
-          <Link className="breadcrumb-link" to="/hero-banners">
-            Контент
+    <AdminPage>
+      <nav className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground" aria-label="Хлебные крошки">
+        <Link className="transition-colors hover:text-foreground" to="/hero-banners">
+          Контент
+        </Link>
+        <span>/</span>
+        <Link className="transition-colors hover:text-foreground" to="/hero-banners">
+          Hero-баннеры
+        </Link>
+        <span>/</span>
+        <span className="text-foreground">Новый баннер</span>
+      </nav>
+
+      <AdminPageHeader
+        kicker="Контент"
+        title="Новый hero-баннер"
+        actions={
+          <Link
+            className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            to="/hero-banners"
+          >
+            К списку баннеров
           </Link>
-          <span className="breadcrumb-separator">/</span>
-          <Link className="breadcrumb-link" to="/hero-banners">
-            Hero-баннеры
-          </Link>
-          <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-current">Новый баннер</span>
-        </nav>
+        }
+      />
 
-        <header className="dashboard-header">
-          <div>
-            <p className="page-kicker">Контент</p>
-            <h2 className="page-title">Новый hero-баннер</h2>
-          </div>
-          <div className="dashboard-actions">
-            <Link className="secondary-link" to="/hero-banners">
-              К списку баннеров
-            </Link>
-          </div>
-        </header>
-
-        <section className="catalog-card product-detail-card" aria-label="Создание баннера">
-          <div className="catalog-card-copy">
-            <p className="placeholder-eyebrow">Создание</p>
-            <h3 className="product-detail-title">Новый hero-баннер</h3>
-            <p className="catalog-meta">Заполните поля и нажмите «Создать баннер». После создания можно будет изменить статус на «Опубликован».</p>
-          </div>
-
-          <HeroBannerEditor
-            idPrefix="banner-create"
-            ariaLabel="Форма создания баннера"
-            eyebrow="Создание"
-            title="Новый баннер"
-            formValues={formValues}
-            isSaving={isSaving}
-            saveError={saveError}
-            submitLabel="Создать баннер"
-            savingLabel="Создание..."
-            onFieldChange={handleFieldChange}
-            onTranslationChange={handleTranslationChange}
-            onAddTranslation={handleAddTranslation}
-            onRemoveTranslation={handleRemoveTranslation}
-            onSubmit={() => void handleSave()}
-          />
-        </section>
-    </main>
+      <HeroBannerEditor
+        idPrefix="banner-create"
+        ariaLabel="Форма создания баннера"
+        eyebrow="Создание"
+        title="Новый баннер"
+        description="Заполните поля и нажмите «Создать баннер». После создания можно изменить статус на «Опубликован»."
+        formValues={formValues}
+        isSaving={isSaving}
+        saveError={saveError}
+        submitLabel="Создать баннер"
+        savingLabel="Создание..."
+        onFieldChange={handleFieldChange}
+        onTranslationChange={handleTranslationChange}
+        onAddTranslation={handleAddTranslation}
+        onRemoveTranslation={handleRemoveTranslation}
+        onSubmit={() => void handleSave()}
+      />
+    </AdminPage>
   );
 }

@@ -15,6 +15,13 @@ import {
   getCatalogImportModeLabel,
   getCatalogImportTypeLabel,
 } from '@/features/catalog-import/model/catalogImport';
+import {
+  AdminEmptyState,
+  AdminNotice,
+  AdminSectionCard,
+  Button,
+  FormField,
+} from '@/shared/ui';
 
 type StatusKind = 'idle' | 'success' | 'error';
 
@@ -25,20 +32,13 @@ type CatalogImportPanelProps = {
   allowedImportTypes?: CatalogImportType[];
 };
 
+const SELECT_CLASSNAME =
+  'h-8 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50';
+
 function formatFileSize(size: number): string {
-  if (size < 1024) {
-    return `${size} B`;
-  }
-
-  if (size < 1024 * 1024) {
-    return `${(size / 1024).toFixed(1)} KB`;
-  }
-
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function buildExampleKey(example: Pick<CatalogImportExample, 'importType' | 'importMode'>): string {
-  return `${example.importType}:${example.importMode}`;
 }
 
 export function CatalogImportPanel({
@@ -55,53 +55,48 @@ export function CatalogImportPanel({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [statusKind, setStatusKind] = useState<StatusKind>('idle');
-
   const [importReport, setImportReport] = useState<CatalogImportReport | null>(null);
 
   const [examples, setExamples] = useState<CatalogImportExample[]>([]);
   const [isExamplesLoading, setIsExamplesLoading] = useState(true);
   const [examplesErrorMessage, setExamplesErrorMessage] = useState('');
-  const [isDownloadingExampleKey, setIsDownloadingExampleKey] = useState<string | null>(null);
+  const [isDownloadingType, setIsDownloadingType] = useState<CatalogImportType | null>(null);
   const [downloadStatusMessage, setDownloadStatusMessage] = useState('');
   const [downloadStatusKind, setDownloadStatusKind] = useState<StatusKind>('idle');
+
   const visibleImportTypeOptions = useMemo(() => {
-    if (!allowedImportTypes?.length) {
-      return catalogImportTypeOptions;
-    }
-
-    const allowedImportTypeSet = new Set(allowedImportTypes);
-
-    return catalogImportTypeOptions.filter((option) => allowedImportTypeSet.has(option.value));
+    if (!allowedImportTypes?.length) return catalogImportTypeOptions;
+    const allowedSet = new Set(allowedImportTypes);
+    return catalogImportTypeOptions.filter((o) => allowedSet.has(o.value));
   }, [allowedImportTypes]);
 
   useEffect(() => {
-    if (!visibleImportTypeOptions.length) {
-      return;
-    }
-
-    const hasSelectedImportType = visibleImportTypeOptions.some((option) => option.value === importType);
-
-    if (!hasSelectedImportType) {
+    if (!visibleImportTypeOptions.length) return;
+    if (!visibleImportTypeOptions.some((o) => o.value === importType)) {
       setImportType(visibleImportTypeOptions[0].value);
     }
   }, [importType, visibleImportTypeOptions]);
 
-  const selectedImportTypeOption = visibleImportTypeOptions.find((option) => option.value === importType) ?? null;
-  const selectedImportModeOption = catalogImportModeOptions.find((option) => option.value === importMode) ?? null;
+  const selectedImportTypeOption = visibleImportTypeOptions.find((o) => o.value === importType) ?? null;
+  const selectedImportModeOption = catalogImportModeOptions.find((o) => o.value === importMode) ?? null;
 
-  const currentExample = useMemo(
-    () => examples.find((example) => example.importType === importType && example.importMode === importMode) ?? null,
-    [examples, importMode, importType],
-  );
+  // One example per import type — templates are identical across modes
+  const typeExamples = useMemo(() => {
+    const seen = new Set<CatalogImportType>();
+    return examples.filter((ex) => {
+      if (seen.has(ex.importType)) return false;
+      seen.add(ex.importType);
+      return true;
+    });
+  }, [examples]);
+
   const visibleRowErrors = useMemo(() => importReport?.rowErrors.slice(0, 8) ?? [], [importReport]);
   const hiddenRowErrorsCount = Math.max(0, (importReport?.rowErrors.length ?? 0) - visibleRowErrors.length);
 
   const loadExamples = async () => {
     setIsExamplesLoading(true);
     setExamplesErrorMessage('');
-
     const result = await getCatalogImportExamples();
-
     setExamples(result.examples);
     setExamplesErrorMessage(result.error ?? '');
     setIsExamplesLoading(false);
@@ -112,9 +107,7 @@ export function CatalogImportPanel({
   }, []);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const nextFile = event.target.files?.[0] ?? null;
-
-    setSelectedFile(nextFile);
+    setSelectedFile(event.target.files?.[0] ?? null);
     setStatusMessage('');
     setStatusKind('idle');
   };
@@ -132,11 +125,7 @@ export function CatalogImportPanel({
     setStatusMessage('');
     setStatusKind('idle');
 
-    const result = await importCatalogFile({
-      file: selectedFile,
-      importType,
-      importMode,
-    });
+    const result = await importCatalogFile({ file: selectedFile, importType, importMode });
 
     if (!result.report) {
       setStatusKind('error');
@@ -155,7 +144,7 @@ export function CatalogImportPanel({
 
     if (result.report.errorCount > 0) {
       setStatusKind('error');
-      setStatusMessage(`Импорт завершен с ошибками: ${result.report.errorCount} строк(и) не прошли проверку.`);
+      setStatusMessage(`Импорт завершён с ошибками: ${result.report.errorCount} строк(и) не прошли проверку.`);
     } else {
       setStatusKind('success');
       setStatusMessage('Импорт выполнен успешно.');
@@ -165,9 +154,7 @@ export function CatalogImportPanel({
   };
 
   const handleDownloadExample = async (example: CatalogImportExample) => {
-    const key = buildExampleKey(example);
-
-    setIsDownloadingExampleKey(key);
+    setIsDownloadingType(example.importType);
     setDownloadStatusMessage('');
     setDownloadStatusKind('idle');
 
@@ -182,224 +169,210 @@ export function CatalogImportPanel({
       setDownloadStatusMessage(result.error);
     } else {
       setDownloadStatusKind('success');
-      setDownloadStatusMessage(`Пример "${example.fileName}" успешно скачан.`);
+      setDownloadStatusMessage(`Файл "${example.fileName}" скачан.`);
     }
 
-    setIsDownloadingExampleKey(null);
+    setIsDownloadingType(null);
   };
 
   return (
-    <form className="catalog-card catalog-form" onSubmit={handleSubmit} noValidate>
-      <div className="catalog-card-copy">
-        <p className="placeholder-eyebrow">Импорт</p>
-        <h3 className="catalog-card-title">{title}</h3>
-        <p className="catalog-card-text">{description}</p>
-      </div>
+    <>
+      <AdminSectionCard eyebrow="Импорт" title={title} description={description}>
+        <form onSubmit={(e) => void handleSubmit(e)} noValidate className="space-y-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormField
+              htmlFor="catalog-import-type"
+              label="Тип данных"
+              description={selectedImportTypeOption?.description}
+            >
+              <select
+                id="catalog-import-type"
+                name="importType"
+                className={SELECT_CLASSNAME}
+                value={importType}
+                onChange={(e) => setImportType(e.target.value as CatalogImportType)}
+                disabled={isSubmitting}
+              >
+                {visibleImportTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </FormField>
 
-      <div className="catalog-import-control-grid">
-        <div className="field">
-          <label className="field-label" htmlFor="catalog-import-type">
-            Тип данных
-          </label>
-          <select
-            id="catalog-import-type"
-            name="importType"
-            className="field-input"
-            value={importType}
-            onChange={(event) => setImportType(event.target.value as CatalogImportType)}
-            disabled={isSubmitting}
-          >
-            {visibleImportTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {selectedImportTypeOption ? <p className="catalog-meta">{selectedImportTypeOption.description}</p> : null}
-        </div>
+            <FormField
+              htmlFor="catalog-import-mode"
+              label="Режим импорта"
+              description={selectedImportModeOption?.description}
+            >
+              <select
+                id="catalog-import-mode"
+                name="importMode"
+                className={SELECT_CLASSNAME}
+                value={importMode}
+                onChange={(e) => setImportMode(e.target.value as CatalogImportMode)}
+                disabled={isSubmitting}
+              >
+                {catalogImportModeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          </div>
 
-        <div className="field">
-          <label className="field-label" htmlFor="catalog-import-mode">
-            Режим импорта
-          </label>
-          <select
-            id="catalog-import-mode"
-            name="importMode"
-            className="field-input"
-            value={importMode}
-            onChange={(event) => setImportMode(event.target.value as CatalogImportMode)}
-            disabled={isSubmitting}
-          >
-            {catalogImportModeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {selectedImportModeOption ? <p className="catalog-meta">{selectedImportModeOption.description}</p> : null}
-        </div>
-      </div>
+          <div className="grid gap-2.5">
+            <label className="text-sm font-medium text-foreground" htmlFor="catalog-import-file">
+              CSV-файл
+            </label>
+            <input
+              ref={fileInputRef}
+              id="catalog-import-file"
+              name="file"
+              type="file"
+              accept=".csv,text/csv"
+              className="w-full cursor-pointer rounded-lg border border-input bg-background px-2.5 py-1.5 text-sm text-foreground file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:opacity-50"
+              onChange={handleFileChange}
+              disabled={isSubmitting}
+            />
+            {selectedFile ? (
+              <p className="text-sm leading-6 text-muted-foreground" aria-live="polite">
+                {selectedFile.name} — {formatFileSize(selectedFile.size)}
+              </p>
+            ) : (
+              <p className="text-sm leading-6 text-muted-foreground">
+                CSV с заголовком в первой строке, кодировка UTF-8.
+              </p>
+            )}
+          </div>
 
-      <div className="field">
-        <label className="field-label" htmlFor="catalog-import-file">
-          CSV-файл
-        </label>
-        <input
-          ref={fileInputRef}
-          id="catalog-import-file"
-          name="file"
-          type="file"
-          className="field-input file-input"
-          accept=".csv,text/csv"
-          onChange={handleFileChange}
-          disabled={isSubmitting}
-        />
-      </div>
+          <div>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Импорт...' : 'Запустить импорт'}
+            </Button>
+          </div>
 
-      {selectedFile ? (
-        <div className="file-summary" aria-live="polite">
-          <span className="file-summary-name">{selectedFile.name}</span>
-          <span className="file-summary-size">{formatFileSize(selectedFile.size)}</span>
-        </div>
-      ) : (
-        <p className="catalog-meta">Поддерживается CSV с заголовком в первой строке.</p>
-      )}
-
-      <div className="catalog-import-actions">
-        <button type="submit" className="submit-button" disabled={isSubmitting}>
-          {isSubmitting ? 'Импорт...' : 'Запустить импорт'}
-        </button>
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={() => {
-            if (currentExample) {
-              void handleDownloadExample(currentExample);
-            }
-          }}
-          disabled={isSubmitting || !currentExample || isDownloadingExampleKey !== null}
-        >
-          {isDownloadingExampleKey === (currentExample ? buildExampleKey(currentExample) : null)
-            ? 'Скачивание...'
-            : 'Скачать пример для выбора'}
-        </button>
-      </div>
-
-      {statusMessage ? (
-        <p className={statusKind === 'success' ? 'form-success' : 'form-error'} role={statusKind === 'error' ? 'alert' : 'status'}>
-          {statusMessage}
-        </p>
-      ) : null}
+          {statusMessage ? (
+            <AdminNotice
+              tone={statusKind === 'success' ? 'default' : 'destructive'}
+              role={statusKind === 'error' ? 'alert' : 'status'}
+            >
+              {statusMessage}
+            </AdminNotice>
+          ) : null}
+        </form>
+      </AdminSectionCard>
 
       {importReport ? (
-        <div className="detail-block">
-          <h4 className="detail-title">Отчет импорта</h4>
-          <p className="detail-copy">
-            {getCatalogImportTypeLabel(importReport.importType)} - {getCatalogImportModeLabel(importReport.importMode)}
+        <AdminSectionCard eyebrow="Результат" title="Отчёт импорта">
+          <p className="text-sm text-muted-foreground">
+            {getCatalogImportTypeLabel(importReport.importType)} — {getCatalogImportModeLabel(importReport.importMode)}
           </p>
 
-          <div className="catalog-import-report-grid">
-            <p className="catalog-import-report-item">Всего строк: {importReport.totalRows}</p>
-            <p className="catalog-import-report-item">Успешно: {importReport.successCount}</p>
-            <p className="catalog-import-report-item">Создано: {importReport.createdCount}</p>
-            <p className="catalog-import-report-item">Обновлено: {importReport.updatedCount}</p>
-            <p className="catalog-import-report-item">Пропущено: {importReport.skippedCount}</p>
-            <p className="catalog-import-report-item">Ошибки: {importReport.errorCount}</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {[
+              { label: 'Всего', value: importReport.totalRows },
+              { label: 'Успешно', value: importReport.successCount },
+              { label: 'Создано', value: importReport.createdCount },
+              { label: 'Обновлено', value: importReport.updatedCount },
+              { label: 'Пропущено', value: importReport.skippedCount },
+              { label: 'Ошибки', value: importReport.errorCount },
+            ].map(({ label, value }) => (
+              <div key={label} className="rounded-xl border border-border/70 bg-background/70 px-3 py-3">
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="mt-0.5 text-xl font-semibold tabular-nums">{value}</p>
+              </div>
+            ))}
           </div>
 
           {visibleRowErrors.length ? (
-            <ul className="catalog-import-error-list">
+            <ul className="space-y-1.5">
               {visibleRowErrors.map((errorItem) => (
-                <li key={`${errorItem.rowNumber}-${errorItem.errorCode}-${errorItem.message}`} className="catalog-import-error-item">
-                  Строка {errorItem.rowNumber}
-                  {errorItem.rowKey ? ` (${errorItem.rowKey})` : ''}: {errorItem.message}. Код: {getCatalogImportErrorLabel(errorItem.errorCode)}.
+                <li
+                  key={`${errorItem.rowNumber}-${errorItem.errorCode}-${errorItem.message}`}
+                  className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+                >
+                  <span className="font-medium">
+                    Строка {errorItem.rowNumber}
+                    {errorItem.rowKey ? ` (${errorItem.rowKey})` : ''}:
+                  </span>{' '}
+                  {errorItem.message}. {getCatalogImportErrorLabel(errorItem.errorCode)}.
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="catalog-meta">Ошибок по строкам нет.</p>
+            <p className="text-sm text-muted-foreground">Ошибок по строкам нет.</p>
           )}
 
           {hiddenRowErrorsCount > 0 ? (
-            <p className="catalog-meta">Показаны первые {visibleRowErrors.length} ошибок из {importReport.rowErrors.length}.</p>
+            <p className="text-xs text-muted-foreground">
+              Показаны первые {visibleRowErrors.length} из {importReport.rowErrors.length} ошибок.
+            </p>
           ) : null}
-        </div>
+        </AdminSectionCard>
       ) : null}
 
-      <div className="detail-block">
-        <h4 className="detail-title">Доступные типы и режимы</h4>
-        {catalogImportTypeOptions.map((typeOption) => (
-          <p key={typeOption.value} className="detail-copy">
-            {typeOption.label}: {typeOption.description}
-          </p>
-        ))}
-        {catalogImportModeOptions.map((modeOption) => (
-          <p key={modeOption.value} className="detail-copy">
-            {modeOption.label}: {modeOption.description}
-          </p>
-        ))}
-      </div>
-
-      <div className="detail-block">
-        <div className="catalog-import-examples-header">
-          <h4 className="detail-title">Примеры CSV-файлов</h4>
-          <button
-            type="button"
-            className="secondary-button"
+      <AdminSectionCard
+        eyebrow="Шаблоны"
+        title="CSV-шаблоны"
+        description="Один шаблон на тип данных — подходит для всех режимов импорта."
+        action={
+          <Button
+            variant="outline"
             onClick={() => void loadExamples()}
-            disabled={isExamplesLoading || isSubmitting || isDownloadingExampleKey !== null}
+            disabled={isExamplesLoading || isSubmitting || isDownloadingType !== null}
           >
-            {isExamplesLoading ? 'Загрузка...' : 'Обновить список'}
-          </button>
-        </div>
-
+            {isExamplesLoading ? 'Загрузка...' : 'Обновить'}
+          </Button>
+        }
+      >
         {examplesErrorMessage ? (
-          <p className="form-error" role="alert">
+          <AdminNotice tone="destructive" role="alert">
             {examplesErrorMessage}
-          </p>
+          </AdminNotice>
         ) : null}
 
         {isExamplesLoading ? (
-          <p className="catalog-meta">Загрузка списка примеров...</p>
-        ) : examples.length ? (
-          <ul className="catalog-import-example-list">
-            {examples.map((example) => {
-              const exampleKey = buildExampleKey(example);
-              const isDownloadingCurrent = isDownloadingExampleKey === exampleKey;
-
-              return (
-                <li key={exampleKey} className="catalog-import-example-item">
-                  <div className="catalog-import-example-copy">
-                    <p className="catalog-import-example-title">
-                      {getCatalogImportTypeLabel(example.importType)} - {getCatalogImportModeLabel(example.importMode)}
-                    </p>
-                    <p className="catalog-import-example-meta">{example.fileName}</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={() => void handleDownloadExample(example)}
-                    disabled={isDownloadingCurrent || isSubmitting}
-                  >
-                    {isDownloadingCurrent ? 'Скачивание...' : 'Скачать'}
-                  </button>
-                </li>
-              );
-            })}
+          <AdminEmptyState description="Загружаем список шаблонов..." />
+        ) : typeExamples.length ? (
+          <ul className="divide-y divide-border/60">
+            {typeExamples.map((example) => (
+              <li
+                key={example.importType}
+                className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {getCatalogImportTypeLabel(example.importType)}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">{example.fileName}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleDownloadExample(example)}
+                  disabled={isDownloadingType === example.importType || isSubmitting}
+                >
+                  {isDownloadingType === example.importType ? 'Скачивание...' : 'Скачать'}
+                </Button>
+              </li>
+            ))}
           </ul>
         ) : (
-          <p className="catalog-meta">Бэкенд не вернул примеры файлов.</p>
+          <AdminEmptyState description="Бэкенд не вернул шаблоны." />
         )}
 
         {downloadStatusMessage ? (
-          <p
-            className={downloadStatusKind === 'success' ? 'form-success' : 'form-error'}
+          <AdminNotice
+            tone={downloadStatusKind === 'success' ? 'default' : 'destructive'}
             role={downloadStatusKind === 'error' ? 'alert' : 'status'}
           >
             {downloadStatusMessage}
-          </p>
+          </AdminNotice>
         ) : null}
-      </div>
-    </form>
+      </AdminSectionCard>
+    </>
   );
 }

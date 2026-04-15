@@ -4,28 +4,27 @@ import type { BannerStatus, HeroBanner } from '@/entities/hero-banner';
 import { getHeroBanners } from '@/entities/hero-banner';
 import { HeroBannerFilters } from '@/pages/content/hero-banners/ui/HeroBannerFilters';
 import { HeroBannerList } from '@/pages/content/hero-banners/ui/HeroBannerList';
+import {
+  AdminEmptyState,
+  AdminNotice,
+  AdminPage,
+  AdminPageHeader,
+  AdminPageStatus,
+  AdminSectionCard,
+  Button,
+} from '@/shared/ui';
 
 const BANNERS_STATUS_FILTER_STORAGE_KEY = 'webman.hero-banners-page.status-filter';
 
 function readStatusFilter(): BannerStatus | '' {
-  if (typeof window === 'undefined') {
-    return '';
-  }
-
+  if (typeof window === 'undefined') return '';
   const stored = window.localStorage.getItem(BANNERS_STATUS_FILTER_STORAGE_KEY);
-
-  if (stored === 'DRAFT' || stored === 'PUBLISHED' || stored === 'ARCHIVED') {
-    return stored;
-  }
-
+  if (stored === 'DRAFT' || stored === 'PUBLISHED' || stored === 'ARCHIVED') return stored;
   return '';
 }
 
 function persistStatusFilter(value: BannerStatus | ''): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
+  if (typeof window === 'undefined') return;
   window.localStorage.setItem(BANNERS_STATUS_FILTER_STORAGE_KEY, value);
 }
 
@@ -70,9 +69,7 @@ export function HeroBannersPage() {
       size: 20,
     });
 
-    if (requestId !== requestIdRef.current) {
-      return;
-    }
+    if (requestId !== requestIdRef.current) return;
 
     if (result.page) {
       setBanners(result.page.items);
@@ -116,92 +113,90 @@ export function HeroBannersPage() {
   };
 
   return (
-    <main className="dashboard">
-        <header className="dashboard-header">
-          <div>
-            <p className="page-kicker">Контент</p>
-            <h2 className="page-title">Hero-баннеры</h2>
-          </div>
-          <div className="dashboard-actions">
-            <span className="status-chip">
-              {isLoading ? 'Загрузка баннеров...' : `Всего: ${totalElements} баннеров`}
-            </span>
-            <Link className="secondary-link" to="/hero-banners/new">
+    <AdminPage>
+      <AdminPageHeader
+        kicker="Контент"
+        title="Hero-баннеры"
+        actions={
+          <>
+            <AdminPageStatus>
+              {isLoading ? 'Загрузка...' : `Всего: ${totalElements}`}
+            </AdminPageStatus>
+            <Link
+              className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              to="/hero-banners/new"
+            >
               Добавить баннер
             </Link>
-            <button
-              type="button"
-              className="secondary-button"
+            <Button
+              variant="outline"
               onClick={() => void loadBanners()}
               disabled={isLoading || isRefreshing}
             >
-              {isRefreshing ? 'Обновление...' : 'Обновить данные'}
-            </button>
-          </div>
-        </header>
+              {isRefreshing ? 'Обновление...' : 'Обновить'}
+            </Button>
+          </>
+        }
+      />
 
-        <section className="catalog-card catalog-data-card" aria-label="Hero-баннеры">
-          <div className="catalog-controls">
-            <HeroBannerFilters
-              searchQuery={searchQuery}
-              statusFilter={statusFilter}
-              onSearchQueryChange={handleSearchQueryChange}
-              onStatusFilterChange={handleStatusFilterChange}
-            />
-
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              {searchQuery ? (
-                <button type="button" className="secondary-button" onClick={handleSearchSubmit} disabled={isLoading}>
-                  Найти
-                </button>
-              ) : null}
-
-              <p className="catalog-results-meta">
-                {banners.length ? `Показано ${banners.length} из ${totalElements}` : 'Баннеры не найдены'}
-              </p>
-            </div>
-          </div>
-
-          {errorMessage ? (
-            <p className="form-error" role="alert">
-              {errorMessage}
+      <AdminSectionCard eyebrow="Список" title="Все баннеры">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <HeroBannerFilters
+            searchQuery={searchQuery}
+            statusFilter={statusFilter}
+            onSearchQueryChange={handleSearchQueryChange}
+            onStatusFilterChange={handleStatusFilterChange}
+          />
+          <div className="flex items-center gap-3">
+            {searchQuery ? (
+              <Button variant="outline" size="sm" onClick={handleSearchSubmit} disabled={isLoading}>
+                Найти
+              </Button>
+            ) : null}
+            <p className="text-xs text-muted-foreground">
+              {banners.length ? `Показано ${banners.length} из ${totalElements}` : 'Баннеры не найдены'}
             </p>
-          ) : null}
+          </div>
+        </div>
 
-          {isLoading ? (
-            <p className="catalog-empty-state">Загрузка баннеров...</p>
-          ) : banners.length ? (
-            <>
-              <HeroBannerList items={banners} />
+        {errorMessage ? (
+          <AdminNotice tone="destructive" role="alert">{errorMessage}</AdminNotice>
+        ) : null}
 
-              {totalPages > 1 ? (
-                <div className="catalog-pagination" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', padding: '1rem' }}>
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    disabled={currentPage <= 0 || isRefreshing}
-                    onClick={() => handlePageChange(currentPage - 1)}
-                  >
-                    Назад
-                  </button>
-                  <span className="catalog-meta" style={{ display: 'flex', alignItems: 'center' }}>
-                    Страница {currentPage + 1} из {totalPages}
-                  </span>
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    disabled={currentPage >= totalPages - 1 || isRefreshing}
-                    onClick={() => handlePageChange(currentPage + 1)}
-                  >
-                    Вперёд
-                  </button>
-                </div>
-              ) : null}
-            </>
-          ) : (
-            <p className="catalog-empty-state">Баннеры не найдены.</p>
-          )}
-        </section>
-    </main>
+        {isLoading ? (
+          <AdminEmptyState description="Загрузка баннеров..." />
+        ) : banners.length ? (
+          <>
+            <HeroBannerList items={banners} />
+
+            {totalPages > 1 ? (
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 0 || isRefreshing}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                >
+                  Назад
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Страница {currentPage + 1} из {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= totalPages - 1 || isRefreshing}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                >
+                  Вперёд
+                </Button>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <AdminEmptyState description="Баннеры не найдены." />
+        )}
+      </AdminSectionCard>
+    </AdminPage>
   );
 }

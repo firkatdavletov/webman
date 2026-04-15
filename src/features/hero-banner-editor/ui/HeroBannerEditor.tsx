@@ -3,6 +3,13 @@ import type {
   HeroBannerEditorValues,
   HeroBannerTranslationValues,
 } from '@/features/hero-banner-editor/model/heroBannerEditor';
+import {
+  AdminNotice,
+  AdminSectionCard,
+  Button,
+  FormField,
+  Input,
+} from '@/shared/ui';
 
 type HeroBannerEditorProps = {
   idPrefix: string;
@@ -41,6 +48,12 @@ const ALIGNMENT_OPTIONS: { value: BannerTextAlignment; label: string }[] = [
   { value: 'RIGHT', label: 'Справа' },
 ];
 
+const SELECT_CLASSNAME =
+  'h-8 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50';
+
+const SUBSECTION_LABEL_CLASSNAME =
+  'text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase';
+
 export function HeroBannerEditor({
   idPrefix,
   ariaLabel,
@@ -60,388 +73,306 @@ export function HeroBannerEditor({
   onSubmit,
 }: HeroBannerEditorProps) {
   return (
-    <section className="product-edit-section" aria-label={ariaLabel}>
-      <div className="catalog-card-copy">
-        <p className="placeholder-eyebrow">{eyebrow}</p>
-        <h4 className="catalog-card-title">{title}</h4>
-        {description ? <p className="catalog-meta">{description}</p> : null}
-      </div>
+    <>
+      <AdminSectionCard eyebrow={eyebrow} title={title} description={description} aria-label={ariaLabel}>
+        <div className="space-y-6">
+          {/* Основные поля */}
+          <div className="space-y-4">
+            <p className={SUBSECTION_LABEL_CLASSNAME}>Основные</p>
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField htmlFor={`${idPrefix}-code`} label="Код баннера">
+                <Input
+                  id={`${idPrefix}-code`}
+                  value={formValues.code}
+                  disabled={isSaving}
+                  placeholder="home-promo-spring"
+                  onChange={(e) => onFieldChange('code', e.target.value)}
+                />
+              </FormField>
 
-      <div className="product-edit-grid">
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-code`}>
-            Код баннера
-          </label>
-          <input
-            id={`${idPrefix}-code`}
-            className="field-input"
-            value={formValues.code}
-            onChange={(e) => onFieldChange('code', e.target.value)}
-            disabled={isSaving}
-            placeholder="home-promo-spring"
-          />
-        </div>
+              <FormField htmlFor={`${idPrefix}-storefront`} label="Код витрины">
+                <Input
+                  id={`${idPrefix}-storefront`}
+                  value={formValues.storefrontCode}
+                  disabled={isSaving}
+                  placeholder="default"
+                  onChange={(e) => onFieldChange('storefrontCode', e.target.value)}
+                />
+              </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-storefront`}>
-            Код витрины
-          </label>
-          <input
-            id={`${idPrefix}-storefront`}
-            className="field-input"
-            value={formValues.storefrontCode}
-            onChange={(e) => onFieldChange('storefrontCode', e.target.value)}
-            disabled={isSaving}
-            placeholder="default"
-          />
-        </div>
+              <FormField htmlFor={`${idPrefix}-status`} label="Статус">
+                <select
+                  id={`${idPrefix}-status`}
+                  className={SELECT_CLASSNAME}
+                  value={formValues.status}
+                  disabled={isSaving}
+                  onChange={(e) => onFieldChange('status', e.target.value)}
+                >
+                  {STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </FormField>
 
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-status`}>
-            Статус
-          </label>
-          <select
-            id={`${idPrefix}-status`}
-            className="field-input"
-            value={formValues.status}
-            onChange={(e) => onFieldChange('status', e.target.value)}
-            disabled={isSaving}
-          >
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-sort-order`}>
-            Порядок сортировки
-          </label>
-          <input
-            id={`${idPrefix}-sort-order`}
-            className="field-input"
-            type="number"
-            value={formValues.sortOrder}
-            onChange={(e) => onFieldChange('sortOrder', e.target.value)}
-            disabled={isSaving}
-          />
-        </div>
-      </div>
-
-      <div className="catalog-card-copy">
-        <p className="placeholder-eyebrow">Изображения</p>
-      </div>
-
-      <div className="product-edit-grid">
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-desktop-image`}>
-            URL десктоп-изображения
-          </label>
-          <input
-            id={`${idPrefix}-desktop-image`}
-            className="field-input"
-            value={formValues.desktopImageUrl}
-            onChange={(e) => onFieldChange('desktopImageUrl', e.target.value)}
-            disabled={isSaving}
-            placeholder="https://..."
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-mobile-image`}>
-            URL мобильного изображения
-          </label>
-          <input
-            id={`${idPrefix}-mobile-image`}
-            className="field-input"
-            value={formValues.mobileImageUrl}
-            onChange={(e) => onFieldChange('mobileImageUrl', e.target.value)}
-            disabled={isSaving}
-            placeholder="https://..."
-          />
-        </div>
-      </div>
-
-      {formValues.desktopImageUrl ? (
-        <div className="product-detail-media" style={{ marginBottom: '1rem' }}>
-          <img
-            className="product-detail-image"
-            src={formValues.desktopImageUrl}
-            alt="Превью десктоп-баннера"
-            style={{ maxHeight: '200px', objectFit: 'contain' }}
-          />
-        </div>
-      ) : null}
-
-      <div className="catalog-card-copy">
-        <p className="placeholder-eyebrow">Ссылки</p>
-      </div>
-
-      <div className="product-edit-grid">
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-primary-action`}>
-            URL основного действия
-          </label>
-          <input
-            id={`${idPrefix}-primary-action`}
-            className="field-input"
-            value={formValues.primaryActionUrl}
-            onChange={(e) => onFieldChange('primaryActionUrl', e.target.value)}
-            disabled={isSaving}
-            placeholder="/catalog/sale"
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-secondary-action`}>
-            URL дополнительного действия
-          </label>
-          <input
-            id={`${idPrefix}-secondary-action`}
-            className="field-input"
-            value={formValues.secondaryActionUrl}
-            onChange={(e) => onFieldChange('secondaryActionUrl', e.target.value)}
-            disabled={isSaving}
-            placeholder="/about"
-          />
-        </div>
-      </div>
-
-      <div className="catalog-card-copy">
-        <p className="placeholder-eyebrow">Оформление</p>
-      </div>
-
-      <div className="product-edit-grid">
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-theme`}>
-            Тема
-          </label>
-          <select
-            id={`${idPrefix}-theme`}
-            className="field-input"
-            value={formValues.themeVariant}
-            onChange={(e) => onFieldChange('themeVariant', e.target.value)}
-            disabled={isSaving}
-          >
-            {THEME_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-alignment`}>
-            Выравнивание текста
-          </label>
-          <select
-            id={`${idPrefix}-alignment`}
-            className="field-input"
-            value={formValues.textAlignment}
-            onChange={(e) => onFieldChange('textAlignment', e.target.value)}
-            disabled={isSaving}
-          >
-            {ALIGNMENT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="catalog-card-copy">
-        <p className="placeholder-eyebrow">Расписание</p>
-      </div>
-
-      <div className="product-edit-grid">
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-starts-at`}>
-            Начало показа
-          </label>
-          <input
-            id={`${idPrefix}-starts-at`}
-            className="field-input"
-            type="datetime-local"
-            value={formValues.startsAt}
-            onChange={(e) => onFieldChange('startsAt', e.target.value)}
-            disabled={isSaving}
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`${idPrefix}-ends-at`}>
-            Конец показа
-          </label>
-          <input
-            id={`${idPrefix}-ends-at`}
-            className="field-input"
-            type="datetime-local"
-            value={formValues.endsAt}
-            onChange={(e) => onFieldChange('endsAt', e.target.value)}
-            disabled={isSaving}
-          />
-        </div>
-      </div>
-
-      <div className="catalog-card-copy">
-        <p className="placeholder-eyebrow">Переводы</p>
-      </div>
-
-      {formValues.translations.map((translation, index) => (
-        <div key={index} className="product-edit-section" style={{ border: '1px solid var(--border, #e0e0e0)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
-          <div className="product-edit-grid">
-            <div className="field">
-              <label className="field-label" htmlFor={`${idPrefix}-t${index}-locale`}>
-                Локаль
-              </label>
-              <input
-                id={`${idPrefix}-t${index}-locale`}
-                className="field-input"
-                value={translation.locale}
-                onChange={(e) => onTranslationChange(index, 'locale', e.target.value)}
-                disabled={isSaving}
-                placeholder="ru"
-              />
-            </div>
-
-            <div className="field">
-              <label className="field-label" htmlFor={`${idPrefix}-t${index}-title`}>
-                Заголовок
-              </label>
-              <input
-                id={`${idPrefix}-t${index}-title`}
-                className="field-input"
-                value={translation.title}
-                onChange={(e) => onTranslationChange(index, 'title', e.target.value)}
-                disabled={isSaving}
-              />
-            </div>
-
-            <div className="field">
-              <label className="field-label" htmlFor={`${idPrefix}-t${index}-subtitle`}>
-                Подзаголовок
-              </label>
-              <input
-                id={`${idPrefix}-t${index}-subtitle`}
-                className="field-input"
-                value={translation.subtitle}
-                onChange={(e) => onTranslationChange(index, 'subtitle', e.target.value)}
-                disabled={isSaving}
-              />
-            </div>
-
-            <div className="field">
-              <label className="field-label" htmlFor={`${idPrefix}-t${index}-description`}>
-                Описание
-              </label>
-              <textarea
-                id={`${idPrefix}-t${index}-description`}
-                className="field-input"
-                value={translation.description}
-                onChange={(e) => onTranslationChange(index, 'description', e.target.value)}
-                disabled={isSaving}
-                rows={2}
-              />
-            </div>
-
-            <div className="field">
-              <label className="field-label" htmlFor={`${idPrefix}-t${index}-desktop-alt`}>
-                Alt десктоп-изображения
-              </label>
-              <input
-                id={`${idPrefix}-t${index}-desktop-alt`}
-                className="field-input"
-                value={translation.desktopImageAlt}
-                onChange={(e) => onTranslationChange(index, 'desktopImageAlt', e.target.value)}
-                disabled={isSaving}
-              />
-            </div>
-
-            <div className="field">
-              <label className="field-label" htmlFor={`${idPrefix}-t${index}-mobile-alt`}>
-                Alt мобильного изображения
-              </label>
-              <input
-                id={`${idPrefix}-t${index}-mobile-alt`}
-                className="field-input"
-                value={translation.mobileImageAlt}
-                onChange={(e) => onTranslationChange(index, 'mobileImageAlt', e.target.value)}
-                disabled={isSaving}
-              />
-            </div>
-
-            <div className="field">
-              <label className="field-label" htmlFor={`${idPrefix}-t${index}-primary-label`}>
-                Текст основной кнопки
-              </label>
-              <input
-                id={`${idPrefix}-t${index}-primary-label`}
-                className="field-input"
-                value={translation.primaryActionLabel}
-                onChange={(e) => onTranslationChange(index, 'primaryActionLabel', e.target.value)}
-                disabled={isSaving}
-              />
-            </div>
-
-            <div className="field">
-              <label className="field-label" htmlFor={`${idPrefix}-t${index}-secondary-label`}>
-                Текст дополнительной кнопки
-              </label>
-              <input
-                id={`${idPrefix}-t${index}-secondary-label`}
-                className="field-input"
-                value={translation.secondaryActionLabel}
-                onChange={(e) => onTranslationChange(index, 'secondaryActionLabel', e.target.value)}
-                disabled={isSaving}
-              />
+              <FormField htmlFor={`${idPrefix}-sort-order`} label="Порядок сортировки">
+                <Input
+                  id={`${idPrefix}-sort-order`}
+                  type="number"
+                  value={formValues.sortOrder}
+                  disabled={isSaving}
+                  onChange={(e) => onFieldChange('sortOrder', e.target.value)}
+                />
+              </FormField>
             </div>
           </div>
 
-          {formValues.translations.length > 1 ? (
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => onRemoveTranslation(index)}
-              disabled={isSaving}
-              style={{ marginTop: '0.5rem' }}
-            >
-              Удалить перевод
-            </button>
-          ) : null}
+          <hr className="border-border/60" />
+
+          {/* Изображения */}
+          <div className="space-y-4">
+            <p className={SUBSECTION_LABEL_CLASSNAME}>Изображения</p>
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField htmlFor={`${idPrefix}-desktop-image`} label="URL десктоп-изображения">
+                <Input
+                  id={`${idPrefix}-desktop-image`}
+                  value={formValues.desktopImageUrl}
+                  disabled={isSaving}
+                  placeholder="https://..."
+                  onChange={(e) => onFieldChange('desktopImageUrl', e.target.value)}
+                />
+              </FormField>
+
+              <FormField htmlFor={`${idPrefix}-mobile-image`} label="URL мобильного изображения">
+                <Input
+                  id={`${idPrefix}-mobile-image`}
+                  value={formValues.mobileImageUrl}
+                  disabled={isSaving}
+                  placeholder="https://..."
+                  onChange={(e) => onFieldChange('mobileImageUrl', e.target.value)}
+                />
+              </FormField>
+            </div>
+
+            {formValues.desktopImageUrl ? (
+              <img
+                className="max-h-48 rounded-xl object-contain"
+                src={formValues.desktopImageUrl}
+                alt="Превью десктоп-баннера"
+              />
+            ) : null}
+          </div>
+
+          <hr className="border-border/60" />
+
+          {/* Ссылки */}
+          <div className="space-y-4">
+            <p className={SUBSECTION_LABEL_CLASSNAME}>Ссылки</p>
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField htmlFor={`${idPrefix}-primary-action`} label="URL основного действия">
+                <Input
+                  id={`${idPrefix}-primary-action`}
+                  value={formValues.primaryActionUrl}
+                  disabled={isSaving}
+                  placeholder="/catalog/sale"
+                  onChange={(e) => onFieldChange('primaryActionUrl', e.target.value)}
+                />
+              </FormField>
+
+              <FormField htmlFor={`${idPrefix}-secondary-action`} label="URL дополнительного действия">
+                <Input
+                  id={`${idPrefix}-secondary-action`}
+                  value={formValues.secondaryActionUrl}
+                  disabled={isSaving}
+                  placeholder="/about"
+                  onChange={(e) => onFieldChange('secondaryActionUrl', e.target.value)}
+                />
+              </FormField>
+            </div>
+          </div>
+
+          <hr className="border-border/60" />
+
+          {/* Оформление и расписание */}
+          <div className="space-y-4">
+            <p className={SUBSECTION_LABEL_CLASSNAME}>Оформление и расписание</p>
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField htmlFor={`${idPrefix}-theme`} label="Тема">
+                <select
+                  id={`${idPrefix}-theme`}
+                  className={SELECT_CLASSNAME}
+                  value={formValues.themeVariant}
+                  disabled={isSaving}
+                  onChange={(e) => onFieldChange('themeVariant', e.target.value)}
+                >
+                  {THEME_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </FormField>
+
+              <FormField htmlFor={`${idPrefix}-alignment`} label="Выравнивание текста">
+                <select
+                  id={`${idPrefix}-alignment`}
+                  className={SELECT_CLASSNAME}
+                  value={formValues.textAlignment}
+                  disabled={isSaving}
+                  onChange={(e) => onFieldChange('textAlignment', e.target.value)}
+                >
+                  {ALIGNMENT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </FormField>
+
+              <FormField htmlFor={`${idPrefix}-starts-at`} label="Начало показа">
+                <Input
+                  id={`${idPrefix}-starts-at`}
+                  type="datetime-local"
+                  value={formValues.startsAt}
+                  disabled={isSaving}
+                  onChange={(e) => onFieldChange('startsAt', e.target.value)}
+                />
+              </FormField>
+
+              <FormField htmlFor={`${idPrefix}-ends-at`} label="Конец показа">
+                <Input
+                  id={`${idPrefix}-ends-at`}
+                  type="datetime-local"
+                  value={formValues.endsAt}
+                  disabled={isSaving}
+                  onChange={(e) => onFieldChange('endsAt', e.target.value)}
+                />
+              </FormField>
+            </div>
+          </div>
         </div>
-      ))}
+      </AdminSectionCard>
 
-      <button
-        type="button"
-        className="secondary-button"
-        onClick={onAddTranslation}
-        disabled={isSaving}
-        style={{ marginBottom: '1rem' }}
+      <AdminSectionCard
+        eyebrow="Переводы"
+        title="Локализации"
+        action={
+          <Button variant="outline" onClick={onAddTranslation} disabled={isSaving}>
+            Добавить перевод
+          </Button>
+        }
       >
-        Добавить перевод
-      </button>
+        <div className="space-y-4">
+          {formValues.translations.map((translation, index) => (
+            <div
+              key={index}
+              className="space-y-4 rounded-2xl border border-border/70 bg-background/70 p-4"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className={SUBSECTION_LABEL_CLASSNAME}>Перевод #{index + 1}</p>
+                {formValues.translations.length > 1 ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onRemoveTranslation(index)}
+                    disabled={isSaving}
+                  >
+                    Удалить
+                  </Button>
+                ) : null}
+              </div>
 
-      {saveError ? (
-        <p className="form-error" role="alert">
-          {saveError}
-        </p>
-      ) : null}
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField htmlFor={`${idPrefix}-t${index}-locale`} label="Локаль">
+                  <Input
+                    id={`${idPrefix}-t${index}-locale`}
+                    value={translation.locale}
+                    disabled={isSaving}
+                    placeholder="ru"
+                    onChange={(e) => onTranslationChange(index, 'locale', e.target.value)}
+                  />
+                </FormField>
 
-      {saveSuccess ? (
-        <p className="form-success" role="status">
-          {saveSuccess}
-        </p>
-      ) : null}
+                <FormField htmlFor={`${idPrefix}-t${index}-title`} label="Заголовок">
+                  <Input
+                    id={`${idPrefix}-t${index}-title`}
+                    value={translation.title}
+                    disabled={isSaving}
+                    onChange={(e) => onTranslationChange(index, 'title', e.target.value)}
+                  />
+                </FormField>
 
-      <div className="product-edit-actions">
-        <button type="button" className="submit-button" onClick={onSubmit} disabled={isSaving}>
-          {isSaving ? savingLabel : submitLabel}
-        </button>
-      </div>
-    </section>
+                <FormField htmlFor={`${idPrefix}-t${index}-subtitle`} label="Подзаголовок">
+                  <Input
+                    id={`${idPrefix}-t${index}-subtitle`}
+                    value={translation.subtitle}
+                    disabled={isSaving}
+                    onChange={(e) => onTranslationChange(index, 'subtitle', e.target.value)}
+                  />
+                </FormField>
+
+                <FormField htmlFor={`${idPrefix}-t${index}-description`} label="Описание">
+                  <textarea
+                    id={`${idPrefix}-t${index}-description`}
+                    value={translation.description}
+                    disabled={isSaving}
+                    rows={2}
+                    className="w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm text-foreground transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+                    onChange={(e) => onTranslationChange(index, 'description', e.target.value)}
+                  />
+                </FormField>
+
+                <FormField htmlFor={`${idPrefix}-t${index}-desktop-alt`} label="Alt десктоп-изображения">
+                  <Input
+                    id={`${idPrefix}-t${index}-desktop-alt`}
+                    value={translation.desktopImageAlt}
+                    disabled={isSaving}
+                    onChange={(e) => onTranslationChange(index, 'desktopImageAlt', e.target.value)}
+                  />
+                </FormField>
+
+                <FormField htmlFor={`${idPrefix}-t${index}-mobile-alt`} label="Alt мобильного изображения">
+                  <Input
+                    id={`${idPrefix}-t${index}-mobile-alt`}
+                    value={translation.mobileImageAlt}
+                    disabled={isSaving}
+                    onChange={(e) => onTranslationChange(index, 'mobileImageAlt', e.target.value)}
+                  />
+                </FormField>
+
+                <FormField htmlFor={`${idPrefix}-t${index}-primary-label`} label="Текст основной кнопки">
+                  <Input
+                    id={`${idPrefix}-t${index}-primary-label`}
+                    value={translation.primaryActionLabel}
+                    disabled={isSaving}
+                    onChange={(e) => onTranslationChange(index, 'primaryActionLabel', e.target.value)}
+                  />
+                </FormField>
+
+                <FormField htmlFor={`${idPrefix}-t${index}-secondary-label`} label="Текст дополнительной кнопки">
+                  <Input
+                    id={`${idPrefix}-t${index}-secondary-label`}
+                    value={translation.secondaryActionLabel}
+                    disabled={isSaving}
+                    onChange={(e) => onTranslationChange(index, 'secondaryActionLabel', e.target.value)}
+                  />
+                </FormField>
+              </div>
+            </div>
+          ))}
+        </div>
+      </AdminSectionCard>
+
+      <AdminSectionCard>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={onSubmit} disabled={isSaving}>
+            {isSaving ? savingLabel : submitLabel}
+          </Button>
+        </div>
+
+        {saveError ? (
+          <AdminNotice tone="destructive" role="alert">{saveError}</AdminNotice>
+        ) : null}
+
+        {saveSuccess ? (
+          <AdminNotice>{saveSuccess}</AdminNotice>
+        ) : null}
+      </AdminSectionCard>
+    </>
   );
 }
