@@ -8,6 +8,7 @@ import {
   PackageIcon,
   ShoppingCartIcon,
   SlidersHorizontalIcon,
+  StarIcon,
   TruckIcon,
   UploadIcon,
 } from 'lucide-react';
@@ -26,6 +27,7 @@ export const appNavigationItems: AppNavigationItem[] = [
   { group: 'Операции', icon: TruckIcon, label: 'Доставка', to: '/delivery' },
   { group: 'Каталог', icon: LayoutGridIcon, label: 'Категории', to: '/categories' },
   { group: 'Каталог', icon: PackageIcon, label: 'Продукты', to: '/products' },
+  { group: 'Каталог', icon: StarIcon, label: 'Популярное', to: '/popular-products' },
   { group: 'Каталог', icon: SlidersHorizontalIcon, label: 'Модификаторы', to: '/modifier-groups' },
   { group: 'Каталог', icon: UploadIcon, label: 'Импорт CSV', to: '/catalog-import' },
   { group: 'Контент', icon: ImageIcon, label: 'Баннеры', to: '/hero-banners' },

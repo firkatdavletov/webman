@@ -18,6 +18,11 @@ const CategoryDetailsPage = lazy(() =>
 const ProductsPage = lazy(() =>
   import('@/pages/catalog/products/ui/ProductsPage').then((module) => ({ default: module.ProductsPage })),
 );
+const PopularProductsPage = lazy(() =>
+  import('@/pages/catalog/popular-products/ui/PopularProductsPage').then((module) => ({
+    default: module.PopularProductsPage,
+  })),
+);
 const ProductCreatePage = lazy(() =>
   import('@/pages/catalog/product-create/ui/ProductCreatePage').then((module) => ({ default: module.ProductCreatePage })),
 );
@@ -185,6 +190,7 @@ export function AppRouter() {
         <Route path="/categories/new" element={<CategoryCreatePage />} />
         <Route path="/categories/:categoryId" element={<CategoryDetailsPage />} />
         <Route path="/products" element={<ProductsPage />} />
+        <Route path="/popular-products" element={<PopularProductsPage />} />
         <Route path="/products/new" element={<ProductCreatePage />} />
         <Route path="/products/:productId" element={<ProductDetailsPage />} />
         <Route path="/products/:productId/option-groups/:optionGroupId" element={<ProductOptionGroupDetailsPage />} />

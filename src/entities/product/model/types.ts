@@ -69,3 +69,10 @@ export type Product = {
   modifierGroups: ProductModifierGroupLink[];
   variants: ProductVariant[];
 };
+
+export type ProductPopularityItem = {
+  product: Product;
+  enabled: boolean;
+  manualScore: number;
+  updatedAt: string;
+};

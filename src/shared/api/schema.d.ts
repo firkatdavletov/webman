@@ -142,6 +142,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/product-stats/popularity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List products in the manual popular collection
+         * @description Returns products currently enabled for the manual "Popular" collection, sorted as they appear in the admin collection.
+         */
+        get: operations["getPopularProductsAdmin"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/product-stats/popularity/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reorder the manual popular collection
+         * @description Replaces the manual "Popular" collection order with the provided product IDs.
+         *     Listed products are enabled and receive descending manual scores.
+         *     Products that were enabled but are omitted from `productIds` are disabled.
+         */
+        put: operations["reorderProductPopularity"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/product-stats/popularity/{productId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get manual popularity settings for a product */
+        get: operations["getProductPopularity"];
+        /** Create or update manual popularity settings for a product */
+        put: operations["upsertProductPopularity"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/catalog/modifier-groups": {
         parameters: {
             query?: never;
@@ -1213,6 +1273,23 @@ export interface components {
             isActive: boolean;
             isConfigured: boolean;
         };
+        ProductPopularityStatsResponse: {
+            /** Format: uuid */
+            productId: string;
+            enabled: boolean;
+            /** Format: int32 */
+            manualScore: number;
+            /** Format: date-time */
+            updatedAt: string | null;
+        };
+        ProductPopularityAdminItemResponse: {
+            product: components["schemas"]["ProductResponse"];
+            enabled: boolean;
+            /** Format: int32 */
+            manualScore: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         AdminProductDetailsResponse: {
             /** Format: uuid */
             id: string;
@@ -1365,6 +1442,14 @@ export interface components {
             /** @default true */
             isActive: boolean;
             modifierGroups?: components["schemas"]["UpsertProductModifierGroupLinkRequest"][];
+        };
+        UpsertProductPopularityRequest: {
+            enabled: boolean;
+            /** Format: int32 */
+            manualScore: number;
+        };
+        ReorderProductPopularityRequest: {
+            productIds: string[];
         };
         UpsertModifierGroupRequest: {
             /** Format: uuid */
@@ -2449,6 +2534,116 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getPopularProductsAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Manual popular product list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductPopularityAdminItemResponse"][];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    reorderProductPopularity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderProductPopularityRequest"];
+            };
+        };
+        responses: {
+            /** @description Reordered manual popular product list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductPopularityAdminItemResponse"][];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getProductPopularity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: components["parameters"]["ProductIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Product popularity settings. Missing settings are returned as disabled with zero score. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductPopularityStatsResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    upsertProductPopularity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: components["parameters"]["ProductIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertProductPopularityRequest"];
+            };
+        };
+        responses: {
+            /** @description Saved product popularity settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductPopularityStatsResponse"];
+                };
             };
             400: components["responses"]["BadRequestError"];
             401: components["responses"]["UnauthorizedError"];

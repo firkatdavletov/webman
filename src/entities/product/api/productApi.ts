@@ -4,6 +4,7 @@ import type {
   Product,
   ProductOptionGroup,
   ProductOptionValue,
+  ProductPopularityItem,
   ProductVariant,
   ProductVariantDetails,
   ProductVariantOption,
@@ -19,10 +20,12 @@ import {
 import type { MediaImage } from '@/shared/model/media';
 
 type ProductResponse = components['schemas']['ProductResponse'];
+type ProductPopularityAdminItemResponse = components['schemas']['ProductPopularityAdminItemResponse'];
 type AdminProductDetailsResponse = components['schemas']['AdminProductDetailsResponse'];
 type ProductOptionGroupResponse = components['schemas']['ProductOptionGroupResponse'];
 type ProductModifierGroupResponse = components['schemas']['ProductModifierGroupResponse'];
 type AdminProductVariantResponse = components['schemas']['AdminProductVariantResponse'];
+type ReorderProductPopularityRequest = components['schemas']['ReorderProductPopularityRequest'];
 type UpsertProductRequest = components['schemas']['UpsertProductRequest'];
 type UpsertProductModifierGroupLinkRequest = components['schemas']['UpsertProductModifierGroupLinkRequest'];
 type UpsertProductOptionGroupRequest = components['schemas']['UpsertProductOptionGroupRequest'];
@@ -59,6 +62,11 @@ type AdminProductListResult = {
   error?: ApiError;
 };
 
+type AdminProductPopularityListResult = {
+  data?: ProductPopularityAdminItemResponse[];
+  error?: ApiError;
+};
+
 type AdminProductDetailsResult = {
   data?: AdminProductDetailsResponse;
   error?: ApiError;
@@ -91,6 +99,19 @@ const adminProductsApiClient = apiClient as unknown as {
       };
     },
   ): Promise<AdminProductListResult>;
+  GET(
+    path: '/api/v1/admin/product-stats/popularity',
+    init: {
+      headers?: HeadersInit;
+    },
+  ): Promise<AdminProductPopularityListResult>;
+  PUT(
+    path: '/api/v1/admin/product-stats/popularity/reorder',
+    init: {
+      headers?: HeadersInit;
+      body: ReorderProductPopularityRequest;
+    },
+  ): Promise<AdminProductPopularityListResult>;
   GET(
     path: '/api/v1/admin/products/{productId}',
     init: {
@@ -167,6 +188,11 @@ const adminProductsApiClient = apiClient as unknown as {
 
 export type ProductListResult = {
   products: Product[];
+  error: string | null;
+};
+
+export type ProductPopularityListResult = {
+  items: ProductPopularityItem[];
   error: string | null;
 };
 
@@ -270,6 +296,15 @@ function mapProduct(product: ProductResponse): Product {
     optionGroups: [],
     modifierGroups: [],
     variants: [],
+  };
+}
+
+function mapProductPopularityItem(item: ProductPopularityAdminItemResponse): ProductPopularityItem {
+  return {
+    product: mapProduct(item.product),
+    enabled: item.enabled,
+    manualScore: item.manualScore,
+    updatedAt: item.updatedAt,
   };
 }
 
@@ -516,6 +551,73 @@ export async function getAllProducts(options: GetAllProductsOptions = {}): Promi
     return {
       products: [],
       error: 'Не удалось связаться с сервисом товаров.',
+    };
+  }
+}
+
+export async function getPopularProducts(): Promise<ProductPopularityListResult> {
+  try {
+    const result = await adminProductsApiClient.GET('/api/v1/admin/product-stats/popularity', {
+      headers: buildAuthHeaders(),
+    });
+
+    if (result.error) {
+      return {
+        items: [],
+        error: getProtectedErrorMessage(result.error, 'Не удалось загрузить подборку популярного.'),
+      };
+    }
+
+    if (!result.data) {
+      return {
+        items: [],
+        error: 'Сервис популярного вернул некорректный ответ.',
+      };
+    }
+
+    return {
+      items: result.data.map(mapProductPopularityItem),
+      error: null,
+    };
+  } catch {
+    return {
+      items: [],
+      error: 'Не удалось связаться с сервисом популярного.',
+    };
+  }
+}
+
+export async function reorderPopularProducts(productIds: string[]): Promise<ProductPopularityListResult> {
+  try {
+    const result = await adminProductsApiClient.PUT('/api/v1/admin/product-stats/popularity/reorder', {
+      headers: buildAuthHeaders(),
+      body: {
+        productIds,
+      },
+    });
+
+    if (result.error) {
+      return {
+        items: [],
+        error: getProtectedErrorMessage(result.error, 'Не удалось сохранить порядок популярного.'),
+      };
+    }
+
+    if (!result.data) {
+      return {
+        items: [],
+        error: 'Сервис популярного вернул некорректный ответ.',
+      };
+    }
+
+    return {
+      items: result.data.map(mapProductPopularityItem),
+      error: null,
+    };
+  } catch {
+    return {
+      items: [],
+      error: 'Не удалось связаться с сервисом популярного.',
     };
   }
 }
