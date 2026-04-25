@@ -119,7 +119,7 @@ export function LoginPage() {
         <section className="hidden rounded-[2rem] border border-sidebar-border bg-sidebar px-8 py-9 text-sidebar-foreground shadow-[0_28px_80px_rgba(12,35,39,0.24)] lg:flex lg:flex-col lg:justify-between">
           <div className="space-y-5">
             <Badge className="w-fit rounded-full bg-sidebar-primary px-3 py-1 text-sidebar-primary-foreground hover:bg-sidebar-primary">
-              Webman CMS
+              Storeva
             </Badge>
             <div className="space-y-3">
               <p className="text-xs font-semibold tracking-[0.24em] text-sidebar-foreground/65 uppercase">

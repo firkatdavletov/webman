@@ -1,9 +1,16 @@
 meta:
   environment: node
   toolchain:
-    name: browser
+    name: npm
     version: 20
 
 build:
+  additionalCommands: npm run build
   artifacts:
-    "dist/*": /
+    "dist/*": /dist
+    "server.js": /
+    "package.json": /
+
+run:
+  scriptName: server.js
+  containerPort: 3000

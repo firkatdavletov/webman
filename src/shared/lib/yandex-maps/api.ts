@@ -1,6 +1,7 @@
 import type { ComponentType, ReactNode } from 'react';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import { env } from '@/shared/config/env';
 
 export type YandexMapCoordinate = [number, number];
 export type YandexMapBounds = [YandexMapCoordinate, YandexMapCoordinate];
@@ -81,7 +82,7 @@ const YANDEX_MAPS_SCRIPT_ID = 'yandex-maps-js-api-v3';
 let yandexMapsReactApiPromise: Promise<YandexMapsReactApi> | null = null;
 
 function getYandexMapsApiKey(): string {
-  const apiKey = import.meta.env.VITE_YANDEX_MAPS_API_KEY?.trim() ?? '';
+  const apiKey = env.yandexMapsApiKey;
 
   if (!apiKey) {
     throw new Error('Для работы редактора карты укажите VITE_YANDEX_MAPS_API_KEY.');
@@ -91,7 +92,7 @@ function getYandexMapsApiKey(): string {
 }
 
 function getYandexMapsLang(): string {
-  const lang = import.meta.env.VITE_YANDEX_MAPS_LANG?.trim() ?? 'ru_RU';
+  const lang = env.yandexMapsLang;
 
   return lang || 'ru_RU';
 }

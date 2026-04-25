@@ -95,7 +95,7 @@ function ShellSidebar({ onLogout, onNavigate }: ShellSidebarProps) {
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="border-b border-sidebar-border px-5 py-5">
         <Badge className="mb-4 rounded-full bg-sidebar-primary px-3 py-1 text-sidebar-primary-foreground hover:bg-sidebar-primary">
-          Webman CMS
+          Storeva Панель управления
         </Badge>
         <div className="space-y-1">
           <h1 className="text-xl font-semibold tracking-tight">Панель управления</h1>

@@ -5,10 +5,9 @@ import {
   persistSessionTokens,
 } from '@/entities/session/lib/tokenStorage';
 import type { components, paths } from '@/shared/api/schema';
+import { env } from '@/shared/config/env';
 
-const rawBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:8080' : '');
-
-const normalizedBaseUrl = rawBaseUrl ? rawBaseUrl.replace(/\/+$/, '') : '';
+const normalizedBaseUrl = env.apiBaseUrl ? env.apiBaseUrl.replace(/\/+$/, '') : '';
 const ADMIN_LOGIN_PATH = '/api/v1/admin/login';
 const ADMIN_REFRESH_PATH = '/api/v1/admin/refresh';
 
