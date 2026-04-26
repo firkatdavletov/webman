@@ -3,6 +3,8 @@ import { getApiErrorMessage } from '@/shared/api/error';
 import type { components } from '@/shared/api/schema';
 import {
   clearSessionTokens,
+  getAdminIdFromStorage,
+  getAdminRoleFromStorage,
   getAccessTokenFromStorage,
   getRefreshTokenFromStorage,
   persistSessionTokens,
@@ -11,8 +13,11 @@ import {
 type TokenPair = {
   accessToken: string;
   refreshToken: string | null;
+  adminId: string | null;
+  role: AdminRole | null;
 };
 
+type AdminRole = components['schemas']['AdminRole'];
 type AdminAuthTokensResponse = components['schemas']['AdminAuthTokensResponse'];
 
 export type LoginResult =
@@ -24,6 +29,11 @@ export type LoginResult =
       token: null;
       error: string;
     };
+
+export type ChangeOwnPasswordResult = {
+  changed: boolean;
+  error: string | null;
+};
 
 function buildAuthHeaders(accessToken: string | null): HeadersInit | undefined {
   if (!accessToken) {
@@ -50,6 +60,8 @@ function extractTokens(body: AdminAuthTokensResponse | null): TokenPair | null {
   return {
     accessToken,
     refreshToken,
+    adminId: body.adminId ?? null,
+    role: body.role ?? null,
   };
 }
 
@@ -59,6 +71,18 @@ function getLoginErrorMessage(error: ApiError | undefined): string {
   }
 
   return getApiErrorMessage(error, 'Не удалось выполнить вход.');
+}
+
+function getProtectedErrorMessage(error: ApiError | undefined, fallbackMessage: string): string {
+  if (error?.code === 'UNAUTHORIZED') {
+    return 'Нужно войти заново, чтобы выполнить действие.';
+  }
+
+  if (error?.code === 'FORBIDDEN') {
+    return 'Недостаточно прав для выполнения действия.';
+  }
+
+  return getApiErrorMessage(error, fallbackMessage);
 }
 
 export async function login(loginValue: string, password: string): Promise<LoginResult> {
@@ -98,6 +122,37 @@ export async function login(loginValue: string, password: string): Promise<Login
   }
 }
 
+export async function changeOwnPassword(currentPassword: string, newPassword: string): Promise<ChangeOwnPasswordResult> {
+  try {
+    const result = await apiClient.POST('/api/v1/admin/me/password', {
+      headers: buildAuthHeaders(getAccessToken()),
+      body: {
+        currentPassword,
+        newPassword,
+      },
+    });
+
+    if (result.error) {
+      return {
+        changed: false,
+        error: getProtectedErrorMessage(result.error, 'Не удалось изменить пароль.'),
+      };
+    }
+
+    clearSessionTokens();
+
+    return {
+      changed: true,
+      error: null,
+    };
+  } catch {
+    return {
+      changed: false,
+      error: 'Не удалось связаться с сервисом смены пароля.',
+    };
+  }
+}
+
 export function logout(): void {
   const accessToken = getAccessToken();
   const refreshToken = getRefreshTokenFromStorage();
@@ -116,8 +171,20 @@ export function getAccessToken(): string | null {
   return getAccessTokenFromStorage();
 }
 
+export function getCurrentAdminId(): string | null {
+  return getAdminIdFromStorage();
+}
+
+export function getCurrentAdminRole(): AdminRole | null {
+  return getAdminRoleFromStorage();
+}
+
 export function isAuthenticated(): boolean {
   const accessToken = getAccessToken();
 
   return Boolean(accessToken);
+}
+
+export function isSuperAdmin(): boolean {
+  return getCurrentAdminRole() === 'SUPERADMIN';
 }

@@ -71,6 +71,8 @@ async function refreshAccessToken(): Promise<string | null> {
     persistSessionTokens({
       accessToken: nextAccessToken,
       refreshToken: extractRefreshToken(tokens),
+      adminId: tokens?.adminId ?? null,
+      role: tokens?.role ?? null,
     });
 
     return nextAccessToken;

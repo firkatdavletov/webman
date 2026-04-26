@@ -11,12 +11,14 @@ import {
   StarIcon,
   TruckIcon,
   UploadIcon,
+  UsersRoundIcon,
 } from 'lucide-react';
 
 export type AppNavigationItem = {
   group: string;
   icon: LucideIcon;
   label: string;
+  requiredRole?: 'SUPERADMIN';
   to: string;
 };
 
@@ -32,4 +34,5 @@ export const appNavigationItems: AppNavigationItem[] = [
   { group: 'Каталог', icon: UploadIcon, label: 'Импорт CSV', to: '/catalog-import' },
   { group: 'Контент', icon: ImageIcon, label: 'Баннеры', to: '/hero-banners' },
   { group: 'Контент', icon: FileTextIcon, label: 'Документы', to: '/legal-documents' },
+  { group: 'Управление', icon: UsersRoundIcon, label: 'Сотрудники', requiredRole: 'SUPERADMIN', to: '/employees' },
 ];

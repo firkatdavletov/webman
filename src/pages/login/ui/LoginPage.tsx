@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { login } from '@/entities/session';
 import { AdminNotice, Badge, Button, Card, CardContent, CardHeader, CardTitle, FormField, Input } from '@/shared/ui';
 
@@ -11,6 +11,10 @@ type FormValues = {
 };
 
 type FormErrors = Partial<Record<FieldName, string>>;
+
+type LoginLocationState = {
+  notice?: string;
+};
 
 const emptyValues: FormValues = {
   login: '',
@@ -33,6 +37,8 @@ function validate(values: FormValues): FormErrors {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state as LoginLocationState | null;
   const loginRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   const [values, setValues] = useState<FormValues>(emptyValues);
@@ -164,6 +170,8 @@ export function LoginPage() {
 
           <CardContent className="px-6 py-6 sm:px-8 sm:py-8">
             <form className="grid gap-5" onSubmit={handleSubmit} noValidate>
+              {locationState?.notice ? <AdminNotice role="status">{locationState.notice}</AdminNotice> : null}
+
               <FormField error={errors.login} htmlFor="login" label="Логин">
                 <Input
                   ref={loginRef}

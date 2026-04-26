@@ -1,6 +1,6 @@
-import { lazy, Suspense } from 'react';
+import { lazy, type ReactNode, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { isAuthenticated } from '@/entities/session';
+import { isAuthenticated, isSuperAdmin } from '@/entities/session';
 import { ProtectedRoute } from '@/shared/routing/ProtectedRoute';
 
 const CategoriesPage = lazy(() =>
@@ -145,6 +145,9 @@ const OrderStatusesPage = lazy(() =>
 const OrderStatusEditorPage = lazy(() =>
   import('@/pages/order-statuses/ui/OrderStatusEditorPage').then((module) => ({ default: module.OrderStatusEditorPage })),
 );
+const EmployeesPage = lazy(() =>
+  import('@/pages/employees/ui/EmployeesPage').then((module) => ({ default: module.EmployeesPage })),
+);
 const LoginPage = lazy(() =>
   import('@/pages/login/ui/LoginPage').then((module) => ({ default: module.LoginPage })),
 );
@@ -173,6 +176,14 @@ function LoginRoute() {
       <LoginPage />
     </Suspense>
   );
+}
+
+function SuperAdminRoute({ children }: { children: ReactNode }) {
+  if (!isSuperAdmin()) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
 }
 
 export function AppRouter() {
@@ -212,6 +223,14 @@ export function AppRouter() {
         <Route path="/order-statuses" element={<OrderStatusesPage />} />
         <Route path="/order-statuses/new" element={<OrderStatusEditorPage />} />
         <Route path="/order-statuses/:statusId" element={<OrderStatusEditorPage />} />
+        <Route
+          path="/employees"
+          element={
+            <SuperAdminRoute>
+              <EmployeesPage />
+            </SuperAdminRoute>
+          }
+        />
         <Route path="/delivery" element={<DeliveryConditionsPage />} />
         <Route path="/delivery/methods" element={<DeliveryMethodsPage />} />
         <Route path="/delivery/methods/:method" element={<DeliveryMethodDetailsPage />} />
@@ -234,6 +253,14 @@ export function AppRouter() {
         <Route path="/admin/order-statuses" element={<OrderStatusesPage />} />
         <Route path="/admin/order-statuses/new" element={<OrderStatusEditorPage />} />
         <Route path="/admin/order-statuses/:statusId" element={<OrderStatusEditorPage />} />
+        <Route
+          path="/admin/employees"
+          element={
+            <SuperAdminRoute>
+              <EmployeesPage />
+            </SuperAdminRoute>
+          }
+        />
       </Route>
       <Route path="*" element={<Navigate to={fallbackPath} replace />} />
     </Routes>

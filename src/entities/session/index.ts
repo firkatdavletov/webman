@@ -1,2 +1,11 @@
-export { getAccessToken, isAuthenticated, login, logout } from './api/sessionApi';
-export type { LoginResult } from './api/sessionApi';
+export {
+  changeOwnPassword,
+  getAccessToken,
+  getCurrentAdminId,
+  getCurrentAdminRole,
+  isAuthenticated,
+  isSuperAdmin,
+  login,
+  logout,
+} from './api/sessionApi';
+export type { ChangeOwnPasswordResult, LoginResult } from './api/sessionApi';

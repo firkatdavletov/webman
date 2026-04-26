@@ -1,10 +1,14 @@
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { LogOutIcon, PanelLeftIcon } from 'lucide-react';
+import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
+import { KeyRoundIcon, LogOutIcon, PanelLeftIcon } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { logout } from '@/entities/session';
+import { changeOwnPassword, getCurrentAdminRole, logout } from '@/entities/session';
 import { cn } from '@/shared/lib/cn';
+import { AdminNotice } from '@/shared/ui/admin-page';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
+import { FormField } from '@/shared/ui/form-field';
+import { Input } from '@/shared/ui/input';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/shared/ui/sheet';
 import { appNavigationItems } from '@/shared/ui/app-shell/navigation';
 
@@ -12,27 +16,86 @@ type AppShellProps = {
   children: ReactNode;
 };
 
+type PasswordFormValues = {
+  currentPassword: string;
+  newPassword: string;
+  newPasswordConfirm: string;
+};
+
+type PasswordFormErrors = Partial<Record<keyof PasswordFormValues, string>>;
+
+const emptyPasswordFormValues: PasswordFormValues = {
+  currentPassword: '',
+  newPassword: '',
+  newPasswordConfirm: '',
+};
+
+const ADMIN_ROLE_LABELS: Record<string, string> = {
+  SUPERADMIN: 'Суперадмин',
+  OWNER: 'Владелец',
+  MANAGER: 'Менеджер',
+  ORDER_MANAGER: 'Заказы',
+  KITCHEN: 'Кухня',
+  DELIVERY_MANAGER: 'Доставка',
+  CATALOG_MANAGER: 'Каталог',
+  MARKETING_MANAGER: 'Маркетинг',
+  SUPPORT: 'Поддержка',
+};
+
+function getRoleLabel(role: string | null): string {
+  if (!role) {
+    return 'Аккаунт';
+  }
+
+  return ADMIN_ROLE_LABELS[role] ?? role;
+}
+
+function validatePasswordForm(values: PasswordFormValues): PasswordFormErrors {
+  const errors: PasswordFormErrors = {};
+
+  if (!values.currentPassword) {
+    errors.currentPassword = 'Укажите текущий пароль.';
+  }
+
+  if (!values.newPassword) {
+    errors.newPassword = 'Укажите новый пароль.';
+  } else if (values.newPassword.length < 8) {
+    errors.newPassword = 'Пароль должен быть не короче 8 символов.';
+  } else if (values.currentPassword && values.currentPassword === values.newPassword) {
+    errors.newPassword = 'Новый пароль должен отличаться от текущего.';
+  }
+
+  if (values.newPassword !== values.newPasswordConfirm) {
+    errors.newPasswordConfirm = 'Пароли не совпадают.';
+  }
+
+  return errors;
+}
+
 type AppNavigationProps = {
   onNavigate?: () => void;
 };
 
 function AppNavigation({ onNavigate }: AppNavigationProps) {
+  const currentRole = getCurrentAdminRole();
   const navigationGroups = useMemo(() => {
     const groups = new Map<string, typeof appNavigationItems>();
 
-    appNavigationItems.forEach((item) => {
-      const items = groups.get(item.group);
+    appNavigationItems
+      .filter((item) => !item.requiredRole || item.requiredRole === currentRole)
+      .forEach((item) => {
+        const items = groups.get(item.group);
 
-      if (items) {
-        items.push(item);
-        return;
-      }
+        if (items) {
+          items.push(item);
+          return;
+        }
 
-      groups.set(item.group, [item]);
-    });
+        groups.set(item.group, [item]);
+      });
 
     return Array.from(groups.entries());
-  }, []);
+  }, [currentRole]);
 
   return (
     <div className="space-y-5">
@@ -86,11 +149,14 @@ function AppNavigation({ onNavigate }: AppNavigationProps) {
 }
 
 type ShellSidebarProps = {
+  onChangePassword: () => void;
   onLogout: () => void;
   onNavigate?: () => void;
 };
 
-function ShellSidebar({ onLogout, onNavigate }: ShellSidebarProps) {
+function ShellSidebar({ onChangePassword, onLogout, onNavigate }: ShellSidebarProps) {
+  const currentRole = getCurrentAdminRole();
+
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="border-b border-sidebar-border px-5 py-5">
@@ -109,9 +175,18 @@ function ShellSidebar({ onLogout, onNavigate }: ShellSidebarProps) {
 
       <div className="space-y-3 border-t border-sidebar-border p-3">
         <div className="rounded-2xl border border-sidebar-border bg-sidebar-accent/70 p-3">
-          <p className="text-[0.68rem] font-semibold tracking-[0.2em] text-sidebar-foreground/45 uppercase">Workspace</p>
-          <p className="mt-1 text-sm font-medium text-sidebar-foreground">Admin web app</p>
+          <p className="text-[0.68rem] font-semibold tracking-[0.2em] text-sidebar-foreground/45 uppercase">Storeva</p>
+          <p className="mt-1 text-sm font-medium text-sidebar-foreground">{getRoleLabel(currentRole)}</p>
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-10 w-full justify-center rounded-xl border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/85"
+          onClick={onChangePassword}
+        >
+          <KeyRoundIcon />
+          Сменить пароль
+        </Button>
         <Button
           type="button"
           variant="secondary"
@@ -126,10 +201,151 @@ function ShellSidebar({ onLogout, onNavigate }: ShellSidebarProps) {
   );
 }
 
+type ChangePasswordDialogProps = {
+  open: boolean;
+  onChanged: () => void;
+  onOpenChange: (open: boolean) => void;
+};
+
+function ChangePasswordDialog({ open, onChanged, onOpenChange }: ChangePasswordDialogProps) {
+  const [values, setValues] = useState<PasswordFormValues>(emptyPasswordFormValues);
+  const [errors, setErrors] = useState<PasswordFormErrors>({});
+  const [submitError, setSubmitError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setValues(emptyPasswordFormValues);
+    setErrors({});
+    setSubmitError('');
+    setIsSubmitting(false);
+  }, [open]);
+
+  const handleValueChange = <TKey extends keyof PasswordFormValues>(key: TKey, value: PasswordFormValues[TKey]) => {
+    setValues((currentValues) => ({
+      ...currentValues,
+      [key]: value,
+    }));
+    setErrors((currentErrors) => ({
+      ...currentErrors,
+      [key]: undefined,
+    }));
+    setSubmitError('');
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const nextErrors = validatePasswordForm(values);
+
+    if (Object.keys(nextErrors).length) {
+      setErrors(nextErrors);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError('');
+
+    const result = await changeOwnPassword(values.currentPassword, values.newPassword);
+
+    setIsSubmitting(false);
+
+    if (!result.changed || result.error) {
+      setSubmitError(result.error ?? 'Не удалось изменить пароль.');
+      return;
+    }
+
+    onChanged();
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (isSubmitting) {
+          return;
+        }
+
+        onOpenChange(nextOpen);
+      }}
+    >
+      <DialogContent>
+        <form className="grid gap-4" onSubmit={handleSubmit} noValidate>
+          <DialogHeader>
+            <DialogTitle>Сменить пароль</DialogTitle>
+            <DialogDescription>После смены пароля активные сессии будут отозваны, и потребуется войти заново.</DialogDescription>
+          </DialogHeader>
+
+          <FormField error={errors.currentPassword} htmlFor="own-current-password" label="Текущий пароль">
+            <Input
+              id="own-current-password"
+              type="password"
+              className="h-11 rounded-xl bg-background/80 shadow-sm"
+              value={values.currentPassword}
+              disabled={isSubmitting}
+              autoComplete="current-password"
+              onChange={(event) => handleValueChange('currentPassword', event.target.value)}
+              aria-invalid={Boolean(errors.currentPassword)}
+              aria-describedby={errors.currentPassword ? 'own-current-password-error' : undefined}
+            />
+          </FormField>
+
+          <FormField error={errors.newPassword} htmlFor="own-new-password" label="Новый пароль">
+            <Input
+              id="own-new-password"
+              type="password"
+              className="h-11 rounded-xl bg-background/80 shadow-sm"
+              value={values.newPassword}
+              disabled={isSubmitting}
+              autoComplete="new-password"
+              onChange={(event) => handleValueChange('newPassword', event.target.value)}
+              aria-invalid={Boolean(errors.newPassword)}
+              aria-describedby={errors.newPassword ? 'own-new-password-error' : undefined}
+            />
+          </FormField>
+
+          <FormField error={errors.newPasswordConfirm} htmlFor="own-new-password-confirm" label="Повтор нового пароля">
+            <Input
+              id="own-new-password-confirm"
+              type="password"
+              className="h-11 rounded-xl bg-background/80 shadow-sm"
+              value={values.newPasswordConfirm}
+              disabled={isSubmitting}
+              autoComplete="new-password"
+              onChange={(event) => handleValueChange('newPasswordConfirm', event.target.value)}
+              aria-invalid={Boolean(errors.newPasswordConfirm)}
+              aria-describedby={errors.newPasswordConfirm ? 'own-new-password-confirm-error' : undefined}
+            />
+          </FormField>
+
+          {submitError ? (
+            <AdminNotice tone="destructive" role="alert">
+              {submitError}
+            </AdminNotice>
+          ) : null}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => onOpenChange(false)}>
+              Отмена
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Сохранение...' : 'Сменить пароль'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const currentSection = useMemo(
     () =>
       appNavigationItems.find(({ to }) => location.pathname === to || location.pathname.startsWith(`${to}/`))?.label ?? 'Панель управления',
@@ -151,7 +367,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="grid min-h-screen md:grid-cols-[18rem_minmax(0,1fr)]">
           <aside className="hidden border-r border-sidebar-border md:block">
             <div className="sticky top-0 h-screen">
-              <ShellSidebar onLogout={handleLogout} />
+              <ShellSidebar onChangePassword={() => setIsPasswordDialogOpen(true)} onLogout={handleLogout} />
             </div>
           </aside>
 
@@ -185,9 +401,27 @@ export function AppShell({ children }: AppShellProps) {
             <SheetTitle>Навигация</SheetTitle>
             <SheetDescription>Основные разделы административной панели.</SheetDescription>
           </SheetHeader>
-          <ShellSidebar onLogout={handleLogout} onNavigate={() => setIsNavigationOpen(false)} />
+          <ShellSidebar
+            onChangePassword={() => setIsPasswordDialogOpen(true)}
+            onLogout={handleLogout}
+            onNavigate={() => setIsNavigationOpen(false)}
+          />
         </SheetContent>
       </Sheet>
+
+      <ChangePasswordDialog
+        open={isPasswordDialogOpen}
+        onOpenChange={setIsPasswordDialogOpen}
+        onChanged={() => {
+          setIsPasswordDialogOpen(false);
+          navigate('/login', {
+            replace: true,
+            state: {
+              notice: 'Пароль изменен. Войдите заново с новым паролем.',
+            },
+          });
+        }}
+      />
     </div>
   );
 }
