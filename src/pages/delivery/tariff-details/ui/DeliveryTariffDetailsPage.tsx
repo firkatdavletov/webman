@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { deleteDeliveryTariff, getDeliveryTariffs, getDeliveryZones, saveDeliveryTariff, type DeliveryZone } from '@/entities/delivery';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
 import { cn } from '@/shared/lib/cn';
+import { parseOptionalPriceInputToMinor, parsePriceInputToMinor } from '@/shared/lib/money/price';
 import {
   AdminEmptyState,
   AdminNotice,
@@ -19,7 +20,6 @@ import {
   DELIVERY_METHOD_ORDER,
   getDeliveryMethodLabel,
   parseOptionalInteger,
-  parseRequiredInteger,
   sortDeliveryTariffs,
   sortDeliveryZones,
   type DeliveryTariffFormValues,
@@ -120,18 +120,18 @@ export function DeliveryTariffDetailsPage() {
   };
 
   const handleSubmit = async () => {
-    const parsedFixedPriceMinor = parseRequiredInteger(tariffForm.fixedPriceMinor, 'Фиксированная цена');
+    const parsedFixedPriceMinor = parsePriceInputToMinor(tariffForm.fixedPriceMinor);
 
-    if (parsedFixedPriceMinor.error || parsedFixedPriceMinor.value === null) {
-      setSaveError(parsedFixedPriceMinor.error ?? 'Укажите фиксированную цену.');
+    if (parsedFixedPriceMinor === null) {
+      setSaveError('Укажите корректную фиксированную цену в рублях.');
       setSaveSuccess('');
       return;
     }
 
-    const parsedFreeFromAmountMinor = parseOptionalInteger(tariffForm.freeFromAmountMinor, 'Порог бесплатной доставки');
+    const parsedFreeFromAmountMinor = parseOptionalPriceInputToMinor(tariffForm.freeFromAmountMinor);
 
-    if (parsedFreeFromAmountMinor.error) {
-      setSaveError(parsedFreeFromAmountMinor.error);
+    if (parsedFreeFromAmountMinor === undefined) {
+      setSaveError('Укажите корректный порог бесплатной доставки в рублях или оставьте поле пустым.');
       setSaveSuccess('');
       return;
     }
@@ -169,8 +169,8 @@ export function DeliveryTariffDetailsPage() {
       method: tariffForm.method,
       zoneId: tariffForm.zoneId.trim() || null,
       isAvailable: tariffForm.isAvailable,
-      fixedPriceMinor: parsedFixedPriceMinor.value,
-      freeFromAmountMinor: parsedFreeFromAmountMinor.value,
+      fixedPriceMinor: parsedFixedPriceMinor,
+      freeFromAmountMinor: parsedFreeFromAmountMinor,
       currency,
       estimatedDays: parsedEstimatedDays.value,
       deliveryMinutes: parsedDeliveryMinutes.value,

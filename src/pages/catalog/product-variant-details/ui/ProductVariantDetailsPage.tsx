@@ -16,6 +16,7 @@ import {
   type ProductVariantDetails,
 } from '@/entities/product';
 import { cn } from '@/shared/lib/cn';
+import { formatMinorToPriceInput, parseOptionalPriceInputToMinor } from '@/shared/lib/money/price';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
 import {
   AdminEmptyState,
@@ -29,6 +30,7 @@ import {
   FormField,
   Input,
   LazyDataTable,
+  PriceInput,
 } from '@/shared/ui';
 
 const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -51,42 +53,6 @@ type VariantFormValues = {
 
 const SELECT_CLASSNAME =
   'h-8 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50';
-
-function formatEditablePrice(minorValue: number | null): string {
-  if (minorValue === null) {
-    return '';
-  }
-
-  const rawValue = (minorValue / 100).toFixed(2);
-
-  return rawValue.replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
-}
-
-function parsePrice(value: string): number | null {
-  const normalizedValue = value.trim().replace(',', '.');
-
-  if (!normalizedValue) {
-    return null;
-  }
-
-  const numericValue = Number(normalizedValue);
-
-  if (Number.isNaN(numericValue) || numericValue < 0) {
-    return null;
-  }
-
-  return Math.round(numericValue * 100);
-}
-
-function parseOptionalPrice(value: string): number | null | undefined {
-  const normalizedValue = value.trim();
-
-  if (!normalizedValue) {
-    return null;
-  }
-
-  return parsePrice(normalizedValue) ?? undefined;
-}
 
 function parseInteger(value: string): number | null {
   const normalizedValue = value.trim();
@@ -126,8 +92,8 @@ function buildVariantFormValues(product: Product, variant: ProductVariantDetails
     externalId: variant.externalId ?? '',
     sku: variant.sku,
     title: variant.title ?? '',
-    price: formatEditablePrice(variant.price),
-    oldPrice: formatEditablePrice(variant.oldPrice),
+    price: formatMinorToPriceInput(variant.price),
+    oldPrice: formatMinorToPriceInput(variant.oldPrice),
     sortOrder: String(variant.sortOrder),
     isActive: variant.isActive,
     selectedOptionValueByGroupId: buildSelectedOptionValueByGroupId(product.optionGroups, variant.optionValueIds),
@@ -382,8 +348,8 @@ export function ProductVariantDetailsPage() {
     const normalizedTitle = formValues.title.trim();
     const normalizedExternalId = formValues.externalId.trim();
     const parsedSortOrder = parseInteger(formValues.sortOrder);
-    const normalizedPrice = parseOptionalPrice(formValues.price);
-    const normalizedOldPrice = parseOptionalPrice(formValues.oldPrice);
+    const normalizedPrice = parseOptionalPriceInputToMinor(formValues.price);
+    const normalizedOldPrice = parseOptionalPriceInputToMinor(formValues.oldPrice);
 
     if (!normalizedSku) {
       setSaveError('Укажите SKU варианта.');
@@ -596,17 +562,16 @@ export function ProductVariantDetailsPage() {
           </FormField>
 
           <FormField htmlFor="variant-price" label="Цена (руб.)">
-            <Input
+            <PriceInput
               id="variant-price"
               value={formValues.price}
-              inputMode="decimal"
               disabled={isMutating}
-              onChange={(event) => {
+              onValueChange={(value) => {
                 setFormValues((currentValues) =>
                   currentValues
                     ? {
                         ...currentValues,
-                        price: event.target.value,
+                        price: value,
                       }
                     : currentValues,
                 );
@@ -618,17 +583,16 @@ export function ProductVariantDetailsPage() {
           </FormField>
 
           <FormField htmlFor="variant-old-price" label="Старая цена (руб.)">
-            <Input
+            <PriceInput
               id="variant-old-price"
               value={formValues.oldPrice}
-              inputMode="decimal"
               disabled={isMutating}
-              onChange={(event) => {
+              onValueChange={(value) => {
                 setFormValues((currentValues) =>
                   currentValues
                     ? {
                         ...currentValues,
-                        oldPrice: event.target.value,
+                        oldPrice: value,
                       }
                     : currentValues,
                 );

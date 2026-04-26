@@ -34,6 +34,7 @@ export { DataTable, LazyDataTable } from '@/shared/ui/data-table';
 export type { DataTableColumnMeta, DataTableProps } from '@/shared/ui/data-table';
 export { FormField } from '@/shared/ui/form-field';
 export { Input } from '@/shared/ui/input';
+export { PriceInput } from '@/shared/ui/price-input';
 export { ResourceFilters } from '@/shared/ui/resource-filters';
 export { Select } from '@/shared/ui/select';
 export { SegmentedControl } from '@/shared/ui/segmented-control';

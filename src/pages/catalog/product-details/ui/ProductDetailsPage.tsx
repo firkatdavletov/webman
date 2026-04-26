@@ -21,6 +21,7 @@ import {
   uploadProductImageToStorage,
 } from '@/entities/product';
 import { cn } from '@/shared/lib/cn';
+import { formatMinorToPriceInput, parseOptionalPriceInputToMinor, parsePriceInputToMinor } from '@/shared/lib/money/price';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
 import {
   AdminEmptyState,
@@ -34,6 +35,7 @@ import {
   FormField,
   Input,
   LazyDataTable,
+  PriceInput,
 } from '@/shared/ui';
 
 type ProductModifierGroupFormValue = {
@@ -83,38 +85,6 @@ function UtilityStat({ label, value, hint, className }: UtilityStatProps) {
   );
 }
 
-function formatEditablePrice(minorValue: number): string {
-  const rawValue = (minorValue / 100).toFixed(2);
-
-  return rawValue.replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
-}
-
-function parsePrice(value: string): number | null {
-  const normalizedValue = value.trim().replace(',', '.');
-
-  if (!normalizedValue) {
-    return null;
-  }
-
-  const numericValue = Number(normalizedValue);
-
-  if (Number.isNaN(numericValue) || numericValue < 0) {
-    return null;
-  }
-
-  return Math.round(numericValue * 100);
-}
-
-function parseOptionalPrice(value: string): number | null | undefined {
-  const normalizedValue = value.trim();
-
-  if (!normalizedValue) {
-    return null;
-  }
-
-  return parsePrice(normalizedValue) ?? undefined;
-}
-
 function parseInteger(value: string): number | null {
   const normalizedValue = value.trim();
 
@@ -136,8 +106,8 @@ function buildProductFormValues(product: Product): ProductDetailsFormValues {
     categoryId: product.categoryId,
     title: product.title,
     description: product.description ?? '',
-    price: formatEditablePrice(product.price),
-    oldPrice: product.oldPrice === null ? '' : formatEditablePrice(product.oldPrice),
+    price: formatMinorToPriceInput(product.price),
+    oldPrice: formatMinorToPriceInput(product.oldPrice),
     isActive: product.isActive,
     unit: product.unit,
     countStep: String(product.countStep),
@@ -400,8 +370,8 @@ export function ProductDetailsPage() {
     const normalizedDescription = formValues.description.trim();
     const normalizedSku = formValues.sku.trim();
     const normalizedCountStep = parseInteger(formValues.countStep);
-    const normalizedPrice = parsePrice(formValues.price);
-    const normalizedOldPrice = parseOptionalPrice(formValues.oldPrice);
+    const normalizedPrice = parsePriceInputToMinor(formValues.price);
+    const normalizedOldPrice = parseOptionalPriceInputToMinor(formValues.oldPrice);
 
     if (!normalizedTitle) {
       setSaveError('Укажите название товара.');
@@ -902,25 +872,23 @@ export function ProductDetailsPage() {
           </FormField>
 
           <FormField htmlFor="product-price" label="Цена (руб.)">
-            <Input
+            <PriceInput
               id="product-price"
               value={formValues.price}
               disabled={isMutating}
-              inputMode="decimal"
-              onChange={(event) => handleFormChange((currentValues) => ({ ...currentValues, price: event.target.value }))}
+              onValueChange={(value) => handleFormChange((currentValues) => ({ ...currentValues, price: value }))}
             />
           </FormField>
 
           <FormField htmlFor="product-old-price" label="Старая цена (руб.)">
-            <Input
+            <PriceInput
               id="product-old-price"
               value={formValues.oldPrice}
               disabled={isMutating}
-              inputMode="decimal"
-              onChange={(event) =>
+              onValueChange={(value) =>
                 handleFormChange((currentValues) => ({
                   ...currentValues,
-                  oldPrice: event.target.value,
+                  oldPrice: value,
                 }))
               }
             />

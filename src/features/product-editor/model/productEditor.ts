@@ -1,5 +1,6 @@
 import type { ModifierGroup, ProductModifierGroupLink } from '@/entities/modifier-group';
 import type { Product, ProductOptionGroup, ProductVariant } from '@/entities/product';
+import { formatMinorToPriceInput, parseOptionalPriceInputToMinor, parsePriceInputToMinor } from '@/shared/lib/money/price';
 import type { MediaImage } from '@/shared/model/media';
 
 export type ProductEditorOptionValueValues = {
@@ -80,20 +81,6 @@ export const EMPTY_PRODUCT_EDITOR_VALUES: ProductEditorValues = {
   modifierGroups: [],
   variants: [],
 };
-
-function formatEditablePrice(price: number): string {
-  const rawValue = (price / 100).toFixed(2);
-
-  return rawValue.replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
-}
-
-function formatOptionalEditablePrice(price: number | null): string {
-  if (price === null) {
-    return '';
-  }
-
-  return formatEditablePrice(price);
-}
 
 function parseSortOrder(value: string): number | null {
   const normalizedValue = value.trim();
@@ -216,8 +203,8 @@ export function buildProductEditorValues(product: Product): ProductEditorValues 
     categoryId: product.categoryId,
     title: product.title,
     description: product.description ?? '',
-    price: formatEditablePrice(product.price),
-    oldPrice: product.oldPrice === null ? '' : formatEditablePrice(product.oldPrice),
+    price: formatMinorToPriceInput(product.price),
+    oldPrice: formatMinorToPriceInput(product.oldPrice),
     isActive: product.isActive,
     unit: product.unit,
     displayWeight: product.displayWeight ?? '',
@@ -235,8 +222,8 @@ export function buildProductEditorValues(product: Product): ProductEditorValues 
       externalId: variant.externalId ?? '',
       sku: variant.sku,
       title: variant.title ?? '',
-      price: formatOptionalEditablePrice(variant.price),
-      oldPrice: formatOptionalEditablePrice(variant.oldPrice),
+      price: formatMinorToPriceInput(variant.price),
+      oldPrice: formatMinorToPriceInput(variant.oldPrice),
       images: variant.images.map((image) => ({
         ...image,
       })),
@@ -248,24 +235,11 @@ export function buildProductEditorValues(product: Product): ProductEditorValues 
 }
 
 export function parseProductPrice(value: string): number | null {
-  const normalizedValue = value.trim().replace(',', '.');
-  const numericValue = Number(normalizedValue);
-
-  if (!normalizedValue || Number.isNaN(numericValue) || numericValue < 0) {
-    return null;
-  }
-
-  return Math.round(numericValue * 100);
+  return parsePriceInputToMinor(value);
 }
 
 export function parseOptionalProductPrice(value: string): number | null | undefined {
-  const normalizedValue = value.trim();
-
-  if (!normalizedValue) {
-    return null;
-  }
-
-  return parseProductPrice(normalizedValue) ?? undefined;
+  return parseOptionalPriceInputToMinor(value);
 }
 
 function mapFormOptionGroupsToProduct(optionGroups: ProductEditorOptionGroupValues[]): ProductOptionGroup[] {

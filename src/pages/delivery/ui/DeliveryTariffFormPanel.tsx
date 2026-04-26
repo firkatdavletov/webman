@@ -1,5 +1,5 @@
 import type { DeliveryMethod } from '@/entities/delivery';
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, FormField } from '@/shared/ui';
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, FormField, PriceInput } from '@/shared/ui';
 import { checkboxInputClassName, DeliveryNativeSelect, nativeFieldClassName } from '@/pages/delivery/ui/deliveryShared';
 import type { DeliveryTariffFormValues } from '@/pages/delivery/model/deliveryAdmin';
 
@@ -48,7 +48,7 @@ export function DeliveryTariffFormPanel({
       <CardHeader className="gap-2 border-b border-border/70 py-6">
         <CardTitle className="text-xl font-semibold tracking-tight">{form.id ? 'Редактирование тарифа' : 'Новый тариф'}</CardTitle>
         <CardDescription className="max-w-3xl text-sm leading-6">
-          Привяжите тариф к способу доставки и зоне. Цена и порог бесплатной доставки хранятся в minor units.
+          Привяжите тариф к способу доставки и зоне. Цены вводятся в рублях, а при сохранении отправляются в копейках.
         </CardDescription>
       </CardHeader>
 
@@ -85,25 +85,23 @@ export function DeliveryTariffFormPanel({
             </DeliveryNativeSelect>
           </FormField>
 
-          <FormField htmlFor="delivery-tariff-fixed-price" label="Цена, minor units">
-            <input
+          <FormField htmlFor="delivery-tariff-fixed-price" label="Цена, руб.">
+            <PriceInput
               id="delivery-tariff-fixed-price"
-              type="number"
               className={nativeFieldClassName}
               value={form.fixedPriceMinor}
               disabled={isSaving}
-              onChange={(event) => onFieldChange('fixedPriceMinor', event.target.value)}
+              onValueChange={(value) => onFieldChange('fixedPriceMinor', value)}
             />
           </FormField>
 
-          <FormField htmlFor="delivery-tariff-free-from" label="Бесплатно от, minor units">
-            <input
+          <FormField htmlFor="delivery-tariff-free-from" label="Бесплатно от, руб.">
+            <PriceInput
               id="delivery-tariff-free-from"
-              type="number"
               className={nativeFieldClassName}
               value={form.freeFromAmountMinor}
               disabled={isSaving}
-              onChange={(event) => onFieldChange('freeFromAmountMinor', event.target.value)}
+              onValueChange={(value) => onFieldChange('freeFromAmountMinor', value)}
             />
           </FormField>
 

@@ -20,7 +20,7 @@ import {
   type ProductEditorOptionGroupValues,
   type ProductEditorValues,
 } from '@/features/product-editor/model/productEditor';
-import { AdminNotice, AdminSectionCard, Button, FormField, Input } from '@/shared/ui';
+import { AdminNotice, AdminSectionCard, Button, FormField, Input, PriceInput } from '@/shared/ui';
 import { LazyDataTable } from '@/shared/ui/data-table';
 
 type EditableProductField = Exclude<
@@ -1117,21 +1117,19 @@ export function ProductEditor({
         </FormField>
 
         <FormField htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-price`} label="Цена, руб.">
-          <Input
+          <PriceInput
             id={`${idPrefix}-variant-editor-${variantEditorKey}-price`}
-            inputMode="decimal"
             value={variantEditorState.draft.price}
-            onChange={(event) => handleVariantDraftFieldChange('price', event.target.value)}
+            onValueChange={(value) => handleVariantDraftFieldChange('price', value)}
             disabled={isVariantEditorBusy}
           />
         </FormField>
 
         <FormField htmlFor={`${idPrefix}-variant-editor-${variantEditorKey}-old-price`} label="Старая цена, руб.">
-          <Input
+          <PriceInput
             id={`${idPrefix}-variant-editor-${variantEditorKey}-old-price`}
-            inputMode="decimal"
             value={variantEditorState.draft.oldPrice}
-            onChange={(event) => handleVariantDraftFieldChange('oldPrice', event.target.value)}
+            onValueChange={(value) => handleVariantDraftFieldChange('oldPrice', value)}
             disabled={isVariantEditorBusy}
           />
         </FormField>
@@ -1260,21 +1258,19 @@ export function ProductEditor({
             </FormField>
 
             <FormField htmlFor={`${idPrefix}-price`} label="Цена, руб.">
-              <Input
+              <PriceInput
                 id={`${idPrefix}-price`}
-                inputMode="decimal"
                 value={formValues.price}
-                onChange={(event) => handleFieldChange('price', event.target.value)}
+                onValueChange={(value) => handleFieldChange('price', value)}
                 disabled={isSaving}
               />
             </FormField>
 
             <FormField htmlFor={`${idPrefix}-old-price`} label="Старая цена, руб.">
-              <Input
+              <PriceInput
                 id={`${idPrefix}-old-price`}
-                inputMode="decimal"
                 value={formValues.oldPrice}
-                onChange={(event) => handleFieldChange('oldPrice', event.target.value)}
+                onValueChange={(value) => handleFieldChange('oldPrice', value)}
                 disabled={isSaving}
               />
             </FormField>

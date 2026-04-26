@@ -8,6 +8,7 @@ import type {
   PickupPoint,
 } from '@/entities/delivery';
 import { getDeliveryZoneGeometrySummary, getDeliveryZoneTypeLabel, mapDeliveryZoneGeometryDtoToDraft } from '@/features/delivery-zone-editor';
+import { formatMinorToPriceInput } from '@/shared/lib/money/price';
 
 export const DELIVERY_METHOD_LABELS: Record<DeliveryMethod, string> = {
   PICKUP: 'Самовывоз',
@@ -292,9 +293,11 @@ export function createTariffFormFromTariff(tariff: DeliveryTariff): DeliveryTari
     method: tariff.method,
     zoneId: tariff.zoneId ?? '',
     isAvailable: tariff.isAvailable,
-    fixedPriceMinor: String(tariff.fixedPriceMinor),
+    fixedPriceMinor: formatMinorToPriceInput(tariff.fixedPriceMinor),
     freeFromAmountMinor:
-      tariff.freeFromAmountMinor === null || tariff.freeFromAmountMinor === undefined ? '' : String(tariff.freeFromAmountMinor),
+      tariff.freeFromAmountMinor === null || tariff.freeFromAmountMinor === undefined
+        ? ''
+        : formatMinorToPriceInput(tariff.freeFromAmountMinor),
     currency: tariff.currency,
     estimatedDays: tariff.estimatedDays === null || tariff.estimatedDays === undefined ? '' : String(tariff.estimatedDays),
     deliveryMinutes: tariff.deliveryMinutes === null || tariff.deliveryMinutes === undefined ? '' : String(tariff.deliveryMinutes),
