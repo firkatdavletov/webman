@@ -42,6 +42,7 @@ import {
   DialogTitle,
   FormField,
   Input,
+  Select,
   SegmentedControl,
   Sheet,
   SheetContent,
@@ -87,9 +88,6 @@ const DEFAULT_ROLE_OPTIONS: AdminRoleOption[] = DEFAULT_ADMIN_ROLES.map((role) =
   code: role,
   name: getAdminRoleLabel(role),
 }));
-
-const nativeFieldClassName =
-  'h-11 w-full rounded-xl border border-input bg-background/80 px-3 text-sm text-foreground shadow-sm outline-none transition focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60';
 
 const checkboxInputClassName =
   'size-4 rounded border border-input text-primary outline-none transition focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60';
@@ -642,9 +640,8 @@ export function EmployeesPage() {
             />
 
             <FormField htmlFor="employees-role-filter" label="Роль">
-              <select
+              <Select
                 id="employees-role-filter"
-                className={nativeFieldClassName}
                 value={roleFilter}
                 onChange={(event) => setRoleFilter(event.target.value as AdminRole | 'ALL')}
               >
@@ -654,7 +651,7 @@ export function EmployeesPage() {
                     {role.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </FormField>
 
             <FormField className="min-w-0" htmlFor="employees-search" label="Поиск">
@@ -747,9 +744,8 @@ export function EmployeesPage() {
               </FormField>
 
               <FormField htmlFor="employee-role" label="Роль">
-                <select
+                <Select
                   id="employee-role"
-                  className={nativeFieldClassName}
                   value={editorValues.role}
                   disabled={isSavingEmployee || isEditingCurrentUser}
                   onChange={(event) => handleEditorValueChange('role', event.target.value as AdminRole)}
@@ -759,7 +755,7 @@ export function EmployeesPage() {
                       {role.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </FormField>
 
               <label className="flex items-start gap-3 rounded-2xl border border-border/70 bg-muted/25 px-4 py-3">

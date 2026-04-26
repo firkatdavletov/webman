@@ -33,7 +33,9 @@ import {
   AdminSectionCard,
   Badge,
   Button,
+  FormField,
   Input,
+  Select,
   SegmentedControl,
   buttonVariants,
 } from '@/shared/ui';
@@ -261,31 +263,6 @@ function OrdersTableSkeleton() {
         ))}
       </div>
     </div>
-  );
-}
-
-function FilterChip({
-  isActive,
-  label,
-  onClick,
-}: {
-  isActive: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className={cn(
-        'inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
-        isActive
-          ? 'border-primary/25 bg-primary/10 text-primary'
-          : 'border-border/80 bg-background text-muted-foreground hover:border-border hover:bg-muted/60 hover:text-foreground',
-      )}
-      onClick={onClick}
-    >
-      {label}
-    </button>
   );
 }
 
@@ -1001,9 +978,8 @@ export function OrdersPage() {
               </div>
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-[minmax(18rem,24rem)_1fr]">
-              <label className="space-y-2 text-sm font-medium text-foreground" htmlFor="orders-search-input">
-                <span>Быстрый поиск</span>
+            <div className="grid gap-4 xl:grid-cols-[minmax(18rem,24rem)_minmax(10rem,13rem)_minmax(12rem,15rem)_minmax(12rem,1fr)]">
+              <FormField className="min-w-0" htmlFor="orders-search-input" label="Быстрый поиск">
                 <div className="relative">
                   <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -1015,61 +991,65 @@ export function OrdersPage() {
                     onChange={(event) => updateFilters((currentFilters) => ({ ...currentFilters, searchQuery: event.target.value }))}
                   />
                 </div>
-              </label>
+              </FormField>
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground">Период</p>
-                  <div className="flex flex-wrap gap-2">
-                    {DATE_FILTER_OPTIONS.map((option) => (
-                      <FilterChip
-                        key={option.value}
-                        isActive={filters.dateRangeFilter === option.value}
-                        label={option.label}
-                        onClick={() => updateFilters((currentFilters) => ({ ...currentFilters, dateRangeFilter: option.value }))}
-                      />
-                    ))}
-                  </div>
-                </div>
+              <FormField htmlFor="orders-date-filter" label="Период">
+                <Select
+                  id="orders-date-filter"
+                  value={filters.dateRangeFilter}
+                  onChange={(event) =>
+                    updateFilters((currentFilters) => ({
+                      ...currentFilters,
+                      dateRangeFilter: event.target.value as OrderDateRangeFilter,
+                    }))
+                  }
+                >
+                  {DATE_FILTER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
 
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground">Доставка</p>
-                  <div className="flex flex-wrap gap-2">
-                    {DELIVERY_FILTER_OPTIONS.map((option) => (
-                      <FilterChip
-                        key={option.value}
-                        isActive={filters.deliveryFilter === option.value}
-                        label={option.label}
-                        onClick={() =>
-                          updateFilters((currentFilters) => ({
-                            ...currentFilters,
-                            deliveryFilter: option.value,
-                          }))
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
+              <FormField htmlFor="orders-delivery-filter" label="Доставка">
+                <Select
+                  id="orders-delivery-filter"
+                  value={filters.deliveryFilter}
+                  onChange={(event) =>
+                    updateFilters((currentFilters) => ({
+                      ...currentFilters,
+                      deliveryFilter: event.target.value as OrderFilters['deliveryFilter'],
+                    }))
+                  }
+                >
+                  {DELIVERY_FILTER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
 
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground">Статусы</p>
-                  <div className="flex flex-wrap gap-2">
-                    <FilterChip
-                      isActive={filters.statusFilter === 'all'}
-                      label="Все статусы"
-                      onClick={() => updateFilters((currentFilters) => ({ ...currentFilters, statusFilter: 'all' }))}
-                    />
-                    {availableStatuses.map((status) => (
-                      <FilterChip
-                        key={status.id}
-                        isActive={filters.statusFilter === status.code}
-                        label={status.name}
-                        onClick={() => updateFilters((currentFilters) => ({ ...currentFilters, statusFilter: status.code }))}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <FormField htmlFor="orders-status-filter" label="Статус">
+                <Select
+                  id="orders-status-filter"
+                  value={filters.statusFilter}
+                  onChange={(event) =>
+                    updateFilters((currentFilters) => ({
+                      ...currentFilters,
+                      statusFilter: event.target.value as OrderFilters['statusFilter'],
+                    }))
+                  }
+                >
+                  <option value="all">Все статусы</option>
+                  {availableStatuses.map((status) => (
+                    <option key={status.id} value={status.code}>
+                      {status.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
             </div>
 
             {statusOptionsErrorMessage ? <AdminNotice tone="destructive">{statusOptionsErrorMessage}</AdminNotice> : null}
@@ -1153,8 +1133,8 @@ export function OrdersPage() {
 
                 <div className="space-y-3">
                   <p className="text-sm font-semibold text-foreground">Размер страницы</p>
-                  <select
-                    className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+                  <Select
+                    className="h-10"
                     value={pageSize}
                     onChange={(event) => {
                       setPageSize(Number(event.target.value));
@@ -1166,7 +1146,7 @@ export function OrdersPage() {
                         {option} строк
                       </option>
                     ))}
-                  </select>
+                  </Select>
                   <p className="text-xs leading-5 text-muted-foreground">Экспорт использует текущие фильтры и колонки: {visibleColumnsSummary}.</p>
                 </div>
               </div>
