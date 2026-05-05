@@ -1062,6 +1062,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/promo-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List promo codes with optional filtering */
+        get: operations["getPromoCodes"];
+        put?: never;
+        /** Create promo code */
+        post: operations["createPromoCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/promo-codes/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search promo code by exact code value */
+        get: operations["searchPromoCode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/promo-codes/{promoCodeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get promo code by id */
+        get: operations["getPromoCodeById"];
+        /** Update promo code */
+        put: operations["updatePromoCode"];
+        post?: never;
+        /** Delete promo code */
+        delete: operations["deletePromoCode"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/hero-banners": {
         parameters: {
             query?: never;
@@ -1831,6 +1885,12 @@ export interface components {
             subtotalMinor: number;
             /** Format: int64 */
             deliveryFeeMinor: number;
+            promoCode?: string | null;
+            /** Format: int64 */
+            promoDiscountMinor: number;
+            giftCertificateCodeLast4?: string | null;
+            /** Format: int64 */
+            giftCertificateAmountMinor: number;
             /** Format: int64 */
             totalMinor: number;
             /** Format: date-time */
@@ -2158,6 +2218,54 @@ export interface components {
             subtitle?: string | null;
             text: string;
         };
+        PromoCodeAdminResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            discountType: components["schemas"]["PromoCodeDiscountType"];
+            /** Format: int64 */
+            discountValue: number;
+            /** Format: int64 */
+            minOrderAmountMinor?: number | null;
+            /** Format: int64 */
+            maxDiscountMinor?: number | null;
+            currency?: string | null;
+            /** Format: date-time */
+            startsAt?: string | null;
+            /** Format: date-time */
+            endsAt?: string | null;
+            /** Format: int32 */
+            usageLimitTotal?: number | null;
+            /** Format: int32 */
+            usageLimitPerUser?: number | null;
+            /** Format: int32 */
+            usedCount: number;
+            active: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        UpsertPromoCodeRequest: {
+            code: string;
+            discountType: components["schemas"]["PromoCodeDiscountType"];
+            /** Format: int64 */
+            discountValue: number;
+            /** Format: int64 */
+            minOrderAmountMinor?: number | null;
+            /** Format: int64 */
+            maxDiscountMinor?: number | null;
+            currency?: string | null;
+            /** Format: date-time */
+            startsAt?: string | null;
+            /** Format: date-time */
+            endsAt?: string | null;
+            /** Format: int32 */
+            usageLimitTotal?: number | null;
+            /** Format: int32 */
+            usageLimitPerUser?: number | null;
+            active: boolean;
+        };
         SendTelegramTestMessageRequest: {
             message: string;
             chatIds?: string[] | null;
@@ -2202,6 +2310,8 @@ export interface components {
         MediaImageStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED" | "DELETED";
         /** @enum {string} */
         LegalDocumentType: "public-offer" | "personal-data-consent" | "personal-data-policy";
+        /** @enum {string} */
+        PromoCodeDiscountType: "FIXED" | "PERCENT";
         /** @enum {string} */
         BannerPlacement: "HOME_HERO";
         /** @enum {string} */
@@ -4540,6 +4650,175 @@ export interface operations {
             400: components["responses"]["BadRequestError"];
             401: components["responses"]["UnauthorizedError"];
             403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getPromoCodes: {
+        parameters: {
+            query?: {
+                active?: boolean;
+                discountType?: components["schemas"]["PromoCodeDiscountType"];
+                /** @description Case-insensitive partial search by promo code value. */
+                code?: string;
+                /** @description Returns only promo codes valid at the specified timestamp. */
+                validAt?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Promo codes list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoCodeAdminResponse"][];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    createPromoCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertPromoCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Created promo code */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoCodeAdminResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            409: components["responses"]["ConflictError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    searchPromoCode: {
+        parameters: {
+            query: {
+                code: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Promo code details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoCodeAdminResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    getPromoCodeById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                promoCodeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Promo code details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoCodeAdminResponse"];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    updatePromoCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                promoCodeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertPromoCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated promo code */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoCodeAdminResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            409: components["responses"]["ConflictError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    deletePromoCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                promoCodeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Promo code deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
             500: components["responses"]["InternalServerError"];
         };
     };

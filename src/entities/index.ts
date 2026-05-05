@@ -6,4 +6,5 @@ export * from './legal-document';
 export * from './modifier-group';
 export * from './order';
 export * from './product';
+export * from './promo-code';
 export * from './session';

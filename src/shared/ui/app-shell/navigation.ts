@@ -6,6 +6,7 @@ import {
   LayoutGridIcon,
   ListChecksIcon,
   PackageIcon,
+  PercentIcon,
   ShoppingCartIcon,
   SlidersHorizontalIcon,
   StarIcon,
@@ -25,6 +26,7 @@ export type AppNavigationItem = {
 export const appNavigationItems: AppNavigationItem[] = [
   { group: 'Обзор', icon: LayoutDashboardIcon, label: 'Дашборд', to: '/dashboard' },
   { group: 'Операции', icon: ShoppingCartIcon, label: 'Заказы', to: '/orders' },
+  { group: 'Операции', icon: PercentIcon, label: 'Промокоды', to: '/promo-codes' },
   { group: 'Операции', icon: ListChecksIcon, label: 'Статусы заказов', to: '/order-statuses' },
   { group: 'Операции', icon: TruckIcon, label: 'Доставка', to: '/delivery' },
   { group: 'Каталог', icon: LayoutGridIcon, label: 'Категории', to: '/categories' },

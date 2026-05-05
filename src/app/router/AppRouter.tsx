@@ -139,6 +139,12 @@ const DeliveryZoneMapPage = lazy(() =>
 const OrdersPage = lazy(() =>
   import('@/pages/orders/ui/OrdersPage').then((module) => ({ default: module.OrdersPage })),
 );
+const PromoCodesPage = lazy(() =>
+  import('@/pages/promo-codes/ui/PromoCodesPage').then((module) => ({ default: module.PromoCodesPage })),
+);
+const PromoCodeDetailsPage = lazy(() =>
+  import('@/pages/promo-codes/ui/PromoCodeDetailsPage').then((module) => ({ default: module.PromoCodeDetailsPage })),
+);
 const OrderStatusesPage = lazy(() =>
   import('@/pages/order-statuses/ui/OrderStatusesPage').then((module) => ({ default: module.OrderStatusesPage })),
 );
@@ -220,6 +226,9 @@ export function AppRouter() {
         <Route path="/legal-documents/:documentType" element={<LegalDocumentDetailsPage />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/orders/:orderId" element={<OrdersPage />} />
+        <Route path="/promo-codes" element={<PromoCodesPage />} />
+        <Route path="/promo-codes/new" element={<PromoCodeDetailsPage />} />
+        <Route path="/promo-codes/:promoCodeId" element={<PromoCodeDetailsPage />} />
         <Route path="/order-statuses" element={<OrderStatusesPage />} />
         <Route path="/order-statuses/new" element={<OrderStatusEditorPage />} />
         <Route path="/order-statuses/:statusId" element={<OrderStatusEditorPage />} />
@@ -250,6 +259,9 @@ export function AppRouter() {
         <Route path="/delivery/zones/:zoneId/map" element={<DeliveryZoneMapPage />} />
         <Route path="/admin/orders" element={<OrdersPage />} />
         <Route path="/admin/orders/:orderId" element={<OrdersPage />} />
+        <Route path="/admin/promo-codes" element={<PromoCodesPage />} />
+        <Route path="/admin/promo-codes/new" element={<PromoCodeDetailsPage />} />
+        <Route path="/admin/promo-codes/:promoCodeId" element={<PromoCodeDetailsPage />} />
         <Route path="/admin/order-statuses" element={<OrderStatusesPage />} />
         <Route path="/admin/order-statuses/new" element={<OrderStatusEditorPage />} />
         <Route path="/admin/order-statuses/:statusId" element={<OrderStatusEditorPage />} />
