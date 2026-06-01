@@ -37,6 +37,7 @@ export type {
   ProductPopularityListResult,
   ProductResult,
   ProductVariantDetailsResult,
+  SaveProductOptions,
   SaveProductResult,
 } from './api/productApi';
 export { formatPrice, formatUnitLabel } from './lib/formatters';

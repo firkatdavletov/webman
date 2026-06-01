@@ -48,6 +48,7 @@ export type ProductVariantDetails = {
   sortOrder: number;
   isActive: boolean;
   optionValueIds: string[];
+  options: ProductVariantOption[];
 };
 
 export type Product = {

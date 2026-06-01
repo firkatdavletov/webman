@@ -4,11 +4,9 @@ import { Link, useParams } from 'react-router-dom';
 import {
   getProductById,
   getProductOptionGroupById,
-  saveProductOptionGroup,
-  saveProductOptionValue,
+  saveProduct,
   type Product,
   type ProductOptionGroup,
-  type ProductOptionValue,
 } from '@/entities/product';
 import { cn } from '@/shared/lib/cn';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
@@ -233,8 +231,41 @@ export function ProductOptionGroupDetailsPage() {
           );
         },
       },
+      {
+        id: 'actions',
+        header: '',
+        cell: ({ row }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={isSaving}
+            onClick={() => {
+              setFormValues((currentValues) => {
+                if (!currentValues) {
+                  return currentValues;
+                }
+
+                return {
+                  ...currentValues,
+                  values: currentValues.values.filter((_, valueIndex) => valueIndex !== row.index),
+                };
+              });
+
+              if (saveError) {
+                setSaveError('');
+              }
+
+              if (saveSuccess) {
+                setSaveSuccess('');
+              }
+            }}
+          >
+            Удалить
+          </Button>
+        ),
+      },
     ],
-    [formValues?.values, isSaving],
+    [formValues?.values, isSaving, saveError, saveSuccess],
   );
 
   const handleAddValue = () => {
@@ -282,8 +313,20 @@ export function ProductOptionGroupDetailsPage() {
       return;
     }
 
+    const siblingGroupCodes = new Set(
+      product.optionGroups
+        .filter((group) => group.id !== optionGroup.id)
+        .map((group) => group.code.trim())
+        .filter(Boolean),
+    );
+
+    if (siblingGroupCodes.has(normalizedCode)) {
+      setSaveError(`Code группы опций "${normalizedCode}" должен быть уникальным внутри товара.`);
+      return;
+    }
+
     const uniqueValueCodes = new Set<string>();
-    const valuesToSave: ProductOptionValue[] = [];
+    const nextValues: ProductOptionGroup['values'] = [];
 
     for (let index = 0; index < formValues.values.length; index += 1) {
       const value = formValues.values[index];
@@ -312,7 +355,7 @@ export function ProductOptionGroupDetailsPage() {
       }
 
       uniqueValueCodes.add(normalizedValueCode);
-      valuesToSave.push({
+      nextValues.push({
         id: value.id,
         code: normalizedValueCode,
         title: normalizedValueTitle,
@@ -320,57 +363,95 @@ export function ProductOptionGroupDetailsPage() {
       });
     }
 
-    setIsSaving(true);
-    setSaveError('');
-    setSaveSuccess('');
-
-    const saveGroupResult = await saveProductOptionGroup(normalizedProductId, {
+    const nextOptionGroup: ProductOptionGroup = {
       ...optionGroup,
       id: formValues.id,
       code: normalizedCode,
       title: normalizedTitle,
       sortOrder: parsedSortOrder,
-      values: optionGroup.values,
+      values: nextValues,
+    };
+    const nextValueCodesByPreviousCode = new Map<string, string>();
+
+    optionGroup.values.forEach((previousValue) => {
+      const matchingNextValue = nextValues.find((value) =>
+        previousValue.id ? value.id === previousValue.id : value.code === previousValue.code,
+      );
+
+      if (matchingNextValue) {
+        nextValueCodesByPreviousCode.set(previousValue.code, matchingNextValue.code);
+      }
     });
 
-    if (!saveGroupResult.optionGroup || !saveGroupResult.optionGroup.id) {
-      setSaveError(saveGroupResult.error ?? 'Не удалось сохранить группу опций.');
+    const variantsUsingRemovedValues = product.variants
+      .map((variant, variantIndex) => {
+        const selectedOption = variant.options.find((option) => option.optionGroupCode === optionGroup.code);
+
+        if (!selectedOption || nextValueCodesByPreviousCode.has(selectedOption.optionValueCode)) {
+          return null;
+        }
+
+        const previousValue = optionGroup.values.find((value) => value.code === selectedOption.optionValueCode);
+        const valueLabel = previousValue?.title
+          ? `${previousValue.title} (${selectedOption.optionValueCode})`
+          : selectedOption.optionValueCode;
+        const variantLabel = variant.sku || variant.title || `вариант №${variantIndex + 1}`;
+
+        return `${variantLabel}: ${valueLabel}`;
+      })
+      .filter((item): item is string => Boolean(item));
+
+    if (variantsUsingRemovedValues.length) {
+      setSaveError(
+        `Нельзя удалить значения, которые используются вариантами: ${variantsUsingRemovedValues.join(', ')}. Сначала переназначьте или удалите эти варианты.`,
+      );
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError('');
+    setSaveSuccess('');
+
+    const nextProduct: Product = {
+      ...product,
+      optionGroups: product.optionGroups.map((group) => (group.id === optionGroup.id ? nextOptionGroup : group)),
+      variants: product.variants.map((variant) => ({
+        ...variant,
+        options: variant.options
+          .map((option) => {
+            if (option.optionGroupCode !== optionGroup.code) {
+              return option;
+            }
+
+            const nextOptionValueCode = nextValueCodesByPreviousCode.get(option.optionValueCode) ?? option.optionValueCode;
+
+            return {
+              optionGroupCode: normalizedCode,
+              optionValueCode: nextOptionValueCode,
+            };
+          }),
+      })),
+    };
+    const saveResult = await saveProduct(nextProduct, {
+      replaceVariantConfiguration: true,
+    });
+    const savedOptionGroup = saveResult.product?.optionGroups.find((group) => group.code === normalizedCode) ?? null;
+
+    if (saveResult.error) {
+      setSaveError(saveResult.error);
       setIsSaving(false);
       return;
     }
 
-    for (const value of valuesToSave) {
-      const saveValueResult = await saveProductOptionValue(normalizedProductId, saveGroupResult.optionGroup.id, value);
-
-      if (!saveValueResult.optionValue) {
-        setSaveError(saveValueResult.error ?? `Не удалось сохранить значение "${value.code}".`);
-        setIsSaving(false);
-        return;
-      }
-    }
-
-    const refreshedOptionGroupResult = await getProductOptionGroupById(normalizedProductId, normalizedOptionGroupId);
-
-    if (!refreshedOptionGroupResult.optionGroup) {
-      setSaveError(refreshedOptionGroupResult.error ?? 'Группа опций сохранена, но не удалось обновить данные на экране.');
+    if (!saveResult.product || !savedOptionGroup) {
+      setSaveError(saveResult.error ?? 'Не удалось сохранить конфигурацию группы опций.');
       setIsSaving(false);
       return;
     }
 
-    setOptionGroup(refreshedOptionGroupResult.optionGroup);
-    setFormValues(buildOptionGroupFormValues(refreshedOptionGroupResult.optionGroup));
-    setProduct((currentProduct) => {
-      if (!currentProduct) {
-        return currentProduct;
-      }
-
-      return {
-        ...currentProduct,
-        optionGroups: currentProduct.optionGroups.map((group) =>
-          group.id === refreshedOptionGroupResult.optionGroup?.id ? refreshedOptionGroupResult.optionGroup : group,
-        ),
-      };
-    });
+    setProduct(saveResult.product);
+    setOptionGroup(savedOptionGroup);
+    setFormValues(buildOptionGroupFormValues(savedOptionGroup));
     setSaveSuccess('Изменения группы опций сохранены.');
     setIsSaving(false);
   };
@@ -533,7 +614,7 @@ export function ProductOptionGroupDetailsPage() {
       <AdminSectionCard
         eyebrow="Значения"
         title="Утилитарный список значений группы"
-        description="Удаление значений пока не поддерживается API. Можно добавлять и редактировать существующие значения."
+        description="Список сохраняется replace-операцией вместе с полной конфигурацией вариантов."
         action={
           <Button variant="outline" onClick={handleAddValue} disabled={isSaving}>
             Добавить значение

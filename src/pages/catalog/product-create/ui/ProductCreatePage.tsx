@@ -168,10 +168,19 @@ export function ProductCreatePage() {
       variants,
     };
 
-    const result = await saveProduct(newProduct);
+    const result = await saveProduct(newProduct, {
+      replaceVariantConfiguration: formValues.hasVariants,
+    });
 
     if (result.product) {
-      navigate(`/products/${result.product.id}`, { replace: true });
+      navigate(`/products/${result.product.id}`, {
+        replace: true,
+        state: result.error
+          ? {
+              productSaveWarning: result.error,
+            }
+          : null,
+      });
       return;
     }
 

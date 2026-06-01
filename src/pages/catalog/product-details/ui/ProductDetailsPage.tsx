@@ -1,6 +1,6 @@
 import { type ChangeEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { type Category, buildCategoryLookup, getCategories } from '@/entities/category';
 import {
   formatModifierConstraints,
@@ -62,6 +62,10 @@ type UtilityStatProps = {
   value: ReactNode;
   hint?: ReactNode;
   className?: string;
+};
+
+type ProductDetailsRouteState = {
+  productSaveWarning?: string;
 };
 
 const PRODUCT_UNIT_OPTIONS: Array<{ value: Product['unit']; label: string }> = [
@@ -130,6 +134,9 @@ function getProductStatusClassName(isActive: boolean): string {
 
 export function ProductDetailsPage() {
   const { productId } = useParams();
+  const location = useLocation();
+  const routeState = location.state as ProductDetailsRouteState | null;
+  const productSaveWarning = routeState?.productSaveWarning?.trim() ?? '';
   const [product, setProduct] = useState<Product | null>(null);
   const [formValues, setFormValues] = useState<ProductDetailsFormValues | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -174,7 +181,7 @@ export function ProductDetailsPage() {
       setCategories(categoriesResult.categories);
       setModifierGroups(modifierGroupsResult.modifierGroups);
       setErrorMessage(nextErrors);
-      setSaveError('');
+      setSaveError(productSaveWarning);
       setSaveSuccess('');
       setImageUploadError('');
       setPendingImageRemovalKey(null);
@@ -183,7 +190,7 @@ export function ProductDetailsPage() {
     };
 
     void loadProductDetails();
-  }, [normalizedProductId]);
+  }, [normalizedProductId, productSaveWarning]);
 
   const isMutating = isSaving || isImageUploading || pendingImageRemovalKey !== null;
   const categoryLookup = useMemo(() => buildCategoryLookup(categories), [categories]);

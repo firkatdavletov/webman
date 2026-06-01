@@ -31,6 +31,7 @@ type UpsertProductModifierGroupLinkRequest = components['schemas']['UpsertProduc
 type UpsertProductOptionGroupRequest = components['schemas']['UpsertProductOptionGroupRequest'];
 type UpsertProductOptionValueRequest = components['schemas']['UpsertProductOptionValueRequest'];
 type UpsertProductVariantRequest = components['schemas']['UpsertProductVariantRequest'];
+type ReplaceProductVariantConfigurationRequest = components['schemas']['ReplaceProductVariantConfigurationRequest'];
 type CreateUploadSessionResponse = components['schemas']['CreateUploadSessionResponse'];
 type MediaImageResponse = components['schemas']['MediaImageResponse'];
 type MediaTargetType = components['schemas']['MediaTargetType'];
@@ -184,6 +185,18 @@ const adminProductsApiClient = apiClient as unknown as {
       body: UpsertProductVariantRequest;
     },
   ): Promise<AdminProductVariantResult>;
+  PUT(
+    path: '/api/v1/admin/products/{productId}/variant-configuration',
+    init: {
+      headers?: HeadersInit;
+      params: {
+        path: {
+          productId: string;
+        };
+      };
+      body: ReplaceProductVariantConfigurationRequest;
+    },
+  ): Promise<AdminProductDetailsResult>;
 };
 
 export type ProductListResult = {
@@ -204,6 +217,10 @@ export type ProductResult = {
 export type SaveProductResult = {
   product: Product | null;
   error: string | null;
+};
+
+export type SaveProductOptions = {
+  replaceVariantConfiguration?: boolean;
 };
 
 export type ProductOptionGroupResult = {
@@ -411,7 +428,10 @@ function mapProductVariants(
   }));
 }
 
-function mapProductVariantDetails(variant: AdminProductVariantResponse): ProductVariantDetails {
+function mapProductVariantDetails(
+  variant: AdminProductVariantResponse,
+  optionValueLookup: Map<string, ProductVariantOption> = new Map(),
+): ProductVariantDetails {
   return {
     id: variant.id,
     externalId: variant.externalId ?? null,
@@ -423,6 +443,9 @@ function mapProductVariantDetails(variant: AdminProductVariantResponse): Product
     sortOrder: variant.sortOrder,
     isActive: variant.isActive,
     optionValueIds: [...variant.optionValueIds],
+    options: variant.optionValueIds
+      .map((optionValueId) => optionValueLookup.get(optionValueId))
+      .filter((option): option is ProductVariantOption => Boolean(option)),
   };
 }
 
@@ -484,7 +507,14 @@ function mapSaveProductOptionValueRequest(optionValue: ProductOptionValue): Upse
 }
 
 function mapSaveProductVariantRequest(variant: ProductVariantDetails): UpsertProductVariantRequest {
-  return {
+  const normalizedOptions = variant.options
+    .map((option) => ({
+      optionGroupCode: option.optionGroupCode.trim(),
+      optionValueCode: option.optionValueCode.trim(),
+    }))
+    .filter((option) => option.optionGroupCode && option.optionValueCode);
+
+  const request: UpsertProductVariantRequest = {
     id: variant.id,
     externalId: variant.externalId,
     sku: variant.sku,
@@ -494,7 +524,47 @@ function mapSaveProductVariantRequest(variant: ProductVariantDetails): UpsertPro
     imageIds: getMediaImageIdsForSave(variant.images),
     sortOrder: variant.sortOrder,
     isActive: variant.isActive,
+  };
+
+  if (normalizedOptions.length || !variant.optionValueIds.length) {
+    return {
+      ...request,
+      options: normalizedOptions,
+    };
+  }
+
+  return {
+    ...request,
     optionValueIds: variant.optionValueIds,
+  };
+}
+
+function mapReplaceProductVariantConfigurationRequest(product: Product): ReplaceProductVariantConfigurationRequest {
+  return {
+    optionGroups: product.optionGroups.map((group) => ({
+      code: group.code,
+      title: group.title,
+      sortOrder: group.sortOrder,
+      values: group.values.map((value) => ({
+        code: value.code,
+        title: value.title,
+        sortOrder: value.sortOrder,
+      })),
+    })),
+    variants: product.variants.map((variant) => ({
+      externalId: variant.externalId,
+      sku: variant.sku,
+      title: variant.title,
+      priceMinor: variant.price,
+      oldPriceMinor: variant.oldPrice,
+      imageIds: getMediaImageIdsForSave(variant.images) ?? [],
+      sortOrder: variant.sortOrder,
+      isActive: variant.isActive,
+      options: variant.options.map((option) => ({
+        optionGroupCode: option.optionGroupCode,
+        optionValueCode: option.optionValueCode,
+      })),
+    })),
   };
 }
 
@@ -811,32 +881,39 @@ export async function saveProductOptionValue(
 
 export async function getProductVariantById(productId: string, variantId: string): Promise<ProductVariantDetailsResult> {
   try {
-    const result = await adminProductsApiClient.GET('/api/v1/admin/products/{productId}/variants/{variantId}', {
-      headers: buildAuthHeaders(),
-      params: {
-        path: {
-          productId,
-          variantId,
+    const [productResult, variantResult] = await Promise.all([
+      getProductById(productId),
+      adminProductsApiClient.GET('/api/v1/admin/products/{productId}/variants/{variantId}', {
+        headers: buildAuthHeaders(),
+        params: {
+          path: {
+            productId,
+            variantId,
+          },
         },
-      },
-    });
+      }),
+    ]);
 
-    if (result.error) {
+    if (variantResult.error) {
       return {
         variant: null,
-        error: getProtectedErrorMessage(result.error, 'Не удалось загрузить вариант товара.'),
+        error: getProtectedErrorMessage(variantResult.error, 'Не удалось загрузить вариант товара.'),
       };
     }
 
-    if (!result.data) {
+    if (!variantResult.data) {
       return {
         variant: null,
         error: 'Сервис вариантов товара вернул некорректный ответ.',
       };
     }
 
+    const optionValueLookup = productResult.product
+      ? buildOptionValueLookup(productResult.product.optionGroups)
+      : new Map<string, ProductVariantOption>();
+
     return {
-      variant: mapProductVariantDetails(result.data),
+      variant: mapProductVariantDetails(variantResult.data, optionValueLookup),
       error: null,
     };
   } catch {
@@ -892,12 +969,20 @@ export async function saveProductVariant(productId: string, variant: ProductVari
   }
 }
 
-export async function saveProduct(product: Product): Promise<SaveProductResult> {
+export async function saveProduct(product: Product, options: SaveProductOptions = {}): Promise<SaveProductResult> {
   if (hasMediaImagesWithMissingIds(product.images)) {
     return {
       product: null,
       error:
         'Нельзя сохранить товар: для части фотографий товара не хватает imageIds. Это может удалить фото товара при сохранении.',
+    };
+  }
+
+  if (product.variants.some((variant) => hasMediaImagesWithMissingIds(variant.images))) {
+    return {
+      product: null,
+      error:
+        'Нельзя сохранить товар: для части фотографий вариантов не хватает imageIds. Это может удалить фото варианта при сохранении.',
     };
   }
 
@@ -921,18 +1006,57 @@ export async function saveProduct(product: Product): Promise<SaveProductResult> 
       };
     }
 
+    const savedBaseProduct = {
+      ...mapProduct(result.data),
+      images: buildMediaImagesFromUrls(
+        result.data.imageUrls,
+        product.images.map((image) => image.id),
+      ),
+      defaultVariantId: product.defaultVariantId,
+      optionGroups: product.optionGroups,
+      modifierGroups: product.modifierGroups,
+      variants: product.variants,
+    };
+
+    if (options.replaceVariantConfiguration) {
+      const variantConfigurationResult = await adminProductsApiClient.PUT(
+        '/api/v1/admin/products/{productId}/variant-configuration',
+        {
+          headers: buildAuthHeaders(),
+          params: {
+            path: {
+              productId: result.data.id,
+            },
+          },
+          body: mapReplaceProductVariantConfigurationRequest(product),
+        },
+      );
+
+      if (variantConfigurationResult.error) {
+        return {
+          product: savedBaseProduct,
+          error: getProtectedErrorMessage(
+            variantConfigurationResult.error,
+            'Товар сохранен, но не удалось сохранить конфигурацию вариантов.',
+          ),
+        };
+      }
+
+      if (!variantConfigurationResult.data) {
+        return {
+          product: savedBaseProduct,
+          error: 'Сервис конфигурации вариантов вернул некорректный ответ.',
+        };
+      }
+
+      return {
+        product: mapProductDetails(variantConfigurationResult.data),
+        error: null,
+      };
+    }
+
     return {
-      product: {
-        ...mapProduct(result.data),
-        images: buildMediaImagesFromUrls(
-          result.data.imageUrls,
-          product.images.map((image) => image.id),
-        ),
-        defaultVariantId: product.defaultVariantId,
-        optionGroups: product.optionGroups,
-        modifierGroups: product.modifierGroups,
-        variants: product.variants,
-      },
+      product: savedBaseProduct,
       error: null,
     };
   } catch {

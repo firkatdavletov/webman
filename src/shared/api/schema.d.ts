@@ -445,6 +445,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/products/{productId}/variant-configuration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace product variant configuration
+         * @description Replaces all option groups, option values, variants, and variant option links for the product.
+         */
+        put: operations["replaceProductVariantConfiguration"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/products/{productId}/variants/{variantId}/images/{imageId}": {
         parameters: {
             query?: never;
@@ -1721,6 +1741,58 @@ export interface components {
             /** @default true */
             isActive: boolean;
             optionValueIds?: string[];
+            /** @description Option selection by codes. Use either optionValueIds or options, not both. */
+            options?: components["schemas"]["UpsertProductVariantOptionRequest"][] | null;
+        };
+        UpsertProductVariantOptionRequest: {
+            optionGroupCode: string;
+            optionValueCode: string;
+        };
+        ReplaceProductVariantConfigurationRequest: {
+            /** @default [] */
+            optionGroups: components["schemas"]["ReplaceProductOptionGroupRequest"][];
+            /** @default [] */
+            variants: components["schemas"]["ReplaceProductVariantRequest"][];
+        };
+        ReplaceProductOptionGroupRequest: {
+            code: string;
+            title: string;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            sortOrder: number;
+            /** @default [] */
+            values: components["schemas"]["ReplaceProductOptionValueRequest"][];
+        };
+        ReplaceProductOptionValueRequest: {
+            code: string;
+            title: string;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            sortOrder: number;
+        };
+        ReplaceProductVariantRequest: {
+            externalId?: string | null;
+            sku: string;
+            title?: string | null;
+            /** Format: int64 */
+            priceMinor?: number | null;
+            /** Format: int64 */
+            oldPriceMinor?: number | null;
+            /** @default [] */
+            imageIds: string[];
+            /**
+             * Format: int32
+             * @default 0
+             */
+            sortOrder: number;
+            /** @default true */
+            isActive: boolean;
+            /** @default [] */
+            options: components["schemas"]["UpsertProductVariantOptionRequest"][];
         };
         CatalogImportMultipartRequest: {
             /**
@@ -3414,6 +3486,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminProductVariantResponse"];
+                };
+            };
+            400: components["responses"]["BadRequestError"];
+            401: components["responses"]["UnauthorizedError"];
+            403: components["responses"]["ForbiddenError"];
+            404: components["responses"]["NotFoundError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    replaceProductVariantConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: components["parameters"]["ProductIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceProductVariantConfigurationRequest"];
+            };
+        };
+        responses: {
+            /** @description Product details with replaced variant configuration */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminProductDetailsResponse"];
                 };
             };
             400: components["responses"]["BadRequestError"];

@@ -48,7 +48,7 @@ type VariantFormValues = {
   oldPrice: string;
   sortOrder: string;
   isActive: boolean;
-  selectedOptionValueByGroupId: Record<string, string>;
+  selectedOptionValueByGroupCode: Record<string, string>;
 };
 
 const SELECT_CLASSNAME =
@@ -70,20 +70,24 @@ function parseInteger(value: string): number | null {
   return numericValue;
 }
 
-function buildSelectedOptionValueByGroupId(optionGroups: ProductOptionGroup[], optionValueIds: string[]): Record<string, string> {
-  const selectedOptionValueByGroupId: Record<string, string> = {};
+function buildSelectedOptionValueByGroupCode(
+  optionGroups: ProductOptionGroup[],
+  variant: ProductVariantDetails,
+): Record<string, string> {
+  const selectedOptionValueByGroupCode: Record<string, string> = {};
+  const selectedValueCodeByGroupCode = new Map(
+    variant.options.map((option) => [option.optionGroupCode, option.optionValueCode]),
+  );
 
   optionGroups.forEach((group) => {
-    if (!group.id) {
-      return;
-    }
+    const selectedValueCode = selectedValueCodeByGroupCode.get(group.code);
+    const selectedValueByCode = group.values.find((value) => value.code === selectedValueCode);
+    const selectedValueById = group.values.find((value) => value.id && variant.optionValueIds.includes(value.id));
 
-    const selectedValue = group.values.find((value) => value.id && optionValueIds.includes(value.id));
-
-    selectedOptionValueByGroupId[group.id] = selectedValue?.id ?? '';
+    selectedOptionValueByGroupCode[group.code] = selectedValueByCode?.code ?? selectedValueById?.code ?? '';
   });
 
-  return selectedOptionValueByGroupId;
+  return selectedOptionValueByGroupCode;
 }
 
 function buildVariantFormValues(product: Product, variant: ProductVariantDetails): VariantFormValues {
@@ -96,7 +100,7 @@ function buildVariantFormValues(product: Product, variant: ProductVariantDetails
     oldPrice: formatMinorToPriceInput(variant.oldPrice),
     sortOrder: String(variant.sortOrder),
     isActive: variant.isActive,
-    selectedOptionValueByGroupId: buildSelectedOptionValueByGroupId(product.optionGroups, variant.optionValueIds),
+    selectedOptionValueByGroupCode: buildSelectedOptionValueByGroupCode(product.optionGroups, variant),
   };
 }
 
@@ -167,11 +171,11 @@ export function ProductVariantDetailsPage() {
         id: 'selectedValue',
         header: 'Выбранное значение',
         cell: ({ row }) => {
-          if (!formValues || !row.original.id) {
+          if (!formValues) {
             return '—';
           }
 
-          const selectedValue = formValues.selectedOptionValueByGroupId[row.original.id] ?? '';
+          const selectedValue = formValues.selectedOptionValueByGroupCode[row.original.code] ?? '';
 
           return (
             <select
@@ -180,15 +184,15 @@ export function ProductVariantDetailsPage() {
               disabled={isMutating}
               onChange={(event) =>
                 setFormValues((currentValues) => {
-                  if (!currentValues || !row.original.id) {
+                  if (!currentValues) {
                     return currentValues;
                   }
 
                   return {
                     ...currentValues,
-                    selectedOptionValueByGroupId: {
-                      ...currentValues.selectedOptionValueByGroupId,
-                      [row.original.id]: event.target.value,
+                    selectedOptionValueByGroupCode: {
+                      ...currentValues.selectedOptionValueByGroupCode,
+                      [row.original.code]: event.target.value,
                     },
                   };
                 })
@@ -196,7 +200,7 @@ export function ProductVariantDetailsPage() {
             >
               <option value="">Не выбрано</option>
               {row.original.values.map((value) => (
-                <option key={value.id ?? value.code} value={value.id ?? ''}>
+                <option key={value.id ?? value.code} value={value.code}>
                   {value.title || value.code}
                 </option>
               ))}
@@ -205,7 +209,7 @@ export function ProductVariantDetailsPage() {
         },
       },
     ],
-    [formValues, isSaving],
+    [formValues, isMutating],
   );
 
   const handleImageUploadClick = () => {
@@ -371,32 +375,33 @@ export function ProductVariantDetailsPage() {
       return;
     }
 
-    const optionValueIds: string[] = [];
+    const options: ProductVariantDetails['options'] = [];
 
     if (product.optionGroups.length) {
       for (const optionGroup of product.optionGroups) {
-        if (!optionGroup.id || !optionGroup.values.length) {
+        if (!optionGroup.values.length) {
           continue;
         }
 
-        const selectedValueId = formValues.selectedOptionValueByGroupId[optionGroup.id] ?? '';
+        const selectedValueCode = formValues.selectedOptionValueByGroupCode[optionGroup.code] ?? '';
 
-        if (!selectedValueId) {
+        if (!selectedValueCode) {
           setSaveError(`Выберите значение для группы опций "${optionGroup.title || optionGroup.code}".`);
           return;
         }
 
-        const hasSelectedValue = optionGroup.values.some((value) => value.id === selectedValueId);
+        const hasSelectedValue = optionGroup.values.some((value) => value.code === selectedValueCode);
 
         if (!hasSelectedValue) {
           setSaveError(`Выбрано неизвестное значение для группы опций "${optionGroup.title || optionGroup.code}".`);
           return;
         }
 
-        optionValueIds.push(selectedValueId);
+        options.push({
+          optionGroupCode: optionGroup.code,
+          optionValueCode: selectedValueCode,
+        });
       }
-    } else {
-      optionValueIds.push(...variant.optionValueIds);
     }
 
     setIsSaving(true);
@@ -413,7 +418,8 @@ export function ProductVariantDetailsPage() {
       oldPrice: normalizedOldPrice,
       sortOrder: parsedSortOrder,
       isActive: formValues.isActive,
-      optionValueIds,
+      optionValueIds: product.optionGroups.length ? [] : variant.optionValueIds,
+      options: product.optionGroups.length ? options : variant.options,
       images: variant.images,
     });
 
