@@ -345,6 +345,8 @@ export function validateProductVariantsSection(values: ProductEditorValues): str
 
   const normalizedGroupCodes = new Set<string>();
   const normalizedOptionValuesByGroup = new Map<string, Set<string>>();
+  const normalizedVariantSkus = new Set<string>();
+  const normalizedProductSku = values.sku.trim();
 
   for (let groupIndex = 0; groupIndex < values.optionGroups.length; groupIndex += 1) {
     const group = values.optionGroups[groupIndex];
@@ -372,6 +374,10 @@ export function validateProductVariantsSection(values: ProductEditorValues): str
 
     const normalizedValueCodes = new Set<string>();
     normalizedOptionValuesByGroup.set(normalizedGroupCode, normalizedValueCodes);
+
+    if (!group.values.length) {
+      return `Добавьте хотя бы одно значение в группу "${normalizedGroupCode}".`;
+    }
 
     for (let valueIndex = 0; valueIndex < group.values.length; valueIndex += 1) {
       const value = group.values[valueIndex];
@@ -405,14 +411,25 @@ export function validateProductVariantsSection(values: ProductEditorValues): str
 
   for (let variantIndex = 0; variantIndex < values.variants.length; variantIndex += 1) {
     const variant = values.variants[variantIndex];
-    const variantLabel = variant.sku.trim() || `№${variantIndex + 1}`;
+    const normalizedVariantSku = variant.sku.trim();
+    const variantLabel = normalizedVariantSku || `№${variantIndex + 1}`;
     const variantSortOrder = parseSortOrder(variant.sortOrder);
     const variantPrice = parseOptionalProductPrice(variant.price);
     const variantOldPrice = parseOptionalProductPrice(variant.oldPrice);
 
-    if (!variant.sku.trim()) {
+    if (!normalizedVariantSku) {
       return `Укажите SKU у варианта №${variantIndex + 1}.`;
     }
+
+    if (normalizedVariantSkus.has(normalizedVariantSku)) {
+      return `SKU варианта "${normalizedVariantSku}" должен быть уникальным.`;
+    }
+
+    if (normalizedProductSku && normalizedVariantSku === normalizedProductSku) {
+      return `SKU варианта "${normalizedVariantSku}" не должен совпадать с SKU товара.`;
+    }
+
+    normalizedVariantSkus.add(normalizedVariantSku);
 
     if (variantSortOrder === null) {
       return `Sort order варианта "${variantLabel}" должен быть целым числом.`;

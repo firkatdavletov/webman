@@ -7,7 +7,6 @@ import {
 import {
   completeProductImageUpload,
   initProductImageUpload,
-  readFileAsDataUrl,
   uploadProductImageToStorage,
 } from '@/entities/product';
 import {
@@ -799,12 +798,12 @@ export function ProductEditor({
           uploadId: uploadData.uploadId,
         });
 
-        if (completeResult.error) {
-          setVariantImageUploadError(completeResult.error);
+        if (!completeResult.image || completeResult.error) {
+          setVariantImageUploadError(completeResult.error ?? 'Сервис завершения загрузки не вернул данные изображения.');
           return;
         }
 
-        const previewDataUrl = await readFileAsDataUrl(imageFile);
+        const uploadedImage = completeResult.image;
 
         setVariantEditorState((currentState) => {
           if (!currentState) {
@@ -818,8 +817,10 @@ export function ProductEditor({
               images: [
                 ...currentState.draft.images,
                 {
-                  id: completeResult.image?.id ?? null,
-                  url: previewDataUrl,
+                  id: uploadedImage.id,
+                  url: uploadedImage.url,
+                  thumbUrl: uploadedImage.thumbUrl ?? null,
+                  cardUrl: uploadedImage.cardUrl ?? null,
                 },
               ],
             },
