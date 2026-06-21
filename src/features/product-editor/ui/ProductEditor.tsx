@@ -64,7 +64,7 @@ type ProductEditorProps = {
   submitLabel: string;
   savingLabel: string;
   onValuesChange: (updater: (currentValues: ProductEditorValues) => ProductEditorValues) => void;
-  onSubmit: () => void;
+  onSubmit: (values: ProductEditorValues) => void;
 };
 
 const SUPPORTED_PRODUCT_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -86,6 +86,100 @@ function updateOptionGroups(
     ...currentValues,
     optionGroups: nextOptionGroups,
     variants: nextVariants,
+  };
+}
+
+function isEmptyOptionValueDraft(value: ProductEditorOptionValueValues): boolean {
+  return !value.code.trim() && !value.title.trim() && !value.sortOrder.trim();
+}
+
+function isDefaultEmptyOptionValue(value: ProductEditorOptionValueValues): boolean {
+  return !value.code.trim() && !value.title.trim() && value.sortOrder.trim() === '0';
+}
+
+function isMeaningfulOptionGroupDraft(group: ProductEditorOptionGroupValues): boolean {
+  return (
+    Boolean(group.code.trim())
+    || Boolean(group.title.trim())
+    || group.sortOrder.trim() !== '0'
+    || group.values.some((value) => !isEmptyOptionValueDraft(value) && !isDefaultEmptyOptionValue(value))
+  );
+}
+
+function isDefaultEmptyOptionGroup(group: ProductEditorOptionGroupValues): boolean {
+  return (
+    !group.code.trim()
+    && !group.title.trim()
+    && group.sortOrder.trim() === '0'
+    && group.values.length === 1
+    && isDefaultEmptyOptionValue(group.values[0])
+  );
+}
+
+function addOptionGroupToValues(
+  currentValues: ProductEditorValues,
+  nextOptionGroup: ProductEditorOptionGroupValues,
+): ProductEditorValues {
+  return updateOptionGroups(currentValues, (groups) => {
+    if (groups.length === 1 && isDefaultEmptyOptionGroup(groups[0]) && isMeaningfulOptionGroupDraft(nextOptionGroup)) {
+      return [nextOptionGroup];
+    }
+
+    return [...groups, nextOptionGroup];
+  });
+}
+
+function applyOptionGroupEditorState(
+  currentValues: ProductEditorValues,
+  editorState: OptionGroupEditorState | null,
+): ProductEditorValues {
+  if (!editorState) {
+    return currentValues;
+  }
+
+  const nextOptionGroup = cloneOptionGroup(editorState.draft);
+
+  if (editorState.mode === 'create') {
+    return addOptionGroupToValues(currentValues, nextOptionGroup);
+  }
+
+  const { optionGroupIndex } = editorState;
+
+  if (optionGroupIndex === null || optionGroupIndex < 0 || optionGroupIndex >= currentValues.optionGroups.length) {
+    return currentValues;
+  }
+
+  return updateOptionGroups(currentValues, (groups) =>
+    groups.map((group, index) => (index === optionGroupIndex ? nextOptionGroup : group)),
+  );
+}
+
+function applyVariantEditorState(
+  currentValues: ProductEditorValues,
+  editorState: VariantEditorState | null,
+): ProductEditorValues {
+  if (!editorState) {
+    return currentValues;
+  }
+
+  const nextVariant = cloneVariant(syncVariantOptionsByOptionGroups(currentValues.optionGroups, editorState.draft));
+
+  if (editorState.mode === 'create') {
+    return {
+      ...currentValues,
+      variants: [...currentValues.variants, nextVariant],
+    };
+  }
+
+  const { variantIndex } = editorState;
+
+  if (variantIndex === null || variantIndex < 0 || variantIndex >= currentValues.variants.length) {
+    return currentValues;
+  }
+
+  return {
+    ...currentValues,
+    variants: currentValues.variants.map((variant, index) => (index === variantIndex ? nextVariant : variant)),
   };
 }
 
@@ -366,12 +460,9 @@ export function ProductEditor({
         };
       }
 
-      const initialOptionGroups = [createEmptyProductOptionGroup()];
-
       return {
         ...currentValues,
         hasVariants: true,
-        optionGroups: initialOptionGroups,
         variants: [],
       };
     });
@@ -546,16 +637,14 @@ export function ProductEditor({
 
     onValuesChange((currentValues) => {
       if (mode === 'create') {
-        return updateOptionGroups(currentValues, (groups) => [...groups, nextOptionGroup]);
+        return addOptionGroupToValues(currentValues, nextOptionGroup);
       }
 
-      if (optionGroupIndex === null || optionGroupIndex < 0 || optionGroupIndex >= currentValues.optionGroups.length) {
-        return currentValues;
-      }
-
-      return updateOptionGroups(currentValues, (groups) =>
-        groups.map((group, index) => (index === optionGroupIndex ? nextOptionGroup : group)),
-      );
+      return applyOptionGroupEditorState(currentValues, {
+        mode,
+        optionGroupIndex,
+        draft: nextOptionGroup,
+      });
     });
 
     setOptionGroupEditorState(null);
@@ -700,28 +789,7 @@ export function ProductEditor({
       return;
     }
 
-    const { mode, variantIndex } = variantEditorState;
-    const nextVariant = cloneVariant(syncVariantOptionsByOptionGroups(formValues.optionGroups, variantEditorState.draft));
-
-    onValuesChange((currentValues) => {
-      const syncedVariant = cloneVariant(syncVariantOptionsByOptionGroups(currentValues.optionGroups, nextVariant));
-
-      if (mode === 'create') {
-        return {
-          ...currentValues,
-          variants: [...currentValues.variants, syncedVariant],
-        };
-      }
-
-      if (variantIndex === null || variantIndex < 0 || variantIndex >= currentValues.variants.length) {
-        return currentValues;
-      }
-
-      return {
-        ...currentValues,
-        variants: currentValues.variants.map((variant, index) => (index === variantIndex ? syncedVariant : variant)),
-      };
-    });
+    onValuesChange((currentValues) => applyVariantEditorState(currentValues, variantEditorState));
 
     setVariantImageUploadError('');
     setVariantEditorState(null);
@@ -858,6 +926,22 @@ export function ProductEditor({
       ? 'Новая опция'
       : `Редактирование опции #${(optionGroupEditorState?.optionGroupIndex ?? 0) + 1}`;
   const optionGroupEditorTitleId = `${idPrefix}-option-editor-title-${optionGroupEditorKey}`;
+
+  const buildSubmitValues = (): ProductEditorValues => {
+    const valuesWithOptionEditor = applyOptionGroupEditorState(formValues, optionGroupEditorState);
+
+    return applyVariantEditorState(valuesWithOptionEditor, variantEditorState);
+  };
+
+  const handleSubmit = () => {
+    const submitValues = buildSubmitValues();
+
+    if (submitValues !== formValues) {
+      onValuesChange(() => submitValues);
+    }
+
+    onSubmit(submitValues);
+  };
 
   const optionGroupEditorContent = optionGroupEditorState ? (
     <div className="space-y-4" aria-label="Редактирование опции товара">
@@ -1380,8 +1464,16 @@ export function ProductEditor({
                     ? 'bg-accent/50'
                     : undefined
                 }
-                wrapperClassName="overflow-auto rounded-xl border border-border/60"
-                tableClassName="w-full text-sm"
+                wrapperClassName="overflow-x-auto rounded-xl border border-border/60 bg-background/70"
+                tableClassName="min-w-[42rem] border-separate border-spacing-0 text-sm"
+                headerRowClassName="bg-muted/50"
+                bodyRowClassName="border-t border-border/60"
+                getHeaderClassName={(header) =>
+                  header.column.id === 'valuesCount' || header.column.id === 'sortOrder'
+                    ? 'px-3 py-2 text-right text-xs font-semibold tracking-wide text-muted-foreground uppercase'
+                    : 'px-3 py-2 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase'
+                }
+                getCellClassName={() => 'px-3 py-2 align-middle'}
               />
             ) : (
               <p className="text-sm text-muted-foreground">Группы опций пока не добавлены.</p>
@@ -1410,8 +1502,16 @@ export function ProductEditor({
                     ? 'bg-accent/50'
                     : undefined
                 }
-                wrapperClassName="overflow-auto rounded-xl border border-border/60"
-                tableClassName="w-full text-sm"
+                wrapperClassName="overflow-x-auto rounded-xl border border-border/60 bg-background/70"
+                tableClassName="min-w-[48rem] border-separate border-spacing-0 text-sm"
+                headerRowClassName="bg-muted/50"
+                bodyRowClassName="border-t border-border/60"
+                getHeaderClassName={(header) =>
+                  header.column.id === 'size' || header.column.id === 'price'
+                    ? 'px-3 py-2 text-right text-xs font-semibold tracking-wide text-muted-foreground uppercase'
+                    : 'px-3 py-2 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase'
+                }
+                getCellClassName={() => 'px-3 py-2 align-middle'}
               />
             ) : (
               <p className="text-sm text-muted-foreground">Варианты пока не добавлены.</p>
@@ -1551,7 +1651,7 @@ export function ProductEditor({
       {/* Сохранение */}
       <AdminSectionCard>
         <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={onSubmit} disabled={isVariantEditorBusy}>
+          <Button onClick={handleSubmit} disabled={isVariantEditorBusy}>
             {isSaving ? savingLabel : submitLabel}
           </Button>
         </div>

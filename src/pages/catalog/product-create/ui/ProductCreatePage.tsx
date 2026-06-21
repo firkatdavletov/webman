@@ -191,7 +191,6 @@ export function ProductCreatePage() {
   const selectedCategoryId = formValues.categoryId.trim();
   const selectedCategoryTitle = selectedCategoryId ? categoryLookup.get(selectedCategoryId) ?? `#${selectedCategoryId}` : 'Не выбрана';
   const parsedPrice = parseProductPrice(formValues.price);
-  const parsedOldPrice = parseOptionalProductPrice(formValues.oldPrice);
 
   const handleValuesChange = (updater: (currentValues: ProductEditorValues) => ProductEditorValues) => {
     setDraft((currentDraft) => ({
@@ -204,15 +203,17 @@ export function ProductCreatePage() {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (submittedFormValues: ProductEditorValues) => {
     if (recoveryError) {
       setSaveError(recoveryError);
       return;
     }
 
-    const normalizedTitle = formValues.title.trim();
-    const normalizedCategoryId = formValues.categoryId.trim();
-    const normalizedCountStep = Number(formValues.countStep);
+    const normalizedTitle = submittedFormValues.title.trim();
+    const normalizedCategoryId = submittedFormValues.categoryId.trim();
+    const normalizedCountStep = Number(submittedFormValues.countStep);
+    const normalizedPrice = parseProductPrice(submittedFormValues.price);
+    const normalizedOldPrice = parseOptionalProductPrice(submittedFormValues.oldPrice);
 
     if (!categoryOptions.length) {
       setSaveError('Сначала создайте хотя бы одну категорию.');
@@ -229,12 +230,12 @@ export function ProductCreatePage() {
       return;
     }
 
-    if (parsedPrice === null) {
+    if (normalizedPrice === null) {
       setSaveError('Укажите корректную цену в рублях.');
       return;
     }
 
-    if (parsedOldPrice === undefined) {
+    if (normalizedOldPrice === undefined) {
       setSaveError('Укажите корректную старую цену в рублях или оставьте поле пустым.');
       return;
     }
@@ -244,19 +245,19 @@ export function ProductCreatePage() {
       return;
     }
 
-    if (!formValues.unit) {
+    if (!submittedFormValues.unit) {
       setSaveError('Выберите единицу измерения.');
       return;
     }
 
-    const variantsValidationError = validateProductVariantsSection(formValues);
+    const variantsValidationError = validateProductVariantsSection(submittedFormValues);
 
     if (variantsValidationError) {
       setSaveError(variantsValidationError);
       return;
     }
 
-    const modifierGroupsValidationError = validateProductModifierGroupsSection(formValues, modifierGroups);
+    const modifierGroupsValidationError = validateProductModifierGroupsSection(submittedFormValues, modifierGroups);
 
     if (modifierGroupsValidationError) {
       setSaveError(modifierGroupsValidationError);
@@ -266,21 +267,25 @@ export function ProductCreatePage() {
     setIsSaving(true);
     setSaveError('');
 
-    const shouldReplaceVariantConfiguration = formValues.hasVariants || draft.hasStartedVariantSave;
+    const shouldReplaceVariantConfiguration = submittedFormValues.hasVariants || draft.hasStartedVariantSave;
     const nextDraft = {
       ...draft,
+      formValues: submittedFormValues,
       hasStartedVariantSave: shouldReplaceVariantConfiguration,
     };
 
     latestDraftRef.current = nextDraft;
     setIsDraftPersistenceAvailable(writeProductCreationDraft(draftId, nextDraft));
 
-    if (nextDraft.hasStartedVariantSave !== draft.hasStartedVariantSave) {
+    if (
+      nextDraft.hasStartedVariantSave !== draft.hasStartedVariantSave
+      || nextDraft.formValues !== draft.formValues
+    ) {
       setDraft(nextDraft);
     }
 
     const { optionGroups, modifierGroups: productModifierGroups, variants } = mapProductEditorValuesToProductStructures(
-      formValues,
+      submittedFormValues,
       modifierGroups,
     );
 
@@ -289,15 +294,15 @@ export function ProductCreatePage() {
       categoryId: normalizedCategoryId,
       title: normalizedTitle,
       slug: '',
-      isActive: formValues.isActive,
-      description: formValues.description.trim() || null,
-      price: parsedPrice,
-      oldPrice: parsedOldPrice ?? null,
+      isActive: submittedFormValues.isActive,
+      description: submittedFormValues.description.trim() || null,
+      price: normalizedPrice,
+      oldPrice: normalizedOldPrice ?? null,
       images: [],
-      unit: formValues.unit as Product['unit'],
-      displayWeight: formValues.displayWeight.trim() || null,
+      unit: submittedFormValues.unit as Product['unit'],
+      displayWeight: submittedFormValues.displayWeight.trim() || null,
       countStep: normalizedCountStep,
-      sku: formValues.sku.trim() || null,
+      sku: submittedFormValues.sku.trim() || null,
       defaultVariantId: null,
       optionGroups,
       modifierGroups: productModifierGroups,
@@ -464,7 +469,7 @@ export function ProductCreatePage() {
                 submitLabel="Создать товар"
                 savingLabel="Создание..."
                 onValuesChange={handleValuesChange}
-                onSubmit={() => void handleSave()}
+                onSubmit={(submittedFormValues) => void handleSave(submittedFormValues)}
               />
             </Suspense>
           )}

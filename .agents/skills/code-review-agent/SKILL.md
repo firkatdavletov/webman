@@ -1,5 +1,5 @@
 ---
-name: react-pr-review
+name: code-review-agent
 description: Use this skill to review pull requests in React.js / TypeScript applications. Focus on correctness, regressions, architecture, accessibility, performance, async behavior, tests, and maintainability.
 ---
 

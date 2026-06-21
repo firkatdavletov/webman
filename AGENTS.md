@@ -2,7 +2,8 @@
 
 ## Project Structure & Module Organization
 
-This repository contains a React 18 admin application built with TypeScript, Vite, and Tailwind CSS. Application code lives under `src/` and follows a feature-sliced layout:
+This repository contains a React 18 admin application for online store built with TypeScript, Vite, and Tailwind CSS. 
+The admin app is used to manage products, categories, orders, customers, delivery settings, payments, banners, and store content.Application code lives under `src/` and follows a feature-sliced layout:
 
 - `src/app/`: application shell and routing.
 - `src/pages/`: route-level screens.
@@ -12,6 +13,19 @@ This repository contains a React 18 admin application built with TypeScript, Vit
 - `src/shared/`: generic UI, API, configuration, and utility code.
 
 Static files belong in `public/`; production output is generated in `dist/`. Prefer public imports through each module's `index.ts`, and use the `@/` alias for `src/` imports.
+
+## Working rules
+
+- Before making changes, inspect the existing architecture and follow current project conventions.
+- Prefer small, focused changes over large rewrites.
+- Do not introduce new production dependencies without explicit approval.
+- Keep API DTOs separate from UI models when possible.
+- Preserve strict TypeScript typing. Avoid `any` unless there is a clear reason.
+- Handle loading, error, empty, and success states for user-facing admin screens.
+- Destructive actions must have confirmation.
+- Do not expose secrets, tokens, or private customer data in logs.
+- Reuse existing UI components before creating new ones.
+- Keep Tailwind usage consistent with the existing design system.
 
 ## Build, Test, and Development Commands
 
