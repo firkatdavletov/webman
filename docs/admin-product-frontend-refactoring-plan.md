@@ -1263,6 +1263,8 @@ Compatibility:
 
 ### Phase 6: Redesign modifiers section
 
+Status: complete with temporary save adapter.
+
 Goal: keep modifier definitions separate and product assignments simple.
 
 Work:
@@ -1272,6 +1274,16 @@ Work:
 - Show assigned group constraints and options read-only.
 - Save assignment sort order and active state independently.
 - Link to modifier group editor for definition changes.
+
+Implemented:
+
+- replaced the temporary workspace `ProductModifiersSection` with `ProductModifierGroupsSection`;
+- added `ModifierGroupPicker` for assigning existing modifier groups from the catalog;
+- kept modifier definitions separate by linking assigned groups and picker selections to `/modifier-groups/:modifierGroupId`;
+- show assigned group constraints, assignment status, catalog status, and read-only modifier options from the product snapshot;
+- limit editable product-specific fields to assignment sort order and active state;
+- preserve section-level save/reset behavior and refetch the product snapshot after save;
+- keep saving through the current `saveProduct` adapter until dedicated product modifier assignment endpoints exist.
 
 Backend dependency:
 

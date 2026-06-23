@@ -11,7 +11,7 @@ import {
 import type { ProductWorkspaceMutationResult } from '@/pages/catalog/product-workspace/model/productWorkspaceForms';
 import { BasicInformationSection } from '@/pages/catalog/product-workspace/ui/BasicInformationSection';
 import { ProductMediaSection } from '@/pages/catalog/product-workspace/ui/ProductMediaSection';
-import { ProductModifiersSection } from '@/pages/catalog/product-workspace/ui/ProductModifiersSection';
+import { ProductModifierGroupsSection } from '@/pages/catalog/product-workspace/ui/ProductModifierGroupsSection';
 import { ProductPricingSection } from '@/pages/catalog/product-workspace/ui/ProductPricingSection';
 import { ProductVariantsSection } from '@/pages/catalog/product-workspace/ui/ProductVariantsSection';
 import { cn } from '@/shared/lib/cn';
@@ -407,7 +407,7 @@ export function ProductWorkspacePage() {
           ) : null}
 
           {activeSection === 'modifiers' ? (
-            <ProductModifiersSection
+            <ProductModifierGroupsSection
               isReferenceLoading={isReferenceLoading}
               modifierGroups={modifierGroups}
               onSaveProduct={saveProductAndRefetch}
