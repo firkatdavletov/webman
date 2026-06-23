@@ -10,9 +10,9 @@ import {
 } from '@/entities/product';
 import {
   mapProductEditorValuesToProductStructures,
-  parseOptionalProductPrice,
   parseProductPrice,
   type ProductEditorValues,
+  validateProductBasicFields,
   validateProductModifierGroupsSection,
   validateProductVariantsSection,
 } from '@/features/product-editor';
@@ -209,46 +209,28 @@ export function ProductCreatePage() {
       return;
     }
 
-    const normalizedTitle = submittedFormValues.title.trim();
-    const normalizedCategoryId = submittedFormValues.categoryId.trim();
-    const normalizedCountStep = Number(submittedFormValues.countStep);
-    const normalizedPrice = parseProductPrice(submittedFormValues.price);
-    const normalizedOldPrice = parseOptionalProductPrice(submittedFormValues.oldPrice);
-
     if (!categoryOptions.length) {
       setSaveError('Сначала создайте хотя бы одну категорию.');
       return;
     }
 
-    if (!normalizedTitle) {
-      setSaveError('Укажите название товара.');
+    const basicValidationResult = validateProductBasicFields(submittedFormValues, {
+      requireUnit: true,
+    });
+
+    if (!basicValidationResult.values) {
+      setSaveError(basicValidationResult.error);
       return;
     }
 
-    if (!isUuid(normalizedCategoryId)) {
-      setSaveError('Выберите корректную категорию.');
-      return;
-    }
-
-    if (normalizedPrice === null) {
-      setSaveError('Укажите корректную цену в рублях.');
-      return;
-    }
-
-    if (normalizedOldPrice === undefined) {
-      setSaveError('Укажите корректную старую цену в рублях или оставьте поле пустым.');
-      return;
-    }
-
-    if (!Number.isInteger(normalizedCountStep) || normalizedCountStep <= 0) {
-      setSaveError('Шаг продажи должен быть положительным целым числом.');
-      return;
-    }
-
-    if (!submittedFormValues.unit) {
-      setSaveError('Выберите единицу измерения.');
-      return;
-    }
+    const {
+      normalizedCategoryId,
+      normalizedCountStep,
+      normalizedOldPrice,
+      normalizedPrice,
+      normalizedTitle,
+      normalizedUnit,
+    } = basicValidationResult.values;
 
     const variantsValidationError = validateProductVariantsSection(submittedFormValues);
 
@@ -299,7 +281,7 @@ export function ProductCreatePage() {
       price: normalizedPrice,
       oldPrice: normalizedOldPrice ?? null,
       images: [],
-      unit: submittedFormValues.unit as Product['unit'],
+      unit: normalizedUnit as Product['unit'],
       displayWeight: submittedFormValues.displayWeight.trim() || null,
       countStep: normalizedCountStep,
       sku: submittedFormValues.sku.trim() || null,

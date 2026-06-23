@@ -2,19 +2,20 @@ import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Link, useParams } from 'react-router-dom';
 import {
-  completeProductImageUpload,
   deleteProductVariantImage,
   formatPrice,
   getProductById,
   getProductVariantById,
-  initProductImageUpload,
-  readFileAsDataUrl,
   saveProductVariant,
-  uploadProductImageToStorage,
   type Product,
   type ProductOptionGroup,
   type ProductVariantDetails,
 } from '@/entities/product';
+import {
+  PRODUCT_IMAGE_ACCEPT,
+  uploadProductImageFile,
+  validateProductImageFiles,
+} from '@/features/product-media';
 import { cn } from '@/shared/lib/cn';
 import { formatMinorToPriceInput, parseOptionalPriceInputToMinor } from '@/shared/lib/money/price';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
@@ -32,8 +33,6 @@ import {
   LazyDataTable,
   PriceInput,
 } from '@/shared/ui';
-
-const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 function getImageKey(imageId: string | null, imageUrl: string, imageIndex: number): string {
   return imageId?.trim() || `${imageUrl}-${imageIndex}`;
@@ -224,8 +223,10 @@ export function ProductVariantDetailsPage() {
       return;
     }
 
-    if (imageFiles.some((imageFile) => !SUPPORTED_IMAGE_TYPES.has(imageFile.type))) {
-      setImageUploadError('Выберите изображение в формате JPG, PNG или WEBP.');
+    const validationError = validateProductImageFiles(imageFiles);
+
+    if (validationError) {
+      setImageUploadError(validationError);
       return;
     }
 
@@ -234,41 +235,20 @@ export function ProductVariantDetailsPage() {
 
     try {
       for (const imageFile of imageFiles) {
-        const initResult = await initProductImageUpload({
+        const uploadResult = await uploadProductImageFile({
           targetType: 'VARIANT',
           targetId: normalizedVariantId,
-          contentType: imageFile.type,
-          sizeBytes: imageFile.size,
-          fileName: imageFile.name || null,
-        });
-
-        if (!initResult.upload) {
-          setImageUploadError(initResult.error ?? 'Не удалось получить данные для загрузки изображения.');
-          return;
-        }
-
-        const uploadData = initResult.upload;
-        const storageUploadResult = await uploadProductImageToStorage({
-          uploadUrl: uploadData.uploadUrl,
-          requiredHeaders: uploadData.requiredHeaders,
           file: imageFile,
+          includePreviewDataUrl: true,
+          requireImage: false,
         });
 
-        if (storageUploadResult.error) {
-          setImageUploadError(storageUploadResult.error);
+        if (uploadResult.error) {
+          setImageUploadError(uploadResult.error);
           return;
         }
 
-        const completeResult = await completeProductImageUpload({
-          uploadId: uploadData.uploadId,
-        });
-
-        if (completeResult.error) {
-          setImageUploadError(completeResult.error);
-          return;
-        }
-
-        const previewDataUrl = await readFileAsDataUrl(imageFile);
+        const imageUrl = uploadResult.image?.url || uploadResult.previewDataUrl;
 
         setVariant((currentVariant) =>
           currentVariant
@@ -277,8 +257,10 @@ export function ProductVariantDetailsPage() {
                 images: [
                   ...currentVariant.images,
                   {
-                    id: completeResult.image?.id ?? null,
-                    url: completeResult.image?.url || previewDataUrl,
+                    id: uploadResult.image?.id ?? null,
+                    url: imageUrl ?? '',
+                    thumbUrl: uploadResult.image?.thumbUrl ?? null,
+                    cardUrl: uploadResult.image?.cardUrl ?? null,
                   },
                 ],
               }
@@ -713,7 +695,7 @@ export function ProductVariantDetailsPage() {
         <input
           ref={imageUploadInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept={PRODUCT_IMAGE_ACCEPT}
           multiple
           className="hidden"
           onChange={(event) => void handleImageUpload(event)}

@@ -5,12 +5,6 @@ import {
   type ModifierGroup,
 } from '@/entities/modifier-group';
 import {
-  completeProductImageUpload,
-  initProductImageUpload,
-  uploadProductImageToStorage,
-} from '@/entities/product';
-import {
-  createEmptyProductModifierGroup,
   createEmptyProductOptionGroup,
   createEmptyProductOptionValue,
   createEmptyProductVariant,
@@ -19,6 +13,12 @@ import {
   type ProductEditorOptionGroupValues,
   type ProductEditorValues,
 } from '@/features/product-editor/model/productEditor';
+import { createEmptyProductModifierGroup } from '@/features/product-editor/model/productModifierAssignments';
+import {
+  PRODUCT_IMAGE_ACCEPT,
+  uploadProductImageFile,
+  validateProductImageFiles,
+} from '@/features/product-media';
 import { AdminNotice, AdminSectionCard, Button, FormField, Input, PriceInput } from '@/shared/ui';
 import { LazyDataTable } from '@/shared/ui/data-table';
 
@@ -66,8 +66,6 @@ type ProductEditorProps = {
   onValuesChange: (updater: (currentValues: ProductEditorValues) => ProductEditorValues) => void;
   onSubmit: (values: ProductEditorValues) => void;
 };
-
-const SUPPORTED_PRODUCT_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 const SELECT_CLASSNAME =
   'h-8 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50';
@@ -827,8 +825,10 @@ export function ProductEditor({
       return;
     }
 
-    if (imageFiles.some((imageFile) => !SUPPORTED_PRODUCT_IMAGE_TYPES.has(imageFile.type))) {
-      setVariantImageUploadError('Выберите изображение в формате JPG, PNG или WEBP.');
+    const validationError = validateProductImageFiles(imageFiles);
+
+    if (validationError) {
+      setVariantImageUploadError(validationError);
       return;
     }
 
@@ -837,41 +837,19 @@ export function ProductEditor({
 
     try {
       for (const imageFile of imageFiles) {
-        const initResult = await initProductImageUpload({
+        const uploadResult = await uploadProductImageFile({
           targetType: 'VARIANT',
           targetId: variantEditorState.draft.id,
-          contentType: imageFile.type,
-          sizeBytes: imageFile.size,
-          fileName: imageFile.name || null,
-        });
-
-        if (!initResult.upload) {
-          setVariantImageUploadError(initResult.error ?? 'Не удалось получить данные для загрузки изображения.');
-          return;
-        }
-
-        const uploadData = initResult.upload;
-        const storageUploadResult = await uploadProductImageToStorage({
-          uploadUrl: uploadData.uploadUrl,
-          requiredHeaders: uploadData.requiredHeaders,
           file: imageFile,
+          requireImage: true,
         });
 
-        if (storageUploadResult.error) {
-          setVariantImageUploadError(storageUploadResult.error);
+        if (uploadResult.error || !uploadResult.image) {
+          setVariantImageUploadError(uploadResult.error ?? 'Сервис завершения загрузки не вернул данные изображения.');
           return;
         }
 
-        const completeResult = await completeProductImageUpload({
-          uploadId: uploadData.uploadId,
-        });
-
-        if (!completeResult.image || completeResult.error) {
-          setVariantImageUploadError(completeResult.error ?? 'Сервис завершения загрузки не вернул данные изображения.');
-          return;
-        }
-
-        const uploadedImage = completeResult.image;
+        const uploadedImage = uploadResult.image;
 
         setVariantEditorState((currentState) => {
           if (!currentState) {
@@ -1158,7 +1136,7 @@ export function ProductEditor({
           <input
             ref={variantImageUploadInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept={PRODUCT_IMAGE_ACCEPT}
             multiple
             className="sr-only"
             onChange={(event) => void handleVariantImageUpload(event)}
@@ -1544,11 +1522,19 @@ export function ProductEditor({
             {formValues.modifierGroups.map((modifierGroup, modifierGroupIndex) => {
               const selectedModifierGroupId = modifierGroup.modifierGroupId.trim();
               const selectedModifierGroup = modifierGroupLookup.get(selectedModifierGroupId) ?? null;
+              const selectedModifierGroupError =
+                selectedModifierGroupId && !selectedModifierGroup
+                  ? 'Выбранная группа модификаторов не найдена в справочнике.'
+                  : undefined;
 
               return (
                 <div key={`modifier-group-${modifierGroupIndex}`} className="space-y-3 rounded-xl border border-border/60 p-3">
                   <div className="grid gap-3 md:grid-cols-3">
-                    <FormField htmlFor={`${idPrefix}-modifier-group-${modifierGroupIndex}-id`} label="Группа">
+                    <FormField
+                      htmlFor={`${idPrefix}-modifier-group-${modifierGroupIndex}-id`}
+                      label="Группа"
+                      error={selectedModifierGroupError}
+                    >
                       <select
                         id={`${idPrefix}-modifier-group-${modifierGroupIndex}-id`}
                         className={SELECT_CLASSNAME}
@@ -1608,9 +1594,7 @@ export function ProductEditor({
                         Справочник: {selectedModifierGroup.isActive ? 'активен' : 'выключен'}
                       </p>
                     </div>
-                  ) : selectedModifierGroupId ? (
-                    <p className="text-sm text-destructive">Выбранная группа модификаторов не найдена в справочнике.</p>
-                  ) : (
+                  ) : selectedModifierGroupId ? null : (
                     <p className="text-sm text-muted-foreground">Выберите группу, чтобы увидеть ограничения и состав опций.</p>
                   )}
 

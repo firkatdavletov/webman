@@ -5,23 +5,28 @@ import { type Category, buildCategoryLookup, getCategories } from '@/entities/ca
 import {
   formatModifierConstraints,
   type ModifierGroup,
-  type ProductModifierGroupLink,
   getAllModifierGroups,
 } from '@/entities/modifier-group';
 import {
-  completeProductImageUpload,
   deleteProductImage,
   formatPrice,
   formatUnitLabel,
   getProductById,
-  initProductImageUpload,
-  readFileAsDataUrl,
   saveProduct,
   type Product,
-  uploadProductImageToStorage,
 } from '@/entities/product';
+import {
+  mapProductModifierGroupAssignmentsToProduct,
+  validateProductBasicFields,
+  validateProductModifierGroupAssignments,
+} from '@/features/product-editor';
+import {
+  PRODUCT_IMAGE_ACCEPT,
+  uploadProductImageFile,
+  validateProductImageFiles,
+} from '@/features/product-media';
 import { cn } from '@/shared/lib/cn';
-import { formatMinorToPriceInput, parseOptionalPriceInputToMinor, parsePriceInputToMinor } from '@/shared/lib/money/price';
+import { formatMinorToPriceInput } from '@/shared/lib/money/price';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
 import {
   AdminEmptyState,
@@ -75,7 +80,6 @@ const PRODUCT_UNIT_OPTIONS: Array<{ value: Product['unit']; label: string }> = [
   { value: 'LITER', label: 'л' },
   { value: 'MILLILITER', label: 'мл' },
 ];
-const SUPPORTED_PRODUCT_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const CONTROL_CLASSNAME =
   'h-8 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50';
 
@@ -87,22 +91,6 @@ function UtilityStat({ label, value, hint, className }: UtilityStatProps) {
       {hint ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{hint}</p> : null}
     </div>
   );
-}
-
-function parseInteger(value: string): number | null {
-  const normalizedValue = value.trim();
-
-  if (!normalizedValue) {
-    return null;
-  }
-
-  const numericValue = Number(normalizedValue);
-
-  if (!Number.isInteger(numericValue)) {
-    return null;
-  }
-
-  return numericValue;
 }
 
 function buildProductFormValues(product: Product): ProductDetailsFormValues {
@@ -234,8 +222,10 @@ export function ProductDetailsPage() {
       return;
     }
 
-    if (imageFiles.some((imageFile) => !SUPPORTED_PRODUCT_IMAGE_TYPES.has(imageFile.type))) {
-      setImageUploadError('Выберите изображение в формате JPG, PNG или WEBP.');
+    const validationError = validateProductImageFiles(imageFiles);
+
+    if (validationError) {
+      setImageUploadError(validationError);
       return;
     }
 
@@ -244,41 +234,20 @@ export function ProductDetailsPage() {
 
     try {
       for (const imageFile of imageFiles) {
-        const initResult = await initProductImageUpload({
+        const uploadResult = await uploadProductImageFile({
           targetType: 'PRODUCT',
           targetId: product.id,
-          contentType: imageFile.type,
-          sizeBytes: imageFile.size,
-          fileName: imageFile.name || null,
-        });
-
-        if (!initResult.upload) {
-          setImageUploadError(initResult.error ?? 'Не удалось получить данные для загрузки изображения.');
-          return;
-        }
-
-        const uploadData = initResult.upload;
-        const storageUploadResult = await uploadProductImageToStorage({
-          uploadUrl: uploadData.uploadUrl,
-          requiredHeaders: uploadData.requiredHeaders,
           file: imageFile,
+          includePreviewDataUrl: true,
+          requireImage: false,
         });
 
-        if (storageUploadResult.error) {
-          setImageUploadError(storageUploadResult.error);
+        if (uploadResult.error) {
+          setImageUploadError(uploadResult.error);
           return;
         }
 
-        const completeResult = await completeProductImageUpload({
-          uploadId: uploadData.uploadId,
-        });
-
-        if (completeResult.error) {
-          setImageUploadError(completeResult.error);
-          return;
-        }
-
-        const previewDataUrl = await readFileAsDataUrl(imageFile);
+        const imageUrl = uploadResult.image?.url || uploadResult.previewDataUrl;
 
         setProduct((currentProduct) =>
           currentProduct
@@ -287,8 +256,10 @@ export function ProductDetailsPage() {
                 images: [
                   ...currentProduct.images,
                   {
-                    id: completeResult.image?.id ?? null,
-                    url: completeResult.image?.url || previewDataUrl,
+                    id: uploadResult.image?.id ?? null,
+                    url: imageUrl ?? '',
+                    thumbUrl: uploadResult.image?.thumbUrl ?? null,
+                    cardUrl: uploadResult.image?.cardUrl ?? null,
                   },
                 ],
               }
@@ -372,82 +343,35 @@ export function ProductDetailsPage() {
       return;
     }
 
-    const normalizedTitle = formValues.title.trim();
-    const normalizedCategoryId = formValues.categoryId.trim();
+    const basicValidationResult = validateProductBasicFields(formValues);
+
+    if (!basicValidationResult.values) {
+      setSaveError(basicValidationResult.error);
+      return;
+    }
+
+    const {
+      normalizedCategoryId,
+      normalizedCountStep,
+      normalizedOldPrice,
+      normalizedPrice,
+      normalizedTitle,
+    } = basicValidationResult.values;
     const normalizedDescription = formValues.description.trim();
     const normalizedSku = formValues.sku.trim();
-    const normalizedCountStep = parseInteger(formValues.countStep);
-    const normalizedPrice = parsePriceInputToMinor(formValues.price);
-    const normalizedOldPrice = parseOptionalPriceInputToMinor(formValues.oldPrice);
 
-    if (!normalizedTitle) {
-      setSaveError('Укажите название товара.');
+    const modifierValidationError = validateProductModifierGroupAssignments(formValues.modifierGroups, modifierGroups, {
+      allowEmptySortOrder: false,
+    });
+
+    if (modifierValidationError) {
+      setSaveError(modifierValidationError);
       return;
     }
 
-    if (!isUuid(normalizedCategoryId)) {
-      setSaveError('Выберите корректную категорию.');
-      return;
-    }
-
-    if (normalizedPrice === null) {
-      setSaveError('Укажите корректную цену в рублях.');
-      return;
-    }
-
-    if (normalizedOldPrice === undefined) {
-      setSaveError('Укажите корректную старую цену в рублях или оставьте поле пустым.');
-      return;
-    }
-
-    if (normalizedCountStep === null || normalizedCountStep <= 0) {
-      setSaveError('Шаг продажи должен быть положительным целым числом.');
-      return;
-    }
-
-    const selectedModifierGroupIds = new Set<string>();
-    const nextModifierGroups: ProductModifierGroupLink[] = [];
-
-    for (let index = 0; index < formValues.modifierGroups.length; index += 1) {
-      const modifierGroup = formValues.modifierGroups[index];
-      const normalizedModifierGroupId = modifierGroup.modifierGroupId.trim();
-      const parsedSortOrder = parseInteger(modifierGroup.sortOrder);
-
-      if (!normalizedModifierGroupId) {
-        setSaveError(`Выберите группу модификаторов в строке №${index + 1}.`);
-        return;
-      }
-
-      if (selectedModifierGroupIds.has(normalizedModifierGroupId)) {
-        setSaveError('Одна и та же группа модификаторов не может быть привязана к товару несколько раз.');
-        return;
-      }
-
-      const modifierDefinition = modifierGroupLookup.get(normalizedModifierGroupId) ?? null;
-
-      if (!modifierDefinition) {
-        setSaveError('Одна из выбранных групп модификаторов отсутствует в справочнике.');
-        return;
-      }
-
-      if (parsedSortOrder === null) {
-        setSaveError(`Sort order у модификатора №${index + 1} должен быть целым числом.`);
-        return;
-      }
-
-      selectedModifierGroupIds.add(normalizedModifierGroupId);
-      nextModifierGroups.push({
-        modifierGroupId: normalizedModifierGroupId,
-        code: modifierDefinition.code,
-        name: modifierDefinition.name,
-        minSelected: modifierDefinition.minSelected,
-        maxSelected: modifierDefinition.maxSelected,
-        isRequired: modifierDefinition.isRequired,
-        isActive: modifierGroup.isActive,
-        sortOrder: parsedSortOrder,
-        options: [],
-      });
-    }
+    const nextModifierGroups = mapProductModifierGroupAssignmentsToProduct(formValues.modifierGroups, modifierGroups, {
+      allowEmptySortOrder: false,
+    });
 
     setIsSaving(true);
     setSaveError('');
@@ -806,7 +730,7 @@ export function ProductDetailsPage() {
         <input
           ref={imageUploadInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept={PRODUCT_IMAGE_ACCEPT}
           multiple
           className="hidden"
           onChange={(event) => void handleImageUpload(event)}

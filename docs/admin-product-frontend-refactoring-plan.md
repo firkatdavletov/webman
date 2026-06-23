@@ -1106,6 +1106,8 @@ No runtime behavior changes.
 
 ### Phase 2: Extract safe shared primitives from the current editor
 
+Status: complete.
+
 Goal: reduce duplication without changing UX.
 
 Work:
@@ -1116,6 +1118,15 @@ Work:
 - Move form mappers out of `ProductEditor` model into explicit mapper files.
 - Extract product and variant image upload helpers/hooks.
 - Reuse `FormField.error` where low-risk.
+
+Implemented:
+
+- Product basic validation is centralized in `src/features/product-editor/model/productBasicValidation.ts`.
+- Modifier assignment validation and mapping are centralized in `src/features/product-editor/model/productModifierAssignments.ts`.
+- Option group, option value, and variant-section validation is centralized in `src/features/product-editor/model/productVariantValidation.ts`.
+- Product editor DTO/form mappers are centralized in `src/features/product-editor/model/productEditorMappers.ts`.
+- Product and variant image upload flow is shared through `src/features/product-media/model/productImageUpload.ts`.
+- `ProductEditor` now uses `FormField.error` for the low-risk missing modifier group message.
 
 Keep:
 
