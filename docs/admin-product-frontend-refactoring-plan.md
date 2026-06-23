@@ -1144,6 +1144,8 @@ Candidate files:
 
 ### Phase 3: Introduce product workspace layout behind a flag or separate route
 
+Status: complete.
+
 Goal: create the target shell without replacing production editing yet.
 
 Options:
@@ -1160,6 +1162,15 @@ Work:
 - Keep existing `/products/:productId` as the default production edit route until parity.
 
 No backend dependency beyond `getProductById`.
+
+Implemented:
+
+- added a separate route at `/products/:productId/workspace`;
+- added `ProductWorkspacePage` as a read-only product workspace shell backed by the existing `getProductById` snapshot API;
+- kept `/products/:productId` on the existing production `ProductDetailsPage`;
+- added section navigation for basic information, media, pricing, variants, modifiers, and publishing;
+- rendered current product data in read-only sections with links back to existing edit/detail screens where current production editing remains available;
+- added a manual snapshot refresh control and publishing readiness checks based on currently available product fields.
 
 ### Phase 4: Split basic information, media, and price sections
 
