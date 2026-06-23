@@ -1291,6 +1291,8 @@ Backend dependency:
 
 ### Phase 7: Add publishing checklist
 
+Status: complete with temporary no-op publish action.
+
 Goal: make publish readiness explicit.
 
 Work:
@@ -1300,6 +1302,15 @@ Work:
 - Show readiness checklist.
 - Separate save from publish.
 - Publish/unpublish through dedicated APIs when available.
+
+Implemented:
+
+- preserved backend `isConfigured` in the frontend `Product` model and product mappers;
+- added `src/pages/catalog/product-workspace/model/productPublishingChecklist.ts` for readiness checks;
+- added `ProductPublishingSection` to the workspace publishing tab;
+- separated readiness checks from storefront visibility so `isActive` is not presented as full configuration readiness;
+- left publish/unpublish buttons disabled because the current schema has no dedicated product publish endpoints;
+- kept active flag editing in the basic section as the temporary visibility control.
 
 Temporary fallback:
 

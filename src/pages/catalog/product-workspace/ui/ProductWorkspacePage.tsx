@@ -8,10 +8,15 @@ import {
   saveProduct,
   type Product,
 } from '@/entities/product';
+import {
+  buildProductPublishingChecklist,
+  getProductPublishingReadyCount,
+} from '@/pages/catalog/product-workspace/model/productPublishingChecklist';
 import type { ProductWorkspaceMutationResult } from '@/pages/catalog/product-workspace/model/productWorkspaceForms';
 import { BasicInformationSection } from '@/pages/catalog/product-workspace/ui/BasicInformationSection';
 import { ProductMediaSection } from '@/pages/catalog/product-workspace/ui/ProductMediaSection';
 import { ProductModifierGroupsSection } from '@/pages/catalog/product-workspace/ui/ProductModifierGroupsSection';
+import { ProductPublishingSection } from '@/pages/catalog/product-workspace/ui/ProductPublishingSection';
 import { ProductPricingSection } from '@/pages/catalog/product-workspace/ui/ProductPricingSection';
 import { ProductVariantsSection } from '@/pages/catalog/product-workspace/ui/ProductVariantsSection';
 import { cn } from '@/shared/lib/cn';
@@ -24,7 +29,6 @@ import {
   AdminPageHeader,
   AdminPageStatus,
   AdminSectionCard,
-  Badge,
   Button,
 } from '@/shared/ui';
 
@@ -63,38 +67,6 @@ function WorkspaceMetric({ label, value, hint }: WorkspaceMetricProps) {
       {hint ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{hint}</p> : null}
     </div>
   );
-}
-
-function buildPublishChecklist(product: Product): Array<{ label: string; isReady: boolean; detail: string }> {
-  const hasVariants = Boolean(product.optionGroups.length || product.variants.length);
-
-  return [
-    {
-      label: 'Основная информация',
-      isReady: Boolean(product.title.trim() && product.categoryId.trim() && product.countStep > 0),
-      detail: 'Название, категория и шаг продажи',
-    },
-    {
-      label: 'Цена',
-      isReady: product.price >= 0,
-      detail: product.oldPrice === null ? 'Основная цена заполнена' : 'Основная и старая цена заполнены',
-    },
-    {
-      label: 'Медиа',
-      isReady: Boolean(product.images.length || product.variants.some((variant) => variant.images.length)),
-      detail: `${product.images.length} фото продукта, ${product.variants.reduce((total, variant) => total + variant.images.length, 0)} фото вариантов`,
-    },
-    {
-      label: 'Варианты',
-      isReady: !hasVariants || Boolean(product.optionGroups.length && product.variants.length),
-      detail: hasVariants ? `${product.optionGroups.length} групп, ${product.variants.length} вариантов` : 'Обычный товар без вариантов',
-    },
-    {
-      label: 'Публикация',
-      isReady: product.isActive,
-      detail: product.isActive ? 'Товар отображается на витрине' : 'Товар выключен',
-    },
-  ];
 }
 
 export function ProductWorkspacePage() {
@@ -275,8 +247,8 @@ export function ProductWorkspacePage() {
   }
 
   const primaryImageUrl = getPrimaryMediaImageUrl(product.images);
-  const publishChecklist = buildPublishChecklist(product);
-  const readyChecklistItems = publishChecklist.filter((item) => item.isReady).length;
+  const publishChecklist = buildProductPublishingChecklist(product);
+  const readyChecklistItems = getProductPublishingReadyCount(publishChecklist);
   const categoryLookup = buildCategoryLookup(categories);
   const categoryOptions = Array.from(categoryLookup.entries());
 
@@ -416,25 +388,7 @@ export function ProductWorkspacePage() {
           ) : null}
 
           {activeSection === 'publishing' ? (
-            <AdminSectionCard
-              eyebrow="Публикация"
-              title="Проверки публикации"
-              description="Черновой список проверок на основе текущего снимка продукта."
-            >
-              <div className="space-y-3">
-                {publishChecklist.map((item) => (
-                  <div key={item.label} className="flex flex-col gap-2 rounded-xl border border-border/60 bg-background/70 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{item.label}</p>
-                      <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p>
-                    </div>
-                    <Badge className={cn('border', item.isReady ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700')}>
-                      {item.isReady ? 'Готово' : 'Требует внимания'}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </AdminSectionCard>
+            <ProductPublishingSection product={product} />
           ) : null}
         </div>
       </div>

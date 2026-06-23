@@ -277,6 +277,7 @@ export function ProductCreatePage() {
       title: normalizedTitle,
       slug: '',
       isActive: submittedFormValues.isActive,
+      isConfigured: false,
       description: submittedFormValues.description.trim() || null,
       price: normalizedPrice,
       oldPrice: normalizedOldPrice ?? null,

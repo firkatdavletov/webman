@@ -57,6 +57,7 @@ export type Product = {
   title: string;
   slug: string;
   isActive: boolean;
+  isConfigured: boolean;
   description: string | null;
   price: number;
   oldPrice: number | null;

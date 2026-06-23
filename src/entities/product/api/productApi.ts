@@ -296,6 +296,7 @@ function mapBaseProduct(
     title: product.title,
     slug: product.slug,
     isActive: productWithActiveFlag.isActive ?? true,
+    isConfigured: product.isConfigured,
     description: product.description ?? null,
     price: product.priceMinor,
     oldPrice: product.oldPriceMinor ?? null,
