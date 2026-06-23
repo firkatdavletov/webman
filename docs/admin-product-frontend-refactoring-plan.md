@@ -1068,7 +1068,7 @@ Add these only when backend contracts exist:
 
 ### Phase 1: Audit and document current flow
 
-Status: this document.
+Status: complete in this document.
 
 Deliverables:
 
@@ -1077,6 +1077,30 @@ Deliverables:
 - current UX/UI problem list;
 - current API usage map;
 - target plan and dependencies.
+
+Phase 1 completion map:
+
+| Deliverable | Documented in |
+| --- | --- |
+| Current create flow documentation | `Current Product Creation Flow` |
+| Current edit flow documentation | `Current Product Editing Flow` |
+| Current UX/UI problem list | `Current UX/UI Screens` and `Current UX/UI Problems` |
+| Current API usage map | `Current Admin API Usage` |
+| Target plan and dependencies | `Target UX Flow`, `Target Screen Structure`, `Target State Management Approach`, `Target API Integration Approach`, `Refactoring Phases`, and `Risks and Open Questions` |
+
+Audited source areas:
+
+- `src/pages/catalog/product-create/*`
+- `src/features/product-editor/*`
+- `src/pages/catalog/product-details/*`
+- `src/pages/catalog/product-option-group-details/*`
+- `src/pages/catalog/product-variant-details/*`
+- `src/pages/catalog/products/*`
+- `src/entities/product/*`
+- `src/entities/category/*`
+- `src/entities/modifier-group/*`
+- `src/shared/api/schema.d.ts`
+- `docs/product-creation.md`
 
 No runtime behavior changes.
 
@@ -1353,4 +1377,3 @@ Use Playwright or Cypress only after tool choice is approved:
 12. Change `/products/new` to create a server draft and redirect to workspace.
 13. Add publishing checklist and publish action.
 14. Remove legacy `ProductEditor` and full replace configuration from normal product management flows after parity.
-
