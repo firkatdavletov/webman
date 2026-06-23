@@ -1328,6 +1328,20 @@ Work:
 - Move all follow-up editing into workspace section saves.
 - Keep old create route behind fallback until backend draft flow is stable.
 
+Implemented:
+
+- added `ProductDraftCreatePage` as the default `/products/new` route;
+- minimal creation now asks only for title and category, creates an inactive product, and redirects to `/products/:productId/workspace`;
+- all follow-up editing is expected to happen through workspace section saves after the redirect;
+- preserved the previous full `ProductCreatePage` at `/products/new/legacy` for fallback, retries, and unsupported migration paths;
+- avoided `replaceVariantConfiguration` in the new draft path, so the giant local option/value/variant graph submit is no longer part of default creation.
+
+Temporary adapter:
+
+- no dedicated `createProductDraft` schema contract is currently available;
+- the draft route uses existing `saveProduct` with an inactive base product, empty media/options/modifiers/variants, zero price, default unit, and `isConfigured: false`;
+- the route redirects to `/products/:productId/workspace` while `/products/:productId` remains the legacy details editor in this repository.
+
 Backend dependency:
 
 - `createProductDraft` or equivalent safe inactive product creation contract.
