@@ -91,7 +91,7 @@ function buildSelectedOptionValueByGroupCode(
 
 function buildVariantFormValues(product: Product, variant: ProductVariantDetails): VariantFormValues {
   return {
-    id: variant.id,
+    id: variant.id ?? '',
     externalId: variant.externalId ?? '',
     sku: variant.sku,
     title: variant.title ?? '',

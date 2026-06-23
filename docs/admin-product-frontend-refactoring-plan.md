@@ -1209,6 +1209,8 @@ Deferred:
 
 ### Phase 5: Redesign variants section incrementally
 
+Status: partially complete.
+
 Goal: replace local nested variant graph editing with server-backed option/value/variant management.
 
 Work:
@@ -1221,6 +1223,29 @@ Work:
 - Add variant edit drawer backed by `saveProductVariant`.
 - Add generation preview UI.
 - Add bulk edit toolbar.
+
+Implemented:
+
+- added `src/pages/catalog/product-workspace/ui/ProductVariantsSection.tsx` and wired it into `/products/:productId/workspace`;
+- added `src/pages/catalog/product-workspace/model/productVariantsSection.ts` for section form mapping, validation, dynamic option keying, and client-side combination preview;
+- replaced the workspace's read-only variants card with an incremental variants section;
+- display product option groups and all option values from the latest product snapshot;
+- added option group create/edit drawer backed by `saveProductOptionGroup`;
+- added option value create/edit drawer backed by `saveProductOptionValue`;
+- added a variant table whose option columns are generated from `product.optionGroups`, not hardcoded color/size heuristics;
+- added a variant create/edit drawer backed by `saveProductVariant`;
+- widened `ProductVariantDetails.id` to `string | null` to match the existing OpenAPI upsert contract and support new/generated variants;
+- added client-side generation preview from the current option groups and values, including existing-combination detection and a one-row "open draft" path through the variant drawer;
+- added row selection and a bulk edit toolbar placeholder that is intentionally blocked until a backend bulk update API exists;
+- kept full replace out of workspace section edits.
+
+Deferred:
+
+- bulk generation/create remains disabled until a backend generation or bulk-create contract exists;
+- bulk variant update remains disabled until a backend bulk update contract exists;
+- option group/value delete or deactivate actions remain unavailable until backend safety responses and order/cart semantics are defined;
+- variant delete remains unavailable; the variant drawer supports deactivation through the existing active flag;
+- variant image editing remains on the existing variant detail route until the drawer reaches parity with the legacy detail screen.
 
 Backend dependencies:
 

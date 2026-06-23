@@ -38,7 +38,7 @@ export type ProductVariant = {
 };
 
 export type ProductVariantDetails = {
-  id: string;
+  id: string | null;
   externalId: string | null;
   sku: string;
   title: string | null;

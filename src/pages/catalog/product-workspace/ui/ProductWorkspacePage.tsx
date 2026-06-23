@@ -7,14 +7,13 @@ import {
   getProductById,
   saveProduct,
   type Product,
-  type ProductOptionGroup,
-  type ProductVariant,
 } from '@/entities/product';
 import type { ProductWorkspaceMutationResult } from '@/pages/catalog/product-workspace/model/productWorkspaceForms';
 import { BasicInformationSection } from '@/pages/catalog/product-workspace/ui/BasicInformationSection';
 import { ProductMediaSection } from '@/pages/catalog/product-workspace/ui/ProductMediaSection';
 import { ProductModifiersSection } from '@/pages/catalog/product-workspace/ui/ProductModifiersSection';
 import { ProductPricingSection } from '@/pages/catalog/product-workspace/ui/ProductPricingSection';
+import { ProductVariantsSection } from '@/pages/catalog/product-workspace/ui/ProductVariantsSection';
 import { cn } from '@/shared/lib/cn';
 import { getPrimaryMediaImageUrl } from '@/shared/lib/media/images';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
@@ -56,10 +55,6 @@ function getProductTypeLabel(product: Product): string {
   return product.optionGroups.length || product.variants.length ? 'С вариантами' : 'Обычный';
 }
 
-function getStatusClassName(isActive: boolean): string {
-  return isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-border bg-muted/40 text-muted-foreground';
-}
-
 function WorkspaceMetric({ label, value, hint }: WorkspaceMetricProps) {
   return (
     <div className="rounded-[1.25rem] border border-border/70 bg-background/70 px-4 py-4">
@@ -68,22 +63,6 @@ function WorkspaceMetric({ label, value, hint }: WorkspaceMetricProps) {
       {hint ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{hint}</p> : null}
     </div>
   );
-}
-
-function getVariantOptionsLabel(variant: ProductVariant): string {
-  if (!variant.options.length) {
-    return 'Опции не выбраны';
-  }
-
-  return variant.options.map((option) => `${option.optionGroupCode}: ${option.optionValueCode}`).join(', ');
-}
-
-function getOptionGroupValuesLabel(optionGroup: ProductOptionGroup): string {
-  if (!optionGroup.values.length) {
-    return 'Нет значений';
-  }
-
-  return optionGroup.values.map((value) => value.title || value.code).join(', ');
 }
 
 function buildPublishChecklist(product: Product): Array<{ label: string; isReady: boolean; detail: string }> {
@@ -424,68 +403,7 @@ export function ProductWorkspacePage() {
           ) : null}
 
           {activeSection === 'variants' ? (
-            <AdminSectionCard
-              eyebrow="Варианты"
-              title="Опции и варианты"
-              description="Просмотр текущей конфигурации вариантов без редактирования на этой странице."
-            >
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold text-foreground">Группы опций</p>
-                  {product.optionGroups.length ? (
-                    product.optionGroups.map((optionGroup) => (
-                      <article key={optionGroup.id ?? optionGroup.code} className="rounded-xl border border-border/60 bg-background/70 px-3 py-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div>
-                            <p className="text-sm font-semibold text-foreground">{optionGroup.title || optionGroup.code}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{optionGroup.code}</p>
-                          </div>
-                          {optionGroup.id ? (
-                            <Link className="text-sm font-medium text-primary hover:underline" to={`/products/${product.id}/option-groups/${optionGroup.id}`}>
-                              Открыть
-                            </Link>
-                          ) : null}
-                        </div>
-                        <p className="mt-3 text-sm leading-6 text-muted-foreground">{getOptionGroupValuesLabel(optionGroup)}</p>
-                      </article>
-                    ))
-                  ) : (
-                    <AdminEmptyState description="У продукта нет групп опций." />
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold text-foreground">Варианты</p>
-                  {product.variants.length ? (
-                    product.variants.map((variant, variantIndex) => (
-                      <article key={variant.id ?? `${variant.sku}-${variantIndex}`} className="rounded-xl border border-border/60 bg-background/70 px-3 py-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div>
-                            <p className="text-sm font-semibold text-foreground">{variant.sku || `Вариант #${variantIndex + 1}`}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {variant.price === null ? 'Цена не указана' : formatPrice(variant.price)}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge className={cn('border', getStatusClassName(variant.isActive))}>
-                              {variant.isActive ? 'Активен' : 'Выключен'}
-                            </Badge>
-                            {variant.id ? (
-                              <Link className="text-sm font-medium text-primary hover:underline" to={`/products/${product.id}/variants/${variant.id}`}>
-                                Открыть
-                              </Link>
-                            ) : null}
-                          </div>
-                        </div>
-                        <p className="mt-3 text-sm leading-6 text-muted-foreground">{getVariantOptionsLabel(variant)}</p>
-                      </article>
-                    ))
-                  ) : (
-                    <AdminEmptyState description="У продукта нет вариантов." />
-                  )}
-                </div>
-              </div>
-            </AdminSectionCard>
+            <ProductVariantsSection onRefreshProduct={refreshProductSnapshot} product={product} />
           ) : null}
 
           {activeSection === 'modifiers' ? (
