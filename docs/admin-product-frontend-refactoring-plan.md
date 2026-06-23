@@ -1174,6 +1174,8 @@ Implemented:
 
 ### Phase 4: Split basic information, media, and price sections
 
+Status: complete.
+
 Goal: move low-risk sections into independent saves.
 
 Work:
@@ -1188,6 +1190,22 @@ Risk controls:
 - Refetch product after every save.
 - Keep reset-to-server button per section.
 - Keep old page available until section behavior matches existing edit behavior.
+
+Implemented:
+
+- added section-level workspace form mapping in `src/pages/catalog/product-workspace/model/productWorkspaceForms.ts`;
+- replaced read-only workspace cards with `BasicInformationSection`, `ProductMediaSection`, `ProductPricingSection`, and `ProductModifiersSection`;
+- kept `/products/:productId` on the existing production editor and continued using `/products/:productId/workspace` as the new incremental route;
+- saved basic information, pricing, and modifier assignments through the existing `saveProduct` API by preserving the rest of the current product snapshot;
+- used existing product media upload/delete APIs for media changes and added delete confirmation in the workspace route;
+- refetched the product snapshot after every section save, upload, or delete;
+- added reset-to-server controls for basic information, pricing, and modifier assignment forms;
+- left variants read-only in the workspace and linked to the existing option group and variant detail routes.
+
+Deferred:
+
+- stock editing remains unavailable because the current product snapshot/API does not expose section-level stock fields;
+- default-variant price/stock mapping remains deferred until the backend exposes explicit default variant or inventory APIs.
 
 ### Phase 5: Redesign variants section incrementally
 

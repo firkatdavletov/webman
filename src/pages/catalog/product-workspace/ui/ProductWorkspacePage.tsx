@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { type Category, buildCategoryLookup, getCategories } from '@/entities/category';
+import { type ModifierGroup, getAllModifierGroups } from '@/entities/modifier-group';
 import {
   formatPrice,
-  formatUnitLabel,
   getProductById,
+  saveProduct,
   type Product,
   type ProductOptionGroup,
   type ProductVariant,
 } from '@/entities/product';
-import { formatModifierConstraints } from '@/entities/modifier-group';
+import type { ProductWorkspaceMutationResult } from '@/pages/catalog/product-workspace/model/productWorkspaceForms';
+import { BasicInformationSection } from '@/pages/catalog/product-workspace/ui/BasicInformationSection';
+import { ProductMediaSection } from '@/pages/catalog/product-workspace/ui/ProductMediaSection';
+import { ProductModifiersSection } from '@/pages/catalog/product-workspace/ui/ProductModifiersSection';
+import { ProductPricingSection } from '@/pages/catalog/product-workspace/ui/ProductPricingSection';
 import { cn } from '@/shared/lib/cn';
 import { getPrimaryMediaImageUrl } from '@/shared/lib/media/images';
 import { isUuid } from '@/shared/lib/uuid/isUuid';
@@ -37,12 +43,6 @@ type WorkspaceMetricProps = {
   hint?: string;
 };
 
-type ReadOnlyFieldProps = {
-  label: string;
-  value: string;
-  className?: string;
-};
-
 const WORKSPACE_SECTIONS: WorkspaceSection[] = [
   { id: 'basic', label: 'Основное', hint: 'Название, категория, SKU' },
   { id: 'media', label: 'Медиа', hint: 'Фотографии продукта' },
@@ -66,15 +66,6 @@ function WorkspaceMetric({ label, value, hint }: WorkspaceMetricProps) {
       <p className="text-[0.72rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">{label}</p>
       <p className="mt-1 text-sm font-medium text-foreground">{value}</p>
       {hint ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{hint}</p> : null}
-    </div>
-  );
-}
-
-function ReadOnlyField({ label, value, className }: ReadOnlyFieldProps) {
-  return (
-    <div className={cn('rounded-xl border border-border/60 bg-background/70 px-3 py-3', className)}>
-      <p className="text-[0.7rem] font-semibold tracking-[0.16em] text-muted-foreground uppercase">{label}</p>
-      <p className="mt-1 break-words text-sm font-medium text-foreground">{value || 'Не указано'}</p>
     </div>
   );
 }
@@ -132,18 +123,25 @@ export function ProductWorkspacePage() {
   const normalizedProductId = useMemo(() => (productId ?? '').trim(), [productId]);
   const [activeSection, setActiveSection] = useState<WorkspaceSectionId>('basic');
   const [product, setProduct] = useState<Product | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
+  const [referenceErrorMessage, setReferenceErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isReferenceLoading, setIsReferenceLoading] = useState(true);
   const requestIdRef = useRef(0);
 
-  const loadProduct = async ({ showInitialLoader = false }: { showInitialLoader?: boolean } = {}) => {
+  const loadProduct = async ({ showInitialLoader = false }: { showInitialLoader?: boolean } = {}): Promise<ProductWorkspaceMutationResult> => {
     if (!isUuid(normalizedProductId)) {
       setProduct(null);
       setErrorMessage('Некорректный идентификатор товара.');
       setIsLoading(false);
       setIsRefreshing(false);
-      return;
+      return {
+        product: null,
+        error: 'Некорректный идентификатор товара.',
+      };
     }
 
     const requestId = requestIdRef.current + 1;
@@ -160,18 +158,108 @@ export function ProductWorkspacePage() {
     const result = await getProductById(normalizedProductId);
 
     if (requestId !== requestIdRef.current) {
-      return;
+      return {
+        product: null,
+        error: null,
+      };
     }
 
     setProduct(result.product);
     setErrorMessage(result.error ?? '');
     setIsLoading(false);
     setIsRefreshing(false);
+
+    return {
+      product: result.product,
+      error: result.error,
+    };
+  };
+
+  const refreshProductSnapshot = async (): Promise<ProductWorkspaceMutationResult> => {
+    if (!isUuid(normalizedProductId)) {
+      const error = 'Некорректный идентификатор товара.';
+      setErrorMessage(error);
+
+      return {
+        product: null,
+        error,
+      };
+    }
+
+    const result = await getProductById(normalizedProductId);
+
+    if (result.product) {
+      setProduct(result.product);
+    }
+
+    setErrorMessage(result.error ?? '');
+
+    return {
+      product: result.product,
+      error: result.error,
+    };
+  };
+
+  const saveProductAndRefetch = async (nextProduct: Product): Promise<ProductWorkspaceMutationResult> => {
+    const saveResult = await saveProduct(nextProduct);
+
+    if (!saveResult.product) {
+      return {
+        product: null,
+        error: saveResult.error ?? 'Не удалось сохранить товар.',
+      };
+    }
+
+    const refreshResult = await refreshProductSnapshot();
+
+    if (!refreshResult.product) {
+      setProduct(saveResult.product);
+
+      return {
+        product: saveResult.product,
+        error: refreshResult.error
+          ? `Изменения сохранены, но не удалось обновить снимок товара: ${refreshResult.error}`
+          : saveResult.error,
+      };
+    }
+
+    return {
+      product: refreshResult.product,
+      error: saveResult.error ?? refreshResult.error,
+    };
   };
 
   useEffect(() => {
     void loadProduct({ showInitialLoader: true });
   }, [normalizedProductId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadReferences = async () => {
+      setIsReferenceLoading(true);
+
+      const [categoriesResult, modifierGroupsResult] = await Promise.all([
+        getCategories(),
+        getAllModifierGroups(),
+      ]);
+
+      if (!isMounted) {
+        return;
+      }
+
+      setCategories(categoriesResult.categories);
+      setModifierGroups(modifierGroupsResult.modifierGroups);
+      setReferenceErrorMessage([categoriesResult.error, modifierGroupsResult.error].filter(Boolean).join(' '));
+      setIsReferenceLoading(false);
+    };
+
+    void loadReferences();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -210,6 +298,14 @@ export function ProductWorkspacePage() {
   const primaryImageUrl = getPrimaryMediaImageUrl(product.images);
   const publishChecklist = buildPublishChecklist(product);
   const readyChecklistItems = publishChecklist.filter((item) => item.isReady).length;
+  const categoryLookup = buildCategoryLookup(categories);
+  const categoryOptions = Array.from(categoryLookup.entries());
+
+  if (!categoryLookup.has(product.categoryId)) {
+    categoryOptions.push([product.categoryId, `#${product.categoryId}`]);
+  }
+
+  categoryOptions.sort((left, right) => left[1].localeCompare(right[1], 'ru'));
 
   return (
     <AdminPage>
@@ -264,6 +360,12 @@ export function ProductWorkspacePage() {
         </AdminNotice>
       ) : null}
 
+      {referenceErrorMessage ? (
+        <AdminNotice tone="destructive" role="alert">
+          {referenceErrorMessage}
+        </AdminNotice>
+      ) : null}
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <WorkspaceMetric label="Статус" value={product.isActive ? 'Активен' : 'Выключен'} hint={getProductTypeLabel(product)} />
         <WorkspaceMetric label="Цена" value={formatPrice(product.price)} hint={product.oldPrice === null ? 'Старая цена не указана' : `Старая: ${formatPrice(product.oldPrice)}`} />
@@ -305,81 +407,20 @@ export function ProductWorkspacePage() {
 
         <div className="min-w-0">
           {activeSection === 'basic' ? (
-            <AdminSectionCard
-              eyebrow="Основное"
-              title="Базовая информация"
-              description="Снимок текущих полей продукта из существующего API без редактирования на этой странице."
-              action={
-                <Link
-                  className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                  to={`/products/${product.id}`}
-                >
-                  Редактировать в текущей карточке
-                </Link>
-              }
-            >
-              <div className="grid gap-3 md:grid-cols-2">
-                <ReadOnlyField label="Название" value={product.title} />
-                <ReadOnlyField label="Категория" value={product.categoryId} />
-                <ReadOnlyField label="Slug" value={product.slug} />
-                <ReadOnlyField label="SKU" value={product.sku ?? ''} />
-                <ReadOnlyField label="Единица" value={formatUnitLabel(product.unit)} />
-                <ReadOnlyField label="Шаг продажи" value={String(product.countStep)} />
-                <ReadOnlyField label="Вес на витрине" value={product.displayWeight ?? ''} />
-                <div className="rounded-xl border border-border/60 bg-background/70 px-3 py-3">
-                  <p className="text-[0.7rem] font-semibold tracking-[0.16em] text-muted-foreground uppercase">Статус</p>
-                  <Badge className={cn('mt-2 border', getStatusClassName(product.isActive))}>
-                    {product.isActive ? 'Активен' : 'Выключен'}
-                  </Badge>
-                </div>
-                <ReadOnlyField label="Описание" value={product.description ?? ''} className="md:col-span-2" />
-              </div>
-            </AdminSectionCard>
+            <BasicInformationSection
+              categoryOptions={categoryOptions}
+              isReferenceLoading={isReferenceLoading}
+              onSaveProduct={saveProductAndRefetch}
+              product={product}
+            />
           ) : null}
 
           {activeSection === 'media' ? (
-            <AdminSectionCard
-              eyebrow="Медиа"
-              title="Фотографии продукта"
-              description="Секция показывает только фотографии продукта. Загрузка остается в текущей карточке."
-              action={
-                <Link
-                  className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                  to={`/products/${product.id}`}
-                >
-                  Открыть медиа в карточке
-                </Link>
-              }
-            >
-              {product.images.length ? (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {product.images.map((image, imageIndex) => (
-                    <article key={`${image.id ?? image.url}-${imageIndex}`} className="overflow-hidden rounded-2xl border border-border/70 bg-background/70">
-                      <img className="aspect-square w-full object-cover" src={image.url} alt={`${product.title} - фото ${imageIndex + 1}`} />
-                      <div className="border-t border-border/60 px-3 py-2 text-xs text-muted-foreground">
-                        Фото #{imageIndex + 1}
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <AdminEmptyState description="У продукта пока нет фотографий." />
-              )}
-            </AdminSectionCard>
+            <ProductMediaSection onRefreshProduct={refreshProductSnapshot} product={product} />
           ) : null}
 
           {activeSection === 'pricing' ? (
-            <AdminSectionCard
-              eyebrow="Цена"
-              title="Цена и остатки"
-              description="Текущий API продукта содержит цену, старую цену и единицу измерения. Остатки пока не представлены в данных продукта."
-            >
-              <div className="grid gap-3 md:grid-cols-3">
-                <ReadOnlyField label="Цена" value={formatPrice(product.price)} />
-                <ReadOnlyField label="Старая цена" value={product.oldPrice === null ? '' : formatPrice(product.oldPrice)} />
-                <ReadOnlyField label="Остатки" value="Не поддерживаются текущим API" />
-              </div>
-            </AdminSectionCard>
+            <ProductPricingSection onSaveProduct={saveProductAndRefetch} product={product} />
           ) : null}
 
           {activeSection === 'variants' ? (
@@ -448,33 +489,12 @@ export function ProductWorkspacePage() {
           ) : null}
 
           {activeSection === 'modifiers' ? (
-            <AdminSectionCard
-              eyebrow="Модификаторы"
-              title="Назначенные группы модификаторов"
-              description="Просмотр групп, привязанных к продукту, без редактирования на этой странице."
-            >
-              {product.modifierGroups.length ? (
-                <div className="grid gap-3 lg:grid-cols-2">
-                  {product.modifierGroups.map((modifierGroup) => (
-                    <article key={modifierGroup.modifierGroupId} className="rounded-xl border border-border/60 bg-background/70 px-3 py-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">{modifierGroup.name || modifierGroup.code}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{modifierGroup.code}</p>
-                        </div>
-                        <Badge className={cn('border', getStatusClassName(modifierGroup.isActive))}>
-                          {modifierGroup.isActive ? 'Активна' : 'Выключена'}
-                        </Badge>
-                      </div>
-                      <p className="mt-3 text-sm leading-6 text-muted-foreground">{formatModifierConstraints(modifierGroup)}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Опций: {modifierGroup.options.length}</p>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <AdminEmptyState description="К продукту не привязаны группы модификаторов." />
-              )}
-            </AdminSectionCard>
+            <ProductModifiersSection
+              isReferenceLoading={isReferenceLoading}
+              modifierGroups={modifierGroups}
+              onSaveProduct={saveProductAndRefetch}
+              product={product}
+            />
           ) : null}
 
           {activeSection === 'publishing' ? (
