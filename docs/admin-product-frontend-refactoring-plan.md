@@ -1333,7 +1333,7 @@ Implemented:
 - added `ProductDraftCreatePage` as the default `/products/new` route;
 - minimal creation now asks only for title and category, creates an inactive product, and redirects to `/products/:productId/workspace`;
 - all follow-up editing is expected to happen through workspace section saves after the redirect;
-- preserved the previous full `ProductCreatePage` at `/products/new/legacy` for fallback, retries, and unsupported migration paths;
+- initially preserved the previous full `ProductCreatePage` at `/products/new/legacy` for fallback, then removed it in Phase 9 after workspace parity was accepted;
 - avoided `replaceVariantConfiguration` in the new draft path, so the giant local option/value/variant graph submit is no longer part of default creation.
 
 Temporary adapter:
@@ -1356,6 +1356,18 @@ Work:
 - Remove sessionStorage recovery draft code.
 - Remove full replace variant configuration from normal UI paths.
 - Keep any import/migration-specific replace API usage isolated and clearly named.
+
+Implemented:
+
+- removed the legacy `ProductCreatePage` route implementation and `/products/new/legacy` route;
+- removed the browser `ProductCreationDraft` sessionStorage recovery model;
+- removed the large `ProductEditor` UI component and the create-only local option/value/variant mappers and validators;
+- kept `/products/new` as the only product creation route, backed by `ProductDraftCreatePage`;
+- removed `ProductOptionGroupDetailsPage`, which was the remaining normal UI path using full variant configuration replacement;
+- redirected old option-group detail URLs to `/products/:productId/workspace?section=variants`;
+- updated legacy product details option-group links to open the workspace variants section;
+- changed `saveProduct` back to base product upsert only;
+- isolated the full variant-configuration replacement flow behind `saveProductWithLegacyVariantConfigurationReplace` for legacy import/migration use only.
 
 Only do this after production parity is verified.
 

@@ -23,11 +23,13 @@ export {
   saveProductOptionValue,
   saveProductVariant,
   saveProduct,
+  saveProductWithLegacyVariantConfigurationReplace,
   uploadProductImageToStorage,
 } from './api/productApi';
 export type {
   DeleteProductImageResult,
   DeleteProductVariantImageResult,
+  LegacyProductVariantConfigurationReplaceOptions,
   ProductOptionGroupResult,
   ProductOptionValueResult,
   ProductImageUploadInitData,
@@ -37,7 +39,6 @@ export type {
   ProductPopularityListResult,
   ProductResult,
   ProductVariantDetailsResult,
-  SaveProductOptions,
   SaveProductResult,
 } from './api/productApi';
 export { formatPrice, formatUnitLabel } from './lib/formatters';

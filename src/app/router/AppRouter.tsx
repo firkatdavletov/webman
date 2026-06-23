@@ -1,5 +1,5 @@
 import { lazy, type ReactNode, Suspense } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { isAuthenticated, isSuperAdmin } from '@/entities/session';
 import { ProtectedRoute } from '@/shared/routing/ProtectedRoute';
 
@@ -23,9 +23,6 @@ const PopularProductsPage = lazy(() =>
     default: module.PopularProductsPage,
   })),
 );
-const ProductCreatePage = lazy(() =>
-  import('@/pages/catalog/product-create/ui/ProductCreatePage').then((module) => ({ default: module.ProductCreatePage })),
-);
 const ProductDraftCreatePage = lazy(() =>
   import('@/pages/catalog/product-draft-create/ui/ProductDraftCreatePage').then((module) => ({
     default: module.ProductDraftCreatePage,
@@ -36,11 +33,6 @@ const ProductDetailsPage = lazy(() =>
 );
 const ProductWorkspacePage = lazy(() =>
   import('@/pages/catalog/product-workspace/ui/ProductWorkspacePage').then((module) => ({ default: module.ProductWorkspacePage })),
-);
-const ProductOptionGroupDetailsPage = lazy(() =>
-  import('@/pages/catalog/product-option-group-details/ui/ProductOptionGroupDetailsPage').then((module) => ({
-    default: module.ProductOptionGroupDetailsPage,
-  })),
 );
 const ProductVariantDetailsPage = lazy(() =>
   import('@/pages/catalog/product-variant-details/ui/ProductVariantDetailsPage').then((module) => ({
@@ -200,6 +192,16 @@ function SuperAdminRoute({ children }: { children: ReactNode }) {
   return children;
 }
 
+function ProductWorkspaceVariantsRedirect() {
+  const { productId } = useParams();
+
+  if (!productId) {
+    return <Navigate to="/products" replace />;
+  }
+
+  return <Navigate to={`/products/${productId}/workspace?section=variants`} replace />;
+}
+
 export function AppRouter() {
   const fallbackPath = isAuthenticated() ? '/dashboard' : '/login';
 
@@ -217,10 +219,9 @@ export function AppRouter() {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/popular-products" element={<PopularProductsPage />} />
         <Route path="/products/new" element={<ProductDraftCreatePage />} />
-        <Route path="/products/new/legacy" element={<ProductCreatePage />} />
         <Route path="/products/:productId/workspace" element={<ProductWorkspacePage />} />
         <Route path="/products/:productId" element={<ProductDetailsPage />} />
-        <Route path="/products/:productId/option-groups/:optionGroupId" element={<ProductOptionGroupDetailsPage />} />
+        <Route path="/products/:productId/option-groups/:optionGroupId" element={<ProductWorkspaceVariantsRedirect />} />
         <Route path="/products/:productId/variants/:variantId" element={<ProductVariantDetailsPage />} />
         <Route path="/modifier-groups" element={<ModifierGroupsPage />} />
         <Route path="/modifier-groups/new" element={<ModifierGroupCreatePage />} />

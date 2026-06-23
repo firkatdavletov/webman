@@ -1,9 +1,5 @@
 import type { ModifierGroup, ProductModifierGroupLink } from '@/entities/modifier-group';
-import {
-  parseProductEditorSortOrder,
-  type ProductEditorModifierGroupValues,
-  type ProductEditorValues,
-} from '@/features/product-editor/model/productEditor';
+import { parseProductSortOrder } from '@/features/product-editor/model/productControls';
 
 export type ProductModifierGroupAssignmentValues = {
   modifierGroupId: string;
@@ -14,14 +10,6 @@ export type ProductModifierGroupAssignmentValues = {
 export type ProductModifierGroupAssignmentOptions = {
   allowEmptySortOrder?: boolean;
 };
-
-export function createEmptyProductModifierGroup(): ProductEditorModifierGroupValues {
-  return {
-    modifierGroupId: '',
-    sortOrder: '0',
-    isActive: true,
-  };
-}
 
 function buildModifierGroupLookup(availableModifierGroups: ModifierGroup[]): Map<string, ModifierGroup> {
   return new Map(availableModifierGroups.map((group) => [group.id, group]));
@@ -35,7 +23,7 @@ function parseModifierSortOrder(
     return null;
   }
 
-  return parseProductEditorSortOrder(value);
+  return parseProductSortOrder(value);
 }
 
 export function validateProductModifierGroupAssignments(
@@ -98,22 +86,4 @@ export function mapProductModifierGroupAssignmentsToProduct(
       };
     })
     .filter((group) => Boolean(group.modifierGroupId));
-}
-
-export function mapProductEditorModifierGroupsToProduct(
-  modifierGroups: ProductEditorModifierGroupValues[],
-  availableModifierGroups: ModifierGroup[],
-): ProductModifierGroupLink[] {
-  return mapProductModifierGroupAssignmentsToProduct(modifierGroups, availableModifierGroups, {
-    allowEmptySortOrder: true,
-  });
-}
-
-export function validateProductModifierGroupsSection(
-  values: Pick<ProductEditorValues, 'modifierGroups'>,
-  availableModifierGroups: ModifierGroup[],
-): string | null {
-  return validateProductModifierGroupAssignments(values.modifierGroups, availableModifierGroups, {
-    allowEmptySortOrder: true,
-  });
 }

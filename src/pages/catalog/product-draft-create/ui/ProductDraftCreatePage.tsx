@@ -220,15 +220,10 @@ export function ProductDraftCreatePage() {
         title="Новый товар"
         description="Создайте выключенный черновик и продолжите заполнение в рабочей области продукта."
         actions={
-          <>
-            <Link className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'rounded-xl')} to="/products">
-              <ArrowLeftIcon className="size-4" />
-              К списку товаров
-            </Link>
-            <Link className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'rounded-xl')} to="/products/new/legacy">
-              Полная форма
-            </Link>
-          </>
+          <Link className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'rounded-xl')} to="/products">
+            <ArrowLeftIcon className="size-4" />
+            К списку товаров
+          </Link>
         }
       />
 
@@ -291,9 +286,6 @@ export function ProductDraftCreatePage() {
                   <FilePlus2Icon className="size-4" />
                   {isSaving ? 'Создание...' : 'Создать черновик'}
                 </Button>
-                <Link className={cn(buttonVariants({ variant: 'ghost', size: 'lg' }), 'rounded-xl')} to="/products/new/legacy">
-                  Открыть старую форму
-                </Link>
               </div>
             </form>
           ) : (

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { type Category, buildCategoryLookup, getCategories } from '@/entities/category';
 import { type ModifierGroup, getAllModifierGroups } from '@/entities/modifier-group';
 import {
@@ -55,6 +55,20 @@ const WORKSPACE_SECTIONS: WorkspaceSection[] = [
   { id: 'publishing', label: 'Публикация', hint: 'Готовность карточки' },
 ];
 
+function getWorkspaceSectionId(value: string | null): WorkspaceSectionId | null {
+  switch (value) {
+    case 'basic':
+    case 'media':
+    case 'pricing':
+    case 'variants':
+    case 'modifiers':
+    case 'publishing':
+      return value;
+    default:
+      return null;
+  }
+}
+
 function getProductTypeLabel(product: Product): string {
   return product.optionGroups.length || product.variants.length ? 'С вариантами' : 'Обычный';
 }
@@ -71,8 +85,10 @@ function WorkspaceMetric({ label, value, hint }: WorkspaceMetricProps) {
 
 export function ProductWorkspacePage() {
   const { productId } = useParams();
+  const [searchParams] = useSearchParams();
+  const requestedSection = searchParams.get('section');
   const normalizedProductId = useMemo(() => (productId ?? '').trim(), [productId]);
-  const [activeSection, setActiveSection] = useState<WorkspaceSectionId>('basic');
+  const [activeSection, setActiveSection] = useState<WorkspaceSectionId>(() => getWorkspaceSectionId(requestedSection) ?? 'basic');
   const [product, setProduct] = useState<Product | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([]);
@@ -183,6 +199,14 @@ export function ProductWorkspacePage() {
   useEffect(() => {
     void loadProduct({ showInitialLoader: true });
   }, [normalizedProductId]);
+
+  useEffect(() => {
+    const nextSection = getWorkspaceSectionId(requestedSection);
+
+    if (nextSection) {
+      setActiveSection(nextSection);
+    }
+  }, [requestedSection]);
 
   useEffect(() => {
     let isMounted = true;

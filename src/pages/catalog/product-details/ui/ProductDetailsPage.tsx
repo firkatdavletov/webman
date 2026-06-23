@@ -421,7 +421,7 @@ export function ProductDetailsPage() {
           return (
             <Link
               className="font-medium text-primary transition-colors hover:text-primary/80 hover:underline"
-              to={`/products/${normalizedProductId}/option-groups/${optionGroup.id}`}
+              to={`/products/${normalizedProductId}/workspace?section=variants`}
             >
               {optionGroup.code || `Группа #${row.index + 1}`}
             </Link>

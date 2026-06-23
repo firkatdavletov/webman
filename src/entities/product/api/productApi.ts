@@ -219,8 +219,7 @@ export type SaveProductResult = {
   error: string | null;
 };
 
-export type SaveProductOptions = {
-  replaceVariantConfiguration?: boolean;
+export type LegacyProductVariantConfigurationReplaceOptions = {
   deferActivationUntilVariantConfiguration?: boolean;
 };
 
@@ -971,37 +970,23 @@ export async function saveProductVariant(productId: string, variant: ProductVari
   }
 }
 
-export async function saveProduct(product: Product, options: SaveProductOptions = {}): Promise<SaveProductResult> {
+function getProductMediaSaveError(product: Product): string | null {
   if (hasMediaImagesWithMissingIds(product.images)) {
-    return {
-      product: null,
-      error:
-        'Нельзя сохранить товар: для части фотографий товара не хватает imageIds. Это может удалить фото товара при сохранении.',
-    };
+    return 'Нельзя сохранить товар: для части фотографий товара не хватает imageIds. Это может удалить фото товара при сохранении.';
   }
 
   if (product.variants.some((variant) => hasMediaImagesWithMissingIds(variant.images))) {
-    return {
-      product: null,
-      error:
-        'Нельзя сохранить товар: для части фотографий вариантов не хватает imageIds. Это может удалить фото варианта при сохранении.',
-    };
+    return 'Нельзя сохранить товар: для части фотографий вариантов не хватает imageIds. Это может удалить фото варианта при сохранении.';
   }
 
+  return null;
+}
+
+async function saveBaseProduct(product: Product): Promise<SaveProductResult> {
   try {
-    const shouldDeferActivation =
-      Boolean(options.replaceVariantConfiguration)
-      && Boolean(options.deferActivationUntilVariantConfiguration)
-      && product.isActive;
-    const baseProductForSave = shouldDeferActivation
-      ? {
-          ...product,
-          isActive: false,
-        }
-      : product;
     const result = await apiClient.POST('/api/v1/admin/catalog/products', {
       headers: buildAuthHeaders(),
-      body: mapSaveProductRequest(baseProductForSave),
+      body: mapSaveProductRequest(product),
     });
 
     if (result.error) {
@@ -1030,94 +1015,6 @@ export async function saveProduct(product: Product, options: SaveProductOptions 
       variants: product.variants,
     };
 
-    if (options.replaceVariantConfiguration) {
-      try {
-        const variantConfigurationResult = await adminProductsApiClient.PUT(
-          '/api/v1/admin/products/{productId}/variant-configuration',
-          {
-            headers: buildAuthHeaders(),
-            params: {
-              path: {
-                productId: result.data.id,
-              },
-            },
-            body: mapReplaceProductVariantConfigurationRequest(product),
-          },
-        );
-
-        if (variantConfigurationResult.error) {
-          return {
-            product: savedBaseProduct,
-            error: getProtectedErrorMessage(
-              variantConfigurationResult.error,
-              'Товар сохранен, но не удалось сохранить конфигурацию вариантов.',
-            ),
-          };
-        }
-
-        if (!variantConfigurationResult.data) {
-          return {
-            product: savedBaseProduct,
-            error: 'Сервис конфигурации вариантов вернул некорректный ответ.',
-          };
-        }
-
-        const savedProductWithVariants = mapProductDetails(variantConfigurationResult.data);
-
-        if (!shouldDeferActivation) {
-          return {
-            product: savedProductWithVariants,
-            error: null,
-          };
-        }
-
-        try {
-          const activationResult = await apiClient.POST('/api/v1/admin/catalog/products', {
-            headers: buildAuthHeaders(),
-            body: mapSaveProductRequest({
-              ...product,
-              id: result.data.id,
-            }),
-          });
-
-          if (activationResult.error) {
-            return {
-              product: savedProductWithVariants,
-              error: getProtectedErrorMessage(
-                activationResult.error,
-                'Конфигурация вариантов сохранена, но товар оставлен выключенным: не удалось включить товар.',
-              ),
-            };
-          }
-
-          if (!activationResult.data) {
-            return {
-              product: savedProductWithVariants,
-              error: 'Конфигурация вариантов сохранена, но товар оставлен выключенным: сервис включения товара вернул некорректный ответ.',
-            };
-          }
-
-          return {
-            product: {
-              ...savedProductWithVariants,
-              ...mapBaseProduct(activationResult.data),
-            },
-            error: null,
-          };
-        } catch {
-          return {
-            product: savedProductWithVariants,
-            error: 'Конфигурация вариантов сохранена, но товар оставлен выключенным: не удалось связаться с сервисом включения товара.',
-          };
-        }
-      } catch {
-        return {
-          product: savedBaseProduct,
-          error: 'Товар сохранен, но не удалось связаться с сервисом конфигурации вариантов.',
-        };
-      }
-    }
-
     return {
       product: savedBaseProduct,
       error: null,
@@ -1126,6 +1023,134 @@ export async function saveProduct(product: Product, options: SaveProductOptions 
     return {
       product: null,
       error: 'Не удалось связаться с сервисом сохранения товара.',
+    };
+  }
+}
+
+export async function saveProduct(product: Product): Promise<SaveProductResult> {
+  const mediaError = getProductMediaSaveError(product);
+
+  if (mediaError) {
+    return {
+      product: null,
+      error: mediaError,
+    };
+  }
+
+  return saveBaseProduct(product);
+}
+
+export async function saveProductWithLegacyVariantConfigurationReplace(
+  product: Product,
+  options: LegacyProductVariantConfigurationReplaceOptions = {},
+): Promise<SaveProductResult> {
+  const mediaError = getProductMediaSaveError(product);
+
+  if (mediaError) {
+    return {
+      product: null,
+      error: mediaError,
+    };
+  }
+
+  const shouldDeferActivation = Boolean(options.deferActivationUntilVariantConfiguration) && product.isActive;
+  const baseProductForSave = shouldDeferActivation
+    ? {
+        ...product,
+        isActive: false,
+      }
+    : product;
+  const baseSaveResult = await saveBaseProduct(baseProductForSave);
+
+  if (!baseSaveResult.product) {
+    return baseSaveResult;
+  }
+
+  const savedBaseProduct = baseSaveResult.product;
+
+  try {
+    const variantConfigurationResult = await adminProductsApiClient.PUT(
+      '/api/v1/admin/products/{productId}/variant-configuration',
+      {
+        headers: buildAuthHeaders(),
+        params: {
+          path: {
+            productId: savedBaseProduct.id,
+          },
+        },
+        body: mapReplaceProductVariantConfigurationRequest(product),
+      },
+    );
+
+    if (variantConfigurationResult.error) {
+      return {
+        product: savedBaseProduct,
+        error: getProtectedErrorMessage(
+          variantConfigurationResult.error,
+          'Товар сохранен, но не удалось сохранить конфигурацию вариантов.',
+        ),
+      };
+    }
+
+    if (!variantConfigurationResult.data) {
+      return {
+        product: savedBaseProduct,
+        error: 'Сервис конфигурации вариантов вернул некорректный ответ.',
+      };
+    }
+
+    const savedProductWithVariants = mapProductDetails(variantConfigurationResult.data);
+
+    if (!shouldDeferActivation) {
+      return {
+        product: savedProductWithVariants,
+        error: null,
+      };
+    }
+
+    try {
+      const activationResult = await apiClient.POST('/api/v1/admin/catalog/products', {
+        headers: buildAuthHeaders(),
+        body: mapSaveProductRequest({
+          ...product,
+          id: savedBaseProduct.id,
+        }),
+      });
+
+      if (activationResult.error) {
+        return {
+          product: savedProductWithVariants,
+          error: getProtectedErrorMessage(
+            activationResult.error,
+            'Конфигурация вариантов сохранена, но товар оставлен выключенным: не удалось включить товар.',
+          ),
+        };
+      }
+
+      if (!activationResult.data) {
+        return {
+          product: savedProductWithVariants,
+          error: 'Конфигурация вариантов сохранена, но товар оставлен выключенным: сервис включения товара вернул некорректный ответ.',
+        };
+      }
+
+      return {
+        product: {
+          ...savedProductWithVariants,
+          ...mapBaseProduct(activationResult.data),
+        },
+        error: null,
+      };
+    } catch {
+      return {
+        product: savedProductWithVariants,
+        error: 'Конфигурация вариантов сохранена, но товар оставлен выключенным: не удалось связаться с сервисом включения товара.',
+      };
+    }
+  } catch {
+    return {
+      product: savedBaseProduct,
+      error: 'Товар сохранен, но не удалось связаться с сервисом конфигурации вариантов.',
     };
   }
 }
