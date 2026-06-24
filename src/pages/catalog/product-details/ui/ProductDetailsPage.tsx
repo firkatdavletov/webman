@@ -1,5 +1,6 @@
 import { type ChangeEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
+import { PlusIcon } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { type Category, buildCategoryLookup, getCategories } from '@/entities/category';
 import {
@@ -41,6 +42,7 @@ import {
   Input,
   LazyDataTable,
   PriceInput,
+  buttonVariants,
 } from '@/shared/ui';
 
 type ProductModifierGroupFormValue = {
@@ -82,6 +84,14 @@ const PRODUCT_UNIT_OPTIONS: Array<{ value: Product['unit']; label: string }> = [
 ];
 const CONTROL_CLASSNAME =
   'h-8 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50';
+
+function getOptionGroupCreateUrl(productId: string): string {
+  return `/products/${productId}/workspace?section=variants&optionGroup=create`;
+}
+
+function getOptionGroupEditUrl(productId: string, optionGroupId: string): string {
+  return `/products/${productId}/workspace?section=variants&optionGroupId=${encodeURIComponent(optionGroupId)}`;
+}
 
 function UtilityStat({ label, value, hint, className }: UtilityStatProps) {
   return (
@@ -421,7 +431,7 @@ export function ProductDetailsPage() {
           return (
             <Link
               className="font-medium text-primary transition-colors hover:text-primary/80 hover:underline"
-              to={`/products/${normalizedProductId}/workspace?section=variants`}
+              to={getOptionGroupEditUrl(normalizedProductId, optionGroup.id)}
             >
               {optionGroup.code || `Группа #${row.index + 1}`}
             </Link>
@@ -442,6 +452,26 @@ export function ProductDetailsPage() {
         id: 'sortOrder',
         header: 'Sort order',
         cell: ({ row }) => row.original.sortOrder,
+      },
+      {
+        id: 'actions',
+        header: '',
+        cell: ({ row }) => {
+          const optionGroup = row.original;
+
+          if (!optionGroup.id) {
+            return null;
+          }
+
+          return (
+            <Link
+              className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'rounded-xl')}
+              to={getOptionGroupEditUrl(normalizedProductId, optionGroup.id)}
+            >
+              Изменить
+            </Link>
+          );
+        },
       },
     ],
     [normalizedProductId],
@@ -958,6 +988,12 @@ export function ProductDetailsPage() {
         eyebrow="Связи"
         title="Связанные группы опций"
         description="Список групп опций продукта. Для редактирования откройте нужную группу."
+        action={
+          <Link className={cn(buttonVariants({ size: 'lg' }), 'rounded-xl')} to={getOptionGroupCreateUrl(normalizedProductId)}>
+            <PlusIcon className="size-4" />
+            Добавить группу опций
+          </Link>
+        }
       >
         {product.optionGroups.length ? (
           <LazyDataTable

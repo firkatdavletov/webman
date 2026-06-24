@@ -193,13 +193,15 @@ function SuperAdminRoute({ children }: { children: ReactNode }) {
 }
 
 function ProductWorkspaceVariantsRedirect() {
-  const { productId } = useParams();
+  const { optionGroupId, productId } = useParams();
 
   if (!productId) {
     return <Navigate to="/products" replace />;
   }
 
-  return <Navigate to={`/products/${productId}/workspace?section=variants`} replace />;
+  const optionGroupSearchParam = optionGroupId ? `&optionGroupId=${encodeURIComponent(optionGroupId)}` : '';
+
+  return <Navigate to={`/products/${productId}/workspace?section=variants${optionGroupSearchParam}`} replace />;
 }
 
 export function AppRouter() {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
+import { useSearchParams } from 'react-router-dom';
 import {
   formatPrice,
   saveProductOptionGroup,
@@ -73,6 +74,9 @@ const tableWrapperClassName = 'overflow-x-auto rounded-2xl border border-border/
 const tableClassName = 'min-w-full border-separate border-spacing-0 text-sm';
 const headerClassName = 'px-3 py-2 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase';
 const cellClassName = 'px-3 py-2 align-middle';
+const OPTION_GROUP_ACTION_SEARCH_PARAM = 'optionGroup';
+const OPTION_GROUP_ID_SEARCH_PARAM = 'optionGroupId';
+const OPTION_GROUP_CREATE_ACTION = 'create';
 
 function getStatusClassName(isActive: boolean): string {
   return isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-border bg-muted/40 text-muted-foreground';
@@ -113,6 +117,9 @@ function getVariantRowId(variant: ProductVariant, index: number): string {
 }
 
 export function ProductVariantsSection({ onRefreshProduct, product }: ProductVariantsSectionProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedOptionGroupAction = searchParams.get(OPTION_GROUP_ACTION_SEARCH_PARAM);
+  const requestedOptionGroupId = searchParams.get(OPTION_GROUP_ID_SEARCH_PARAM);
   const [optionGroupDrawer, setOptionGroupDrawer] = useState<OptionGroupDrawerState | null>(null);
   const [optionValueDrawer, setOptionValueDrawer] = useState<OptionValueDrawerState | null>(null);
   const [variantDrawer, setVariantDrawer] = useState<VariantDrawerState | null>(null);
@@ -197,6 +204,33 @@ export function ProductVariantsSection({ onRefreshProduct, product }: ProductVar
     setMutationError('');
     setMutationSuccess('');
   };
+
+  useEffect(() => {
+    const shouldOpenCreateDrawer = requestedOptionGroupAction === OPTION_GROUP_CREATE_ACTION;
+
+    if (!shouldOpenCreateDrawer && !requestedOptionGroupId) {
+      return;
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete(OPTION_GROUP_ACTION_SEARCH_PARAM);
+    nextSearchParams.delete(OPTION_GROUP_ID_SEARCH_PARAM);
+    setSearchParams(nextSearchParams, { replace: true });
+
+    if (shouldOpenCreateDrawer) {
+      openOptionGroupCreateDrawer();
+      return;
+    }
+
+    const requestedOptionGroup = product.optionGroups.find((optionGroup) => optionGroup.id === requestedOptionGroupId);
+
+    if (!requestedOptionGroup) {
+      setMutationError('Группа опций не найдена в текущем снимке продукта.');
+      return;
+    }
+
+    openOptionGroupEditDrawer(requestedOptionGroup);
+  }, [product.optionGroups, requestedOptionGroupAction, requestedOptionGroupId, searchParams, setSearchParams]);
 
   const handleOptionGroupValueChange = (field: keyof OptionGroupFormValues, value: string) => {
     setOptionGroupDrawer((currentState) =>
